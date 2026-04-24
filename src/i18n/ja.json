@@ -1,0 +1,51 @@
+{
+  "common": {
+    "appName": "袋鼠君",
+    "loading": "読み込み中...",
+    "error": "エラーが発生しました",
+    "retry": "再試行",
+    "search": "検索",
+    "cart": "カート",
+    "checkout": "購入手続き",
+    "home": "ホーム",
+    "about": "会社概要",
+    "contact": "お問い合わせ"
+  },
+  "nav": {
+    "home": "ホーム",
+    "products": "商品一覧",
+    "about": "会社概要",
+    "contact": "お問い合わせ",
+    "cart": "カート"
+  },
+  "home": {
+    "hero": {
+      "title": "日本から世界へ",
+      "subtitle": "厳選された日本商品を海外の方へ",
+      "cta": "商品を見る"
+    },
+    "featured": "おすすめ商品",
+    "categories": "カテゴリー"
+  },
+  "product": {
+    "price": "価格",
+    "addToCart": "カートに追加",
+    "buyNow": "今すぐ購入",
+    "description": "商品説明",
+    "shipping": "配送について",
+    "inStock": "在庫あり",
+    "outOfStock": "在庫切れ"
+  },
+  "cart": {
+    "empty": "カートは空です",
+    "total": "合計",
+    "subtotal": "小計",
+    "shipping": "配送料",
+    "proceedToCheckout": "購入手続きへ"
+  },
+  "footer": {
+    "copyright": "© 2024 袋鼠君 All Rights Reserved.",
+    "privacy": "プライバシーポリシー",
+    "terms": "利用規約"
+  }
+}

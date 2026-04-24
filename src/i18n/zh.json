@@ -1,0 +1,51 @@
+{
+  "common": {
+    "appName": "袋鼠君",
+    "loading": "加载中...",
+    "error": "出错了",
+    "retry": "重试",
+    "search": "搜索",
+    "cart": "购物车",
+    "checkout": "结算",
+    "home": "首页",
+    "about": "关于我们",
+    "contact": "联系我们"
+  },
+  "nav": {
+    "home": "首页",
+    "products": "商品列表",
+    "about": "关于我们",
+    "contact": "联系我们",
+    "cart": "购物车"
+  },
+  "home": {
+    "hero": {
+      "title": "从日本到世界",
+      "subtitle": "精选日本商品，海外直邮",
+      "cta": "查看商品"
+    },
+    "featured": "推荐商品",
+    "categories": "分类"
+  },
+  "product": {
+    "price": "价格",
+    "addToCart": "加入购物车",
+    "buyNow": "立即购买",
+    "description": "商品说明",
+    "shipping": "配送说明",
+    "inStock": "有库存",
+    "outOfStock": "缺货"
+  },
+  "cart": {
+    "empty": "购物车是空的",
+    "total": "总计",
+    "subtotal": "小计",
+    "shipping": "运费",
+    "proceedToCheckout": "去结算"
+  },
+  "footer": {
+    "copyright": "© 2024 袋鼠君 All Rights Reserved.",
+    "privacy": "隐私政策",
+    "terms": "使用条款"
+  }
+}

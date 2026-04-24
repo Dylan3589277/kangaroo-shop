@@ -1,0 +1,51 @@
+{
+  "common": {
+    "appName": "Kangaroo Kun",
+    "loading": "Loading...",
+    "error": "Something went wrong",
+    "retry": "Retry",
+    "search": "Search",
+    "cart": "Cart",
+    "checkout": "Checkout",
+    "home": "Home",
+    "about": "About Us",
+    "contact": "Contact"
+  },
+  "nav": {
+    "home": "Home",
+    "products": "Products",
+    "about": "About Us",
+    "contact": "Contact",
+    "cart": "Cart"
+  },
+  "home": {
+    "hero": {
+      "title": "From Japan to the World",
+      "subtitle": "Carefully selected Japanese products, shipped worldwide",
+      "cta": "Browse Products"
+    },
+    "featured": "Featured Products",
+    "categories": "Categories"
+  },
+  "product": {
+    "price": "Price",
+    "addToCart": "Add to Cart",
+    "buyNow": "Buy Now",
+    "description": "Description",
+    "shipping": "Shipping",
+    "inStock": "In Stock",
+    "outOfStock": "Out of Stock"
+  },
+  "cart": {
+    "empty": "Your cart is empty",
+    "total": "Total",
+    "subtotal": "Subtotal",
+    "shipping": "Shipping",
+    "proceedToCheckout": "Proceed to Checkout"
+  },
+  "footer": {
+    "copyright": "© 2024 Kangaroo Kun All Rights Reserved.",
+    "privacy": "Privacy Policy",
+    "terms": "Terms of Service"
+  }
+}
