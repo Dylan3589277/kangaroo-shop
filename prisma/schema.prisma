@@ -133,3 +133,24 @@ model Admin {
 
   @@map("admins")
 }
+
+// ============================================
+// 经营仪表盘告警
+// ============================================
+model DashboardAlert {
+  id             String    @id @default(cuid())
+  metricId        String    @map("metric_id")
+  metricName     String    @map("metric_name")
+  module         String    // hr | finance | supply_chain | operation | influencer
+  status         String    // green | yellow | red
+  threshold      Float
+  currentValue   Float     @map("current_value")
+  assignee       String?
+  deadline       DateTime?
+  handlingResult String?   @map("handling_result")
+  handler        String?
+  resolvedAt     DateTime? @map("resolved_at")
+  createdAt      DateTime  @default(now()) @map("created_at")
+
+  @@map("dashboard_alerts")
+}

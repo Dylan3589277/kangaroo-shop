@@ -16,10 +16,16 @@
     "db:studio": "prisma studio"
   },
   "dependencies": {
+    "@ant-design/icons": "^6.1.1",
     "@prisma/client": "^5.22.0",
     "@stripe/react-stripe-js": "^6.2.0",
     "@stripe/stripe-js": "^9.2.0",
+    "antd": "^6.3.6",
+    "axios": "^1.15.2",
     "bcryptjs": "^3.0.3",
+    "dayjs": "^1.11.20",
+    "echarts": "^6.0.0",
+    "echarts-for-react": "^3.0.6",
     "next": "14.2.35",
     "next-auth": "4.24.11",
     "next-intl": "^4.9.1",
