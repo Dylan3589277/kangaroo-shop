@@ -7,7 +7,7 @@ generator client {
 
 datasource db {
   provider = "postgresql"
-  url      = env("PRISMA_DATABASE_URL")
+  url      = env("DATABASE_URL")
 }
 
 // ============================================
@@ -153,4 +153,44 @@ model DashboardAlert {
   createdAt      DateTime  @default(now()) @map("created_at")
 
   @@map("dashboard_alerts")
+}
+
+// ============================================
+// 优惠券/促销活动
+// ============================================
+model Promotion {
+  id                  String    @id @default(cuid())
+  code                String    @unique @map("code")              // 优惠券码
+  name                String    @map("name")                      // 活动名称
+  description         String?   @map("description")               // 描述
+
+  // 优惠类型与值
+  type                String    @default("percentage_discount")   // percentage_discount | fixed_discount | free_shipping
+  value               Int       @default(0)                       // 优惠值（百分比时为1-100，固定金额时为分）
+  maxDiscountAmount   Int?      @map("max_discount_amount")       // 最大折扣金额上限（分）
+
+  // 使用条件
+  minOrderAmount      Int       @default(0) @map("min_order_amount")   // 最低订单金额（分）
+  usageLimit          Int?      @map("usage_limit")                // 总使用次数限制
+  usedCount           Int       @default(0) @map("used_count")     // 已使用次数
+  perUserLimit        Int       @default(1) @map("per_user_limit")  // 每人限用次数
+
+  // 适用范围的商品/分类
+  applicableProducts  Json      @default("[]") @map("applicable_products")   // 适用商品ID数组，空数组=全部适用
+  applicableCategories Json      @default("[]") @map("applicable_categories") // 适用分类数组
+
+  // 时间
+  startDate           DateTime  @map("start_date")
+  endDate             DateTime  @map("end_date")
+
+  // 状态
+  isActive            Boolean   @default(true) @map("is_active")
+  isPublic            Boolean   @default(true) @map("is_public")    // 是否公开给用户
+  createdAt           DateTime  @default(now()) @map("created_at")
+  updatedAt           DateTime  @updatedAt @map("updated_at")
+
+  @@index([code])
+  @@index([isActive])
+  @@index([endDate])
+  @@map("promotions")
 }
