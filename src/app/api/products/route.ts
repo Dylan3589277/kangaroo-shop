@@ -13,11 +13,43 @@ export async function GET(req: NextRequest) {
     const search = searchParams.get('search');
     const page = parseInt(searchParams.get('page') ?? '1', 10);
     const pageSize = parseInt(searchParams.get('pageSize') ?? '50', 10);
+    const minPrice = searchParams.get('minPrice');
+    const maxPrice = searchParams.get('maxPrice');
+    const source = searchParams.get('source');
 
     const where: Record<string, unknown> = {};
+    
+    // category支持多选（逗号分隔如 brainrot,anime）
     if (category && category !== 'all') {
-      where.category = category;
+      const categories = category.split(',').map(c => c.trim()).filter(Boolean);
+      if (categories.length === 1) {
+        where.category = categories[0];
+      } else if (categories.length > 1) {
+        where.category = { in: categories };
+      }
     }
+    
+    // source支持多选（逗号分隔如 rakuten,amazon）
+    if (source && source !== 'all') {
+      const sources = source.split(',').map(s => s.trim()).filter(Boolean);
+      if (sources.length === 1) {
+        where.source = sources[0];
+      } else if (sources.length > 1) {
+        where.source = { in: sources };
+      }
+    }
+    
+    // 价格区间筛选
+    if (minPrice || maxPrice) {
+      where.price = {};
+      if (minPrice) {
+        (where.price as Record<string, number>).gte = parseInt(minPrice, 10);
+      }
+      if (maxPrice) {
+        (where.price as Record<string, number>).lte = parseInt(maxPrice, 10);
+      }
+    }
+    
     // 防SQL注入：使用Prisma的contains进行模糊搜索
     if (search && search.trim()) {
       where.title = { contains: search.trim(), mode: 'insensitive' };
