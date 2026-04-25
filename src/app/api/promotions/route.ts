@@ -7,11 +7,11 @@ export const runtime = 'nodejs';
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
-    const { code, orderAmount, productIds, categoryIds, userId } = body;
+    const { code, subtotal } = body;
 
-    if (!code || typeof orderAmount !== 'number') {
+    if (!code || typeof subtotal !== 'number') {
       return NextResponse.json(
-        { error: 'code and orderAmount are required' },
+        { error: 'code and subtotal are required' },
         { status: 400 }
       );
     }
@@ -68,7 +68,7 @@ export async function POST(req: NextRequest) {
     }
 
     // 6. 检查最低订单金额
-    if (orderAmount < promotion.minOrderAmount) {
+    if (subtotal < promotion.minOrderAmount) {
       return NextResponse.json(
         { 
           valid: false, 
@@ -85,15 +85,15 @@ export async function POST(req: NextRequest) {
     // 如果没有指定适用范围，则全部适用
     const isAllApplicable = applicableProducts.length === 0 && applicableCategories.length === 0;
 
-    let applicableAmount = orderAmount;
+    let applicableAmount = subtotal;
     let discountAmount = 0;
 
     if (isAllApplicable) {
       // 全部商品适用
-      applicableAmount = orderAmount;
+      applicableAmount = subtotal;
     } else {
       // 部分商品适用 - 返回适用金额供前端确认
-      applicableAmount = orderAmount; // 前端需传入productIds来精确计算
+      applicableAmount = subtotal; // 前端需传入productIds来精确计算
     }
 
     // 8. 计算折扣
@@ -126,7 +126,7 @@ export async function POST(req: NextRequest) {
     }
 
     // 确保折扣不超过订单金额
-    discountAmount = Math.min(discountAmount, orderAmount);
+    discountAmount = Math.min(discountAmount, subtotal);
 
     return NextResponse.json({
       valid: true,
@@ -142,7 +142,7 @@ export async function POST(req: NextRequest) {
         freeShipping: promotion.type === 'free_shipping',
       },
       applicableAmount,
-      finalAmount: orderAmount - discountAmount,
+      finalAmount: subtotal - discountAmount,
     });
   } catch (err) {
     const message = err instanceof Error ? err.message : 'Unknown error';

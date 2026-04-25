@@ -52,8 +52,39 @@ export default function CartPage({
   // 当前待确认的 orderId
   const [currentOrderId, setCurrentOrderId] = useState<string | null>(returnOrderId);
 
+  const [discountCode, setDiscountCode] = useState('');
+  const [discountResult, setDiscountResult] = useState<{code: string; discount: number; name: string} | null>(null);
+  const [discountError, setDiscountError] = useState('');
+  const [discountLoading, setDiscountLoading] = useState(false);
+
+  const discountAmount = discountResult?.discount ?? 0;
   const subtotal = totalPrice;
-  const total = useMemo(() => subtotal + shippingCost, [subtotal, shippingCost]);
+  const total = useMemo(() => subtotal + shippingCost - discountAmount, [subtotal, shippingCost, discountAmount]);
+
+  const handleApplyDiscount = async () => {
+    if (!discountCode.trim()) return;
+    setDiscountError('');
+    setDiscountLoading(true);
+    try {
+      const res = await fetch('/api/promotions', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ code: discountCode.trim(), subtotal }),
+      });
+      const data = await res.json();
+      if (data.valid) {
+        setDiscountResult({ code: data.promotion.code, discount: data.promotion.discount, name: data.promotion.name });
+        setDiscountCode('');
+      } else {
+        setDiscountError(data.error || '折扣码无效');
+        setDiscountResult(null);
+      }
+    } catch {
+      setDiscountError(locale === 'ja' ? '検証に失敗しました' : locale === 'zh' ? '验证失败' : 'Validation failed');
+    } finally {
+      setDiscountLoading(false);
+    }
+  };
 
   // 选中快递时更新运费
   useEffect(() => {
@@ -356,6 +387,54 @@ export default function CartPage({
               <span>{t.subtotal}</span>
               <span>{formatPrice(subtotal)}</span>
             </div>
+
+            {/* 折扣码输入 */}
+            {discountResult ? (
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 'var(--space-3)', fontSize: 'var(--text-sm)', color: 'var(--color-success)' }}>
+                <span>
+                  🎟 {discountResult.name} (−{formatPrice(discountResult.discount)})
+                </span>
+                <button
+                  onClick={() => { setDiscountResult(null); setDiscountError(''); }}
+                  style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--color-text-muted)', fontSize: 'var(--text-xs)' }}
+                >
+                  ✕
+                </button>
+              </div>
+            ) : (
+              <div style={{ display: 'flex', gap: 'var(--space-2)', marginBottom: 'var(--space-3)' }}>
+                <input
+                  type="text"
+                  value={discountCode}
+                  onChange={e => setDiscountCode(e.target.value)}
+                  onKeyDown={e => e.key === 'Enter' && handleApplyDiscount()}
+                  placeholder={locale === 'ja' ? '折扣碼' : locale === 'zh' ? '折扣码' : 'Coupon code'}
+                  style={{
+                    flex: 1, padding: '6px 10px', borderRadius: 'var(--radius-sm)',
+                    border: '1px solid var(--color-border)', fontSize: 'var(--text-sm)',
+                    background: 'var(--color-bg)',
+                  }}
+                />
+                <button
+                  onClick={handleApplyDiscount}
+                  disabled={discountLoading || !discountCode.trim()}
+                  style={{
+                    padding: '6px 12px', borderRadius: 'var(--radius-sm)',
+                    border: 'none', fontSize: 'var(--text-sm)', cursor: 'pointer',
+                    background: discountLoading ? 'var(--color-border)' : 'var(--color-primary)',
+                    color: '#fff',
+                  }}
+                >
+                  {discountLoading ? '...' : (locale === 'ja' ? '適用' : locale === 'zh' ? '应用' : 'Apply')}
+                </button>
+              </div>
+            )}
+            {discountError && (
+              <div style={{ fontSize: 'var(--text-xs)', color: 'var(--color-error)', marginBottom: 'var(--space-3)' }}>
+                ⚠ {discountError}
+              </div>
+            )}
+
             <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 'var(--space-3)', fontSize: 'var(--text-sm)', color: 'var(--color-text-secondary)' }}>
               <span>{t.shippingFee}</span>
               <span style={{ color: selectedCourier ? 'var(--color-text)' : 'var(--color-text-muted)' }}>
