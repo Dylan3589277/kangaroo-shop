@@ -36,6 +36,7 @@ model Product {
 
   orderItems  OrderItem[]
   reviewItems  Review[]
+  wishlists   Wishlist[]
 
   @@map("products")
 }
@@ -215,4 +216,19 @@ model Review {
   @@index([productId])
   @@index([isApproved])
   @@map("reviews")
+}
+
+// ============================================
+// 心愿单/收藏
+// ============================================
+model Wishlist {
+  id        String   @id @default(cuid())
+  sessionId String   @map("session_id")
+  productId String   @map("product_id")
+  product  Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now()) @map("created_at")
+
+  @@unique([sessionId, productId])
+  @@index([sessionId])
+  @@map("wishlists")
 }
