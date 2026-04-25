@@ -3,6 +3,9 @@ import type { NextRequest } from 'next/server';
 import { locales } from '@/i18n/routing';
 import { routing } from '@/i18n/routing';
 
+// 强制 Node.js Runtime（middleware 默认是 Edge，但 IP 检测 fetch 在某些环境受限）
+export const runtime = 'nodejs';
+
 const DEFAULT_LOCALE = routing.defaultLocale;
 
 // 语言映射：国家代码 → locale

@@ -1,10 +1,11 @@
 import { notFound } from 'next/navigation';
 import Image from 'next/image';
 import Link from 'next/link';
-import { MOCK_PRODUCTS, formatPrice, parseProductImages } from '@/lib/products';
+import { formatPrice, parseProductImages } from '@/lib/products';
 import { AddToCartButton } from '@/components/features/AddToCartButton';
 import { ProductReviews } from '@/components/features/ProductReviews';
 import { WishlistButton } from '@/components/features/WishlistButton';
+import { prisma } from '@/lib/prisma';
 
 interface Props {
   params: Promise<{ locale: string; id: string }>;
@@ -12,7 +13,11 @@ interface Props {
 
 export default async function ProductDetailPage({ params }: Props) {
   const { locale, id } = await params;
-  const product = MOCK_PRODUCTS.find(p => p.id === id);
+
+  // Fetch real product from database via Prisma (supports UUID IDs)
+  const product = await prisma.product.findUnique({
+    where: { id, isActive: true },
+  });
 
   if (!product) notFound();
 
@@ -42,11 +47,19 @@ export default async function ProductDetailPage({ params }: Props) {
     rakuten: '楽天市場', zozotown: 'ZOZO', amazon: 'Amazon', mercari: 'メルカリ', own: '自社商品',
   };
 
-  const related = MOCK_PRODUCTS.filter(p => p.category === product.category && p.id !== product.id).slice(0, 3);
+  // Fetch related products from same category
+  const related = await prisma.product.findMany({
+    where: {
+      category: product.category,
+      isActive: true,
+      id: { not: product.id },
+    },
+    take: 3,
+    orderBy: { createdAt: 'desc' },
+  });
 
   const infoRows = [
     { label: product.inStock ? t.inStock : t.outOfStock, value: product.inStock ? t.inStock : t.outOfStock, color: product.inStock ? 'var(--color-success)' : 'var(--color-error)' },
-    ...(product.size ? [{ label: t.size, value: product.size, color: undefined }] : []),
     ...(product.weight ? [{ label: t.weight, value: `${product.weight}g`, color: undefined }] : []),
     { label: t.source, value: sourceLabel[product.source ?? 'own'] ?? product.source ?? 'own', color: undefined },
   ];
@@ -123,13 +136,6 @@ export default async function ProductDetailPage({ params }: Props) {
             )}
           </div>
 
-          {/* 标签 */}
-          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 'var(--space-2)', marginBottom: 'var(--space-5)' }}>
-            {(product.tags ?? []).map(tag => (
-              <span key={tag} className="badge">{tag}</span>
-            ))}
-          </div>
-
           {/* 信息列表 */}
           <div style={{ marginBottom: 'var(--space-5)', padding: 'var(--space-4)', background: 'var(--color-bg-alt)', borderRadius: 'var(--radius-sm)' }}>
             {infoRows.map((item) => (
@@ -197,6 +203,10 @@ export default async function ProductDetailPage({ params }: Props) {
   );
 }
 
+// 强制动态渲染（避免 build 时 Prisma 无法连接数据库）
+export const dynamic = 'force-dynamic';
+
 export async function generateStaticParams() {
-  return MOCK_PRODUCTS.map(p => ({ id: p.id }));
+  // Skip pre-rendering at build time — product pages are rendered on demand
+  return [];
 }

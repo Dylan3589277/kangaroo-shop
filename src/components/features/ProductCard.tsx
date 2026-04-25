@@ -36,6 +36,14 @@ export function ProductCard({ product, locale }: ProductCardProps) {
     own: '自社',
   };
 
+  // Localized button texts
+  const buttonLabels = {
+    ja: { add: 'カートに追加', added: '✓ 追加済み！カートへ →', outOfStock: '在庫切れ' },
+    zh: { add: '加入购物车', added: '✓ 已添加！前往购物车 →', outOfStock: '缺货' },
+    en: { add: 'Add to Cart', added: '✓ Added! Go to Cart →', outOfStock: 'Out of Stock' },
+  };
+  const t = buttonLabels[locale as keyof typeof buttonLabels] ?? buttonLabels.ja;
+
   return (
     <article className="card" style={{ position: 'relative' }}>
       {/* 图片 */}
@@ -62,7 +70,7 @@ export function ProductCard({ product, locale }: ProductCardProps) {
             background: 'rgba(0,0,0,0.4)',
             display: 'flex', alignItems: 'center', justifyContent: 'center',
           }}>
-            <span style={{ color: '#fff', fontWeight: 700, fontSize: '0.875rem' }}>在庫切れ</span>
+            <span style={{ color: '#fff', fontWeight: 700, fontSize: '0.875rem' }}>{t.outOfStock}</span>
           </div>
         )}
       </div>
@@ -107,7 +115,7 @@ export function ProductCard({ product, locale }: ProductCardProps) {
             style={{ width: '100%', fontSize: 'var(--text-xs)', padding: '0.4rem', background: 'var(--color-success)', color: '#fff', border: 'none' }}
             onClick={handleGoToCart}
           >
-            ✓ 追加済み！カートへ →
+            {t.added}
           </button>
         ) : (
           <button
@@ -116,7 +124,7 @@ export function ProductCard({ product, locale }: ProductCardProps) {
             onClick={handleAddToCart}
             style={{ width: '100%', fontSize: 'var(--text-xs)', padding: '0.4rem' }}
           >
-            {product.inStock ? 'カートに追加' : '在庫切れ'}
+            {product.inStock ? t.add : t.outOfStock}
           </button>
         )}
       </div>

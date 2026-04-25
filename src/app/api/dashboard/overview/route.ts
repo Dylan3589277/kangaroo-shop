@@ -1,17 +1,22 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
+import { refreshDashboardAlerts } from '@/lib/dashboard-alerts';
 
 export async function GET() {
   try {
+    // Refresh auto-generated alerts before fetching overview
+    await refreshDashboardAlerts();
+
     const now = new Date();
     const thirtyDaysAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
 
-    const [recentOrders, allPaidOrders, products, alerts] = await Promise.all([
+    const [recentOrders, allPaidOrders, allOrders, products, alerts] = await Promise.all([
       prisma.order.findMany({
         where: { createdAt: { gte: thirtyDaysAgo } },
         include: { items: true },
       }),
       prisma.order.findMany({ where: { paymentStatus: 'paid' } }),
+      prisma.order.findMany(),
       prisma.product.findMany({ where: { isActive: true } }),
       prisma.dashboardAlert.findMany({
         where: { resolvedAt: null },
@@ -30,8 +35,12 @@ export async function GET() {
       ? recentOrders.reduce((sum, o) => sum + o.total, 0) / monthOrderCount
       : 0;
 
-    // 计算转化率（临时用固定值，后续需埋点）
-    const conversionRate = 3.2;
+    // 计算转化率（使用 paid 订单占总订单的大致比例，后续可对接埋点）
+    const totalOrderCount = allOrders.length;
+    const paidOrderCount = allPaidOrders.length;
+    const conversionRate = totalOrderCount > 0
+      ? Math.round((paidOrderCount / totalOrderCount) * 100 * 10) / 10
+      : 0;
 
     // 计算平均评分
     const avgRating = products.length > 0
@@ -81,10 +90,10 @@ export async function GET() {
         name: '转化率',
         value: conversionRate,
         unit: '%',
-        status: conversionRate > 3 ? 'green' as const : 'yellow' as const,
+        status: conversionRate > 30 ? 'green' as const : conversionRate > 15 ? 'yellow' as const : 'red' as const,
         trend: 0.5,
         trendDirection: 'up' as const,
-        threshold: { yellow: 3, red: 2 },
+        threshold: { yellow: 30, red: 15 },
       },
       {
         id: 'rating',
@@ -108,8 +117,9 @@ export async function GET() {
       },
     ];
 
-    // 生成趋势数据（最近30天每日营收）
+    // 生成趋势数据（最近30天每日营收和订单数）
     const dailyRevenue: { date: string; value: number }[] = [];
+    const dailyOrderCount: { date: string; value: number }[] = [];
     for (let i = 29; i >= 0; i--) {
       const date = new Date(now.getTime() - i * 24 * 60 * 60 * 1000);
       const dateStr = date.toISOString().split('T')[0];
@@ -119,9 +129,11 @@ export async function GET() {
       });
       const dayRevenue = dayOrders.reduce((sum, o) => sum + o.total, 0);
       dailyRevenue.push({ date: dateStr, value: dayRevenue });
+      dailyOrderCount.push({ date: dateStr, value: dayOrders.length });
     }
     const trendData: Record<string, { date: string; value: number }[]> = {
       revenue: dailyRevenue,
+      'order-count': dailyOrderCount,
     };
 
     return NextResponse.json({

@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
+import { refreshDashboardAlerts } from '@/lib/dashboard-alerts';
 
 // 模块类型
 type ModuleType = 'hr' | 'finance' | 'supply_chain' | 'operation' | 'influencer';
@@ -77,13 +78,17 @@ export async function GET(
       const now = new Date();
       const thirtyDaysAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
 
-      const [recentOrders, products, allPaidOrders] = await Promise.all([
+      // Refresh auto-generated alerts
+      await refreshDashboardAlerts();
+
+      const [recentOrders, products, allPaidOrders, allOrders] = await Promise.all([
         prisma.order.findMany({
           where: { createdAt: { gte: thirtyDaysAgo } },
           include: { items: true },
         }),
         prisma.product.findMany({ where: { isActive: true } }),
         prisma.order.findMany({ where: { paymentStatus: 'paid' } }),
+        prisma.order.findMany(),
       ]);
 
       const avgOrderValue = recentOrders.length > 0
@@ -99,16 +104,23 @@ export async function GET(
         ? (refundedCount / allPaidOrders.length) * 100
         : 0;
 
+      // 计算转化率
+      const totalOrderCount = allOrders.length;
+      const paidOrderCount = allPaidOrders.length;
+      const conversionRate = totalOrderCount > 0
+        ? Math.round((paidOrderCount / totalOrderCount) * 100 * 10) / 10
+        : 0;
+
       const metrics = [
         {
           id: 'conversion-rate',
           name: '转化率',
-          value: 3.2,
+          value: conversionRate,
           unit: '%',
-          status: 'green',
+          status: conversionRate > 30 ? 'green' : conversionRate > 15 ? 'yellow' : 'red',
           trend: 0.5,
           trendDirection: 'up',
-          threshold: { yellow: 3, red: 2 },
+          threshold: { yellow: 30, red: 15 },
         },
         {
           id: 'avg-order-value',

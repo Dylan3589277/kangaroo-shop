@@ -11,6 +11,7 @@ export function getStripe(): Stripe {
     }
     _stripe = new Stripe(key, {
       apiVersion: '2026-03-25.dahlia',
+      timeout: 30_000, // 30s timeout — resolves Edge Runtime / Vercel network restriction
       typescript: true,
     });
   }

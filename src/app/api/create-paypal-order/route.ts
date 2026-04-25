@@ -3,6 +3,15 @@ import { NextRequest, NextResponse } from 'next/server';
 // 强制使用 Node.js Runtime（解决 Edge Runtime 无法认证 PayPal 的问题）
 export const runtime = 'nodejs';
 
+// 根据环境变量返回 PayPal API 基础 URL
+function getPaypalBaseUrl(): string {
+  const env = process.env.PAYPAL_ENVIRONMENT;
+  if (env === 'live' || env === 'production') {
+    return 'https://api-m.paypal.com';
+  }
+  return 'https://api-m.sandbox.paypal.com';
+}
+
 export async function POST(req: NextRequest) {
   try {
     const { amount, currency = 'JPY' } = await req.json();
@@ -19,7 +28,7 @@ export async function POST(req: NextRequest) {
     const cleanClientSecret = clientSecret.replace(/[\n\r]/g, '');
     const encodedCredentials = Buffer.from(cleanClientId + ':' + cleanClientSecret).toString('base64');
 
-    const tokenRes = await fetch('https://api-m.sandbox.paypal.com/v1/oauth2/token', {
+    const tokenRes = await fetch(getPaypalBaseUrl() + '/v1/oauth2/token', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/x-www-form-urlencoded',
@@ -39,7 +48,7 @@ export async function POST(req: NextRequest) {
     const currencyCode = currency === 'jpy' ? 'JPY' : currency.toUpperCase();
     const value = currencyCode === 'JPY' ? String(Math.round(amount)) : (amount / 100).toFixed(2);
 
-    const orderRes = await fetch('https://api-m.sandbox.paypal.com/v2/checkout/orders', {
+    const orderRes = await fetch(getPaypalBaseUrl() + '/v2/checkout/orders', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',

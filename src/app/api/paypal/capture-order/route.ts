@@ -4,6 +4,15 @@ import { prisma } from '@/lib/prisma';
 // 强制 Node.js Runtime
 export const runtime = 'nodejs';
 
+// 根据环境变量返回 PayPal API 基础 URL
+function getPaypalBaseUrl(): string {
+  const env = process.env.PAYPAL_ENVIRONMENT;
+  if (env === 'live' || env === 'production') {
+    return 'https://api-m.paypal.com';
+  }
+  return 'https://api-m.sandbox.paypal.com';
+}
+
 /**
  * PayPal 支付完成后回调此接口
  * 前端从 PayPal return_url 回来时，带着 token（PayPal Order ID）
@@ -40,7 +49,7 @@ export async function POST(req: NextRequest) {
     const encodedCredentials = Buffer.from(cleanClientId + ':' + cleanClientSecret).toString('base64');
 
     // 获取 Access Token
-    const tokenRes = await fetch('https://api-m.sandbox.paypal.com/v1/oauth2/token', {
+    const tokenRes = await fetch(getPaypalBaseUrl() + '/v1/oauth2/token', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/x-www-form-urlencoded',
@@ -57,7 +66,7 @@ export async function POST(req: NextRequest) {
     const { access_token } = await tokenRes.json();
 
     // 捕获 PayPal 订单（完成支付）
-    const captureRes = await fetch(`https://api-m.sandbox.paypal.com/v2/checkout/orders/${paypalOrderId}/capture`, {
+    const captureRes = await fetch(`${getPaypalBaseUrl()}/v2/checkout/orders/${paypalOrderId}/capture`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',

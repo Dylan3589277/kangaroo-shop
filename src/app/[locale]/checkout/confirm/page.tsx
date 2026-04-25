@@ -122,7 +122,7 @@ function ConfirmContent({ locale }: { locale: string }) {
           return;
         }
         // PayPal: 根据环境选择 live 或 sandbox
-        const isSandbox = process.env.PAYPAL_ENVIRONMENT === 'sandbox' || !process.env.PAYPAL_ENVIRONMENT;
+        const isSandbox = process.env.NEXT_PUBLIC_PAYPAL_ENVIRONMENT === 'sandbox' || !process.env.NEXT_PUBLIC_PAYPAL_ENVIRONMENT;
         const paypalBase = isSandbox ? 'https://www.sandbox.paypal.com' : 'https://www.paypal.com';
         const returnUrl = `${window.location.origin}/${locale}/checkout/paypal/return?token=${data.orderID}&orderId=${order.id}`;
         window.location.href = `${paypalBase}/checkoutnow?token=${data.orderID}&return_url=${encodeURIComponent(returnUrl)}&cancel_url=${encodeURIComponent(`${window.location.origin}/${locale}/checkout/cancel?orderId=${order.id}`)}`;
