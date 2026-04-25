@@ -1,6 +1,8 @@
 import { Link } from '@/i18n/routing';
 import { ProductCard } from '@/components/features/ProductCard';
 import { prisma } from '@/lib/prisma';
+import { SearchForm } from '@/components/features/SearchForm';
+import { Suspense } from 'react';
 
 export const dynamic = 'force-dynamic'; // 始终从数据库读取，不缓存
 
@@ -20,9 +22,10 @@ function getCategoryLabel(cat: typeof CATEGORIES[number], locale: string) {
   return cat.label;
 }
 
-function buildPageUrl(basePath: string, category: string, page: number) {
+function buildPageUrl(basePath: string, category: string, page: number, search?: string) {
   const params = new URLSearchParams();
   if (category !== 'all') params.set('category', category);
+  if (search) params.set('search', search);
   if (page > 1) params.set('page', String(page));
   const qs = params.toString();
   return qs ? `${basePath}?${qs}` : basePath;
@@ -33,37 +36,38 @@ export default async function ProductsPage({
   searchParams,
 }: {
   params: Promise<{ locale: string }>;
-  searchParams: Promise<{ category?: string; page?: string }>;
+  searchParams: Promise<{ category?: string; page?: string; search?: string }>;
 }) {
   const { locale } = await params;
-  const { category, page: pageParam } = await searchParams;
+  const { category, page: pageParam, search: searchParam } = await searchParams;
   const activeCategory = category || 'all';
+  const activeSearch = searchParam || '';
   const currentPage = Math.max(1, parseInt(pageParam ?? '1', 10));
   const skip = (currentPage - 1) * PAGE_SIZE;
 
+  const where: Record<string, unknown> = {
+    isActive: true,
+    ...(activeCategory !== 'all' ? { category: activeCategory } : {}),
+    ...(activeSearch ? { title: { contains: activeSearch, mode: 'insensitive' } } : {}),
+  };
+
   const [products, total] = await Promise.all([
     prisma.product.findMany({
-      where: {
-        isActive: true,
-        ...(activeCategory !== 'all' ? { category: activeCategory } : {}),
-      },
+      where,
       orderBy: { createdAt: 'desc' },
       skip,
       take: PAGE_SIZE,
     }),
-    prisma.product.count({
-      where: {
-        isActive: true,
-        ...(activeCategory !== 'all' ? { category: activeCategory } : {}),
-      },
-    }),
+    prisma.product.count({ where }),
   ]);
 
   const totalPages = Math.ceil(total / PAGE_SIZE);
 
   const labels = {
     title: locale === 'ja' ? '商品一覧' : locale === 'zh' ? '商品列表' : 'Products',
-    empty: locale === 'ja' ? 'このカテゴリーの商品はありません' : locale === 'zh' ? '该分类暂无商品' : 'No products in this category',
+    empty: activeSearch
+      ? (locale === 'ja' ? '未找到相关商品' : locale === 'zh' ? '未找到相关商品' : 'No products found')
+      : (locale === 'ja' ? 'このカテゴリーの商品はありません' : locale === 'zh' ? '该分类暂无商品' : 'No products in this category'),
     prev: locale === 'ja' ? '前へ' : locale === 'zh' ? '上一页' : 'Prev',
     next: locale === 'ja' ? '次へ' : locale === 'zh' ? '下一页' : 'Next',
     pageOf: locale === 'ja' ? 'ページ' : locale === 'zh' ? '第' : 'Page',
@@ -79,12 +83,17 @@ export default async function ProductsPage({
         {labels.title}
       </h1>
 
+      {/* 搜索框 */}
+      <Suspense fallback={<div className="search-form-loading">Loading...</div>}>
+        <SearchForm />
+      </Suspense>
+
       {/* 分类 Tab */}
       <div className="category-tab">
         {CATEGORIES.map(cat => (
           <Link
             key={cat.key}
-            href={buildPageUrl(basePath, cat.key, 1)}
+            href={buildPageUrl(basePath, cat.key, 1, activeSearch)}
             className={`category-tab-link${activeCategory === cat.key ? ' active' : ''}`}
           >
             {getCategoryLabel(cat, locale)}
@@ -109,7 +118,7 @@ export default async function ProductsPage({
           {totalPages > 1 && (
             <nav className="pagination" aria-label="分页">
               <Link
-                href={buildPageUrl(basePath, activeCategory, currentPage - 1)}
+                href={buildPageUrl(basePath, activeCategory, currentPage - 1, activeSearch)}
                 className="pagination-btn"
                 aria-disabled={currentPage <= 1}
                 style={currentPage <= 1 ? { pointerEvents: 'none', opacity: 0.4 } : undefined}
@@ -130,7 +139,7 @@ export default async function ProductsPage({
                   ) : (
                     <Link
                       key={p}
-                      href={buildPageUrl(basePath, activeCategory, p as number)}
+                      href={buildPageUrl(basePath, activeCategory, p as number, activeSearch)}
                       className={`pagination-btn${currentPage === p ? ' active' : ''}`}
                     >
                       {p}
@@ -139,7 +148,7 @@ export default async function ProductsPage({
                 )}
 
               <Link
-                href={buildPageUrl(basePath, activeCategory, currentPage + 1)}
+                href={buildPageUrl(basePath, activeCategory, currentPage + 1, activeSearch)}
                 className="pagination-btn"
                 aria-disabled={currentPage >= totalPages}
                 style={currentPage >= totalPages ? { pointerEvents: 'none', opacity: 0.4 } : undefined}

@@ -5,17 +5,22 @@ import { authOptions } from '@/lib/auth';
 
 export const runtime = 'nodejs';
 
-// GET /api/products - 列表（支持分类筛选）
+// GET /api/products - 列表（支持分类筛选和搜索）
 export async function GET(req: NextRequest) {
   try {
     const { searchParams } = new URL(req.url);
     const category = searchParams.get('category');
+    const search = searchParams.get('search');
     const page = parseInt(searchParams.get('page') ?? '1', 10);
     const pageSize = parseInt(searchParams.get('pageSize') ?? '50', 10);
 
     const where: Record<string, unknown> = {};
     if (category && category !== 'all') {
       where.category = category;
+    }
+    // 防SQL注入：使用Prisma的contains进行模糊搜索
+    if (search && search.trim()) {
+      where.title = { contains: search.trim(), mode: 'insensitive' };
     }
     const activeParam = searchParams.get('active');
     if (activeParam !== null) {
