@@ -3,6 +3,7 @@ import Image from 'next/image';
 import Link from 'next/link';
 import { MOCK_PRODUCTS, formatPrice, parseProductImages } from '@/lib/products';
 import { AddToCartButton } from '@/components/features/AddToCartButton';
+import { ProductReviews } from '@/components/features/ProductReviews';
 
 interface Props {
   params: Promise<{ locale: string; id: string }>;
@@ -165,6 +166,9 @@ export default async function ProductDetailPage({ params }: Props) {
           {product.description}
         </p>
       </section>
+
+      {/* 商品评价 */}
+      <ProductReviews productId={product.id} locale={locale} initialReviewCount={product.reviews ?? 0} />
 
       {/* 相关商品 */}
       {related.length > 0 && (
