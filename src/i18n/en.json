@@ -47,5 +47,12 @@
     "copyright": "© 2024 Kangaroo Kun All Rights Reserved.",
     "privacy": "Privacy Policy",
     "terms": "Terms of Service"
+  },
+  "wishlist": {
+    "title": "My Wishlist",
+    "empty": "No items in your wishlist",
+    "continue": "Continue Shopping",
+    "remove": "Remove",
+    "added": "Added"
   }
 }

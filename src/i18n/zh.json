@@ -47,5 +47,12 @@
     "copyright": "© 2024 袋鼠君 All Rights Reserved.",
     "privacy": "隐私政策",
     "terms": "使用条款"
+  },
+  "wishlist": {
+    "title": "我的收藏",
+    "empty": "暂无收藏商品",
+    "continue": "继续购物",
+    "remove": "移除",
+    "added": "收藏于"
   }
 }

@@ -5,6 +5,11 @@ export const runtime = 'nodejs';
 
 const SESSION_COOKIE = 'wishlist_session';
 
+// Simple validation without Zod (not installed)
+function validateProductId(productId: unknown): productId is string {
+  return typeof productId === 'string' && productId.length > 0;
+}
+
 // GET /api/wishlist — 获取当前用户的心愿单
 export async function GET(request: NextRequest) {
   try {
@@ -28,7 +33,8 @@ export async function GET(request: NextRequest) {
       })),
       total: items.length,
     });
-  } catch {
+  } catch (error) {
+    console.error('[Wishlist GET]', error);
     return NextResponse.json({ error: 'Server error' }, { status: 500 });
   }
 }
@@ -37,6 +43,21 @@ export async function GET(request: NextRequest) {
 export async function POST(request: NextRequest) {
   try {
     const { productId } = await request.json();
+
+    // Validate productId
+    if (!validateProductId(productId)) {
+      return NextResponse.json({ error: 'Invalid productId' }, { status: 400 });
+    }
+
+    // Check if product exists
+    const product = await prisma.product.findUnique({
+      where: { id: productId, isActive: true },
+    });
+
+    if (!product) {
+      return NextResponse.json({ error: 'Product not found' }, { status: 404 });
+    }
+
     let sessionId = request.cookies.get(SESSION_COOKIE)?.value;
 
     if (!sessionId) {
@@ -66,7 +87,8 @@ export async function POST(request: NextRequest) {
       });
     }
     return response;
-  } catch {
+  } catch (error) {
+    console.error('[Wishlist POST]', error);
     return NextResponse.json({ error: 'Server error' }, { status: 500 });
   }
 }
@@ -75,18 +97,29 @@ export async function POST(request: NextRequest) {
 export async function DELETE(request: NextRequest) {
   try {
     const { productId } = await request.json();
+
+    // Validate productId
+    if (!validateProductId(productId)) {
+      return NextResponse.json({ error: 'Invalid productId' }, { status: 400 });
+    }
+
     const sessionId = request.cookies.get(SESSION_COOKIE)?.value || '';
 
     if (!sessionId) {
       return NextResponse.json({ message: 'No wishlist' });
     }
 
-    await prisma.wishlist.deleteMany({
+    const result = await prisma.wishlist.deleteMany({
       where: { sessionId, productId },
     });
 
+    if (result.count === 0) {
+      return NextResponse.json({ message: 'Item not found in wishlist' });
+    }
+
     return NextResponse.json({ message: 'Removed from wishlist' });
-  } catch {
+  } catch (error) {
+    console.error('[Wishlist DELETE]', error);
     return NextResponse.json({ error: 'Server error' }, { status: 500 });
   }
 }

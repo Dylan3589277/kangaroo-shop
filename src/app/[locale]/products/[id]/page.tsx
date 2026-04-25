@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { MOCK_PRODUCTS, formatPrice, parseProductImages } from '@/lib/products';
 import { AddToCartButton } from '@/components/features/AddToCartButton';
 import { ProductReviews } from '@/components/features/ProductReviews';
+import { WishlistButton } from '@/components/features/WishlistButton';
 
 interface Props {
   params: Promise<{ locale: string; id: string }>;
@@ -142,6 +143,7 @@ export default async function ProductDetailPage({ params }: Props) {
           {/* 操作按钮 */}
           <div style={{ display: 'flex', gap: 'var(--space-3)' }}>
             <AddToCartButton product={product} locale={locale} />
+            <WishlistButton productId={product.id} locale={locale} />
           </div>
 
           {product.sourceUrl && product.sourceUrl !== '#' && (

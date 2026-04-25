@@ -41,6 +41,7 @@ export default async function LocaleLayout({
                   </ul>
                 </nav>
                 <div className="flex items-center gap-4">
+                  <Link href="/wishlist" style={{ fontSize: 'var(--text-lg)' }}>❤️</Link>
                   <NavbarCart />
                 </div>
               </div>
