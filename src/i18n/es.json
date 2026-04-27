@@ -1,0 +1,58 @@
+{
+  "common": {
+    "appName": "Kangaroo Shop",
+    "loading": "Cargando...",
+    "error": "Ocurrió un error",
+    "retry": "Reintentar",
+    "search": "Buscar",
+    "cart": "Carrito",
+    "checkout": "Pagar",
+    "home": "Inicio",
+    "about": "Sobre nosotros",
+    "contact": "Contacto"
+  },
+  "nav": {
+    "home": "Inicio",
+    "products": "Productos",
+    "about": "Sobre nosotros",
+    "contact": "Contacto",
+    "cart": "Carrito"
+  },
+  "home": {
+    "hero": {
+      "title": "De Japón al Mundo",
+      "subtitle": "Productos japoneses seleccionados, enviados a todo el mundo",
+      "cta": "Ver productos"
+    },
+    "featured": "Productos destacados",
+    "categories": "Categorías"
+  },
+  "product": {
+    "price": "Precio",
+    "addToCart": "Añadir al carrito",
+    "buyNow": "Comprar ahora",
+    "description": "Descripción",
+    "shipping": "Envío",
+    "inStock": "En stock",
+    "outOfStock": "Agotado"
+  },
+  "cart": {
+    "empty": "Tu carrito está vacío",
+    "total": "Total",
+    "subtotal": "Subtotal",
+    "shipping": "Gastos de envío",
+    "proceedToCheckout": "Ir al pago"
+  },
+  "footer": {
+    "copyright": "© 2024 Kangaroo Shop Todos los derechos reservados.",
+    "privacy": "Política de privacidad",
+    "terms": "Términos del servicio"
+  },
+  "wishlist": {
+    "title": "Lista de deseos",
+    "empty": "No hay artículos en tu lista de deseos",
+    "continue": "Seguir comprando",
+    "remove": "Eliminar",
+    "added": "Agregado"
+  }
+}

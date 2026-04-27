@@ -1,0 +1,58 @@
+{
+  "common": {
+    "appName": "Kangaroo Shop",
+    "loading": "Memuat...",
+    "error": "Terjadi kesalahan",
+    "retry": "Coba lagi",
+    "search": "Cari",
+    "cart": "Keranjang",
+    "checkout": "Pembayaran",
+    "home": "Beranda",
+    "about": "Tentang Kami",
+    "contact": "Kontak"
+  },
+  "nav": {
+    "home": "Beranda",
+    "products": "Produk",
+    "about": "Tentang Kami",
+    "contact": "Kontak",
+    "cart": "Keranjang"
+  },
+  "home": {
+    "hero": {
+      "title": "Dari Jepang ke Seluruh Dunia",
+      "subtitle": "Produk Jepang pilihan, dikirim ke seluruh dunia",
+      "cta": "Lihat Produk"
+    },
+    "featured": "Produk Unggulan",
+    "categories": "Kategori"
+  },
+  "product": {
+    "price": "Harga",
+    "addToCart": "Tambah ke Keranjang",
+    "buyNow": "Beli Sekarang",
+    "description": "Deskripsi",
+    "shipping": "Pengiriman",
+    "inStock": "Tersedia",
+    "outOfStock": "Habis"
+  },
+  "cart": {
+    "empty": "Keranjang Anda kosong",
+    "total": "Total",
+    "subtotal": "Subtotal",
+    "shipping": "Ongkos Kirim",
+    "proceedToCheckout": "Lanjut ke Pembayaran"
+  },
+  "footer": {
+    "copyright": "© 2024 Kangaroo Shop Hak cipta dilindungi.",
+    "privacy": "Kebijakan Privasi",
+    "terms": "Syarat & Ketentuan"
+  },
+  "wishlist": {
+    "title": "Daftar Keinginan",
+    "empty": "Tidak ada item di daftar keinginan",
+    "continue": "Lanjut Belanja",
+    "remove": "Hapus",
+    "added": "Ditambahkan"
+  }
+}

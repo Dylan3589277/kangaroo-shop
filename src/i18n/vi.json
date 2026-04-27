@@ -1,0 +1,58 @@
+{
+  "common": {
+    "appName": "Kangaroo Shop",
+    "loading": "Đang tải...",
+    "error": "Đã xảy ra lỗi",
+    "retry": "Thử lại",
+    "search": "Tìm kiếm",
+    "cart": "Giỏ hàng",
+    "checkout": "Thanh toán",
+    "home": "Trang chủ",
+    "about": "Về chúng tôi",
+    "contact": "Liên hệ"
+  },
+  "nav": {
+    "home": "Trang chủ",
+    "products": "Sản phẩm",
+    "about": "Về chúng tôi",
+    "contact": "Liên hệ",
+    "cart": "Giỏ hàng"
+  },
+  "home": {
+    "hero": {
+      "title": "Từ Nhật Bản đến Thế giới",
+      "subtitle": "Sản phẩm Nhật Bản chọn lọc, giao hàng toàn cầu",
+      "cta": "Xem sản phẩm"
+    },
+    "featured": "Sản phẩm nổi bật",
+    "categories": "Danh mục"
+  },
+  "product": {
+    "price": "Giá",
+    "addToCart": "Thêm vào giỏ",
+    "buyNow": "Mua ngay",
+    "description": "Mô tả",
+    "shipping": "Vận chuyển",
+    "inStock": "Còn hàng",
+    "outOfStock": "Hết hàng"
+  },
+  "cart": {
+    "empty": "Giỏ hàng trống",
+    "total": "Tổng cộng",
+    "subtotal": "Tạm tính",
+    "shipping": "Phí vận chuyển",
+    "proceedToCheckout": "Tiến hành thanh toán"
+  },
+  "footer": {
+    "copyright": "© 2024 Kangaroo Shop Đã đăng ký bản quyền.",
+    "privacy": "Chính sách bảo mật",
+    "terms": "Điều khoản dịch vụ"
+  },
+  "wishlist": {
+    "title": "Danh sách yêu thích",
+    "empty": "Chưa có sản phẩm nào",
+    "continue": "Tiếp tục mua sắm",
+    "remove": "Xóa",
+    "added": "Đã thêm"
+  }
+}

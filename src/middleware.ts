@@ -15,11 +15,21 @@ const COUNTRY_TO_LOCALE: Record<string, string> = {
   TW: 'zh',
   HK: 'zh',
   MO: 'zh',
-  KR: 'ja',
+  KR: 'ko',
   US: 'en',
   GB: 'en',
   AU: 'en',
   CA: 'en',
+  DE: 'de',
+  FR: 'fr',
+  IT: 'it',
+  ES: 'es',
+  TH: 'th',
+  ID: 'id',
+  VN: 'vi',
+  SG: 'en',
+  MY: 'en',
+  PH: 'en',
 };
 
 export async function middleware(request: NextRequest) {
@@ -102,7 +112,7 @@ export async function middleware(request: NextRequest) {
     // IP 检测失败，静默降级到默认语言
   }
 
-  // 优先级3: 默认日语
+  // 优先级3: 默认语言（en）
   const url = request.nextUrl.clone();
   url.pathname = '/' + DEFAULT_LOCALE + pathname;
   return NextResponse.redirect(url);

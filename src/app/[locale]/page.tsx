@@ -1,4 +1,30 @@
+import type { Metadata } from 'next';
 import { Link } from '@/i18n/routing';
+
+type Props = {
+  params: Promise<{ locale: string }>;
+};
+
+export async function generateMetadata({ params }: Props): Promise<Metadata> {
+  const { locale } = await params;
+  const titles: Record<string, string> = {
+    ja: '袋鼠君 | 日本から世界へ',
+    zh: '袋鼠君 | 从日本到世界',
+    en: 'Kangaroo Shop | From Japan to the World',
+  };
+  const descriptions: Record<string, string> = {
+    ja: '厳選された日本商品を海外へ。Italian Brainrot、アニメグッズ、ベビー用品、ライフスタイル商品を取り扱う跨境ECサイト。',
+    zh: '精选日本商品，全球直邮。Italian Brainrot周边、动漫周边、母婴用品、生活用品跨境购物平台。',
+    en: 'Discover curated Japanese products shipped worldwide. Italian Brainrot collectibles, anime goods, baby products, and lifestyle items — all from Japan.',
+  };
+  return {
+    title: titles[locale] ?? titles.en,
+    description: descriptions[locale] ?? descriptions.en,
+    alternates: {
+      canonical: `https://kangaroo-shop-tan.vercel.app/${locale}`,
+    },
+  };
+}
 
 const CATEGORIES = [
   { key: 'brainrot', label: 'Italian Brainrot', emoji: '🦴' },

@@ -1,0 +1,58 @@
+{
+  "common": {
+    "appName": "Kangaroo 샵",
+    "loading": "로딩 중...",
+    "error": "문제가 발생했습니다",
+    "retry": "재시도",
+    "search": "검색",
+    "cart": "장바구니",
+    "checkout": "결제",
+    "home": "홈",
+    "about": "회사 소개",
+    "contact": "문의하기"
+  },
+  "nav": {
+    "home": "홈",
+    "products": "상품",
+    "about": "회사 소개",
+    "contact": "문의하기",
+    "cart": "장바구니"
+  },
+  "home": {
+    "hero": {
+      "title": "일본에서 세계로",
+      "subtitle": "엄선된 일본 상품을 전 세계로 배송",
+      "cta": "상품 보기"
+    },
+    "featured": "추천 상품",
+    "categories": "카테고리"
+  },
+  "product": {
+    "price": "가격",
+    "addToCart": "장바구니에 추가",
+    "buyNow": "지금 구매",
+    "description": "상품 설명",
+    "shipping": "배송 정보",
+    "inStock": "재고 있음",
+    "outOfStock": "품절"
+  },
+  "cart": {
+    "empty": "장바구니가 비었습니다",
+    "total": "합계",
+    "subtotal": "소계",
+    "shipping": "배송비",
+    "proceedToCheckout": "결제 진행"
+  },
+  "footer": {
+    "copyright": "© 2024 Kangaroo 샵 All Rights Reserved.",
+    "privacy": "개인정보 처리방침",
+    "terms": "이용약관"
+  },
+  "wishlist": {
+    "title": "위시리스트",
+    "empty": "위시리스트에 상품이 없습니다",
+    "continue": "쇼핑 계속하기",
+    "remove": "삭제",
+    "added": "추가됨"
+  }
+}

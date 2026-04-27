@@ -1,3 +1,4 @@
+import type { Metadata } from 'next';
 import { Link } from '@/i18n/routing';
 import { ProductCard } from '@/components/features/ProductCard';
 import { SearchForm } from '@/components/features/SearchForm';
@@ -5,6 +6,32 @@ import { Suspense } from 'react';
 import { FilterSidebar } from '@/components/features/FilterSidebar';
 
 export const dynamic = 'force-dynamic';
+
+type Props = {
+  params: Promise<{ locale: string }>;
+  searchParams: Promise<Record<string, string | undefined>>;
+};
+
+export async function generateMetadata({ params }: Props): Promise<Metadata> {
+  const { locale } = await params;
+  const titles: Record<string, string> = {
+    ja: '商品一覧',
+    zh: '商品列表',
+    en: 'Products',
+  };
+  const descriptions: Record<string, string> = {
+    ja: '袋鼠君の全商品一覧。Italian Brainrot、アニメグッズ、ベビー用品、ライフスタイル商品をブラウズ。',
+    zh: '浏览袋鼠君的所有商品，包括Italian Brainrot周边、动漫周边、母婴用品和生活用品。',
+    en: 'Browse all products at Kangaroo Shop — Italian Brainrot collectibles, anime goods, baby products, and lifestyle items from Japan.',
+  };
+  return {
+    title: titles[locale] ?? titles.en,
+    description: descriptions[locale] ?? descriptions.en,
+    alternates: {
+      canonical: `https://kangaroo-shop-tan.vercel.app/${locale}/products`,
+    },
+  };
+}
 
 const CATEGORIES = [
   { key: 'all', label: 'すべて', labelZh: '全部', labelEn: 'All' },

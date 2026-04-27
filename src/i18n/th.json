@@ -1,0 +1,58 @@
+{
+  "common": {
+    "appName": "Kangaroo Shop",
+    "loading": "กำลังโหลด...",
+    "error": "เกิดข้อผิดพลาด",
+    "retry": "ลองอีกครั้ง",
+    "search": "ค้นหา",
+    "cart": "ตะกร้า",
+    "checkout": "ชำระเงิน",
+    "home": "หน้าแรก",
+    "about": "เกี่ยวกับเรา",
+    "contact": "ติดต่อ"
+  },
+  "nav": {
+    "home": "หน้าแรก",
+    "products": "สินค้า",
+    "about": "เกี่ยวกับเรา",
+    "contact": "ติดต่อ",
+    "cart": "ตะกร้า"
+  },
+  "home": {
+    "hero": {
+      "title": "จากญี่ปุ่นสู่ทั่วโลก",
+      "subtitle": "สินค้าญี่ปุ่นคัดสรร จัดส่งทั่วโลก",
+      "cta": "ดูสินค้า"
+    },
+    "featured": "สินค้าแนะนำ",
+    "categories": "หมวดหมู่"
+  },
+  "product": {
+    "price": "ราคา",
+    "addToCart": "เพิ่มในตะกร้า",
+    "buyNow": "ซื้อเลย",
+    "description": "รายละเอียด",
+    "shipping": "การจัดส่ง",
+    "inStock": "มีสินค้า",
+    "outOfStock": "สินค้าหมด"
+  },
+  "cart": {
+    "empty": "ตะกร้าว่างเปล่า",
+    "total": "รวม",
+    "subtotal": "ยอดรวม",
+    "shipping": "ค่าจัดส่ง",
+    "proceedToCheckout": "ดำเนินการชำระเงิน"
+  },
+  "footer": {
+    "copyright": "© 2024 Kangaroo Shop สงวนลิขสิทธิ์.",
+    "privacy": "นโยบายความเป็นส่วนตัว",
+    "terms": "เงื่อนไขการให้บริการ"
+  },
+  "wishlist": {
+    "title": "รายการที่ชอบ",
+    "empty": "ไม่มีสินค้าในรายการที่ชอบ",
+    "continue": "เลือกซื้อต่อ",
+    "remove": "ลบ",
+    "added": "เพิ่มแล้ว"
+  }
+}

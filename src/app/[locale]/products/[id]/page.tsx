@@ -1,3 +1,4 @@
+import type { Metadata } from 'next';
 import { notFound } from 'next/navigation';
 import Image from 'next/image';
 import Link from 'next/link';
@@ -7,8 +8,54 @@ import { ProductReviews } from '@/components/features/ProductReviews';
 import { WishlistButton } from '@/components/features/WishlistButton';
 import { prisma } from '@/lib/prisma';
 
+const BASE_URL = 'https://kangaroo-shop-tan.vercel.app';
+
+interface Params {
+  locale: string;
+  id: string;
+}
+
 interface Props {
-  params: Promise<{ locale: string; id: string }>;
+  params: Promise<Params>;
+}
+
+export async function generateMetadata({ params }: Props): Promise<Metadata> {
+  const { locale, id } = await params;
+
+  const product = await prisma.product.findUnique({
+    where: { id, isActive: true },
+    select: { title: true, description: true, images: true, price: true },
+  });
+
+  if (!product) {
+    return { title: 'Product Not Found' };
+  }
+
+  const title = product.title;
+  const description = product.description
+    ? product.description.slice(0, 160)
+    : `Shop ${title} at Kangaroo Shop. Japanese products shipped worldwide.`;
+  const images = parseProductImages(product.images);
+  const ogImage = images.length > 0 ? images[0] : '/og-image.png';
+
+  return {
+    title,
+    description,
+    alternates: {
+      canonical: `${BASE_URL}/${locale}/products/${id}`,
+    },
+    openGraph: {
+      title: `${title} | Kangaroo Shop`,
+      description,
+      images: [{ url: ogImage, width: 800, height: 800, alt: title }],
+    },
+    twitter: {
+      card: 'summary_large_image',
+      title: `${title} | Kangaroo Shop`,
+      description,
+      images: [ogImage],
+    },
+  };
 }
 
 export default async function ProductDetailPage({ params }: Props) {
@@ -64,8 +111,82 @@ export default async function ProductDetailPage({ params }: Props) {
     { label: t.source, value: sourceLabel[product.source ?? 'own'] ?? product.source ?? 'own', color: undefined },
   ];
 
+  const images = parseProductImages(product.images);
+
+  // JSON-LD: BreadcrumbList
+  const breadcrumbJsonLd = {
+    '@context': 'https://schema.org',
+    '@type': 'BreadcrumbList',
+    itemListElement: [
+      {
+        '@type': 'ListItem',
+        position: 1,
+        name: locale === 'ja' ? 'ホーム' : locale === 'zh' ? '首页' : 'Home',
+        item: `${BASE_URL}/${locale}`,
+      },
+      {
+        '@type': 'ListItem',
+        position: 2,
+        name: locale === 'ja' ? '商品一覧' : locale === 'zh' ? '商品列表' : 'Products',
+        item: `${BASE_URL}/${locale}/products`,
+      },
+      {
+        '@type': 'ListItem',
+        position: 3,
+        name: product.title,
+        item: `${BASE_URL}/${locale}/products/${product.id}`,
+      },
+    ],
+  };
+
+  // JSON-LD: Product Schema
+  const productJsonLd = {
+    '@context': 'https://schema.org',
+    '@type': 'Product',
+    name: product.title,
+    description: product.description || product.title,
+    image: images.length > 0 ? images : undefined,
+    offers: {
+      '@type': 'Offer',
+      price: (product.price / 100).toFixed(2),
+      priceCurrency: 'JPY',
+      availability: product.inStock
+        ? 'https://schema.org/InStock'
+        : 'https://schema.org/OutOfStock',
+      url: `${BASE_URL}/${locale}/products/${product.id}`,
+      seller: {
+        '@type': 'Organization',
+        name: 'Kangaroo Shop',
+      },
+    },
+    ...(product.rating
+      ? {
+          aggregateRating: {
+            '@type': 'AggregateRating',
+            ratingValue: product.rating.toString(),
+            reviewCount: product.reviews.toString(),
+          },
+        }
+      : {}),
+    brand: {
+      '@type': 'Brand',
+      name: product.source ? sourceLabel[product.source] || product.source : 'Kangaroo Shop',
+    },
+    sku: product.id,
+  };
+
   return (
     <main className="container" style={{ paddingTop: 'var(--space-8)', paddingBottom: 'var(--space-16)' }}>
+      {/* JSON-LD Structured Data */}
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbJsonLd) }}
+      />
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(productJsonLd) }}
+      />
+
       {/* 面包屑 */}
       <div style={{ marginBottom: 'var(--space-6)', fontSize: 'var(--text-sm)', color: 'var(--color-text-muted)' }}>
         <Link href={`/${locale}/products`} style={{ color: 'var(--color-text-muted)' }}>
@@ -84,7 +205,7 @@ export default async function ProductDetailPage({ params }: Props) {
         <div>
           <div style={{ position: 'relative', aspectRatio: '1/1', borderRadius: 'var(--radius-lg)', overflow: 'hidden', background: 'var(--color-bg-alt)', marginBottom: 'var(--space-3)' }}>
             <Image
-              src={parseProductImages(product.images)[0]}
+              src={images[0]}
               alt={product.title}
               fill
               style={{ objectFit: 'contain' }}
@@ -95,9 +216,9 @@ export default async function ProductDetailPage({ params }: Props) {
               {sourceLabel[product.source ?? 'own'] ?? product.source ?? 'own'}
             </div>
           </div>
-          {parseProductImages(product.images).length > 1 && (
+          {images.length > 1 && (
             <div style={{ display: 'flex', gap: 'var(--space-2)' }}>
-              {parseProductImages(product.images).map((img, i) => (
+              {images.map((img, i) => (
                 <div key={i} style={{ position: 'relative', width: 72, height: 72, borderRadius: 'var(--radius-sm)', overflow: 'hidden', border: i === 0 ? '2px solid var(--color-primary)' : '1px solid var(--color-border)', cursor: 'pointer' }}>
                   <Image src={img} alt="" fill style={{ objectFit: 'cover' }} />
                 </div>
