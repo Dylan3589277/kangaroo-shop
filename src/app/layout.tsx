@@ -43,7 +43,7 @@ export const metadata: Metadata = {
       "Curated Japanese products shipped worldwide. Italian Brainrot, anime goods, baby products, and more.",
     images: [
       {
-        url: "/og-image.png",
+        url: "/og",
         width: 1200,
         height: 630,
         alt: "Kangaroo Shop - From Japan to the World",
@@ -55,7 +55,7 @@ export const metadata: Metadata = {
     title: "Kangaroo Shop | From Japan to the World",
     description:
       "Curated Japanese products shipped worldwide. Italian Brainrot, anime goods, baby products, and more.",
-    images: ["/og-image.png"],
+    images: ["/og"],
   },
   alternates: {
     canonical: "https://kangaroo-shop-tan.vercel.app",

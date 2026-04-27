@@ -1,6 +1,6 @@
 {
   "common": {
-    "appName": "Kangaroo Kun",
+    "appName": "Kangaroo Shop",
     "loading": "Loading...",
     "error": "Something went wrong",
     "retry": "Retry",
@@ -25,7 +25,7 @@
       "cta": "Browse Products"
     },
     "featured": "Featured Products",
-    "categories": "Categories"
+    "categories": "Shop by Category"
   },
   "product": {
     "price": "Price",
@@ -44,7 +44,7 @@
     "proceedToCheckout": "Proceed to Checkout"
   },
   "footer": {
-    "copyright": "© 2024 Kangaroo Kun All Rights Reserved.",
+    "copyright": "© 2026 Kangaroo Shop All Rights Reserved.",
     "privacy": "Privacy Policy",
     "terms": "Terms of Service"
   },

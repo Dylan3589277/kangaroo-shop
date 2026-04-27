@@ -9,7 +9,13 @@ export default async function AdminLayout({
   children: React.ReactNode;
   params: { locale: string };
 }) {
-  const session = await getServerSession(authOptions);
+  let session;
+  try {
+    session = await getServerSession(authOptions);
+  } catch {
+    // If session check fails (e.g., DB unreachable), redirect to login
+    redirect(`/${params.locale}/admin/login`);
+  }
 
   if (!session) {
     redirect(`/${params.locale}/admin/login`);

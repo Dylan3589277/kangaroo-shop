@@ -35,8 +35,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const description = product.description
     ? product.description.slice(0, 160)
     : `Shop ${title} at Kangaroo Shop. Japanese products shipped worldwide.`;
-  const images = parseProductImages(product.images);
-  const ogImage = images.length > 0 ? images[0] : '/og-image.png';
+  const ogImage = `/og/${id}`;
 
   return {
     title,
@@ -47,7 +46,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
     openGraph: {
       title: `${title} | Kangaroo Shop`,
       description,
-      images: [{ url: ogImage, width: 800, height: 800, alt: title }],
+      images: [{ url: ogImage, width: 1200, height: 630, alt: title }],
     },
     twitter: {
       card: 'summary_large_image',
