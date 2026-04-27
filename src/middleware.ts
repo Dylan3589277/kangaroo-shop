@@ -41,11 +41,13 @@ export async function middleware(request: NextRequest) {
   );
   if (pathnameHasLocale) return NextResponse.next();
 
-  // 跳过 API、静态资源
+  // 跳过 API、SEO文件、静态资源
   if (
     pathname.startsWith('/api') ||
     pathname.startsWith('/_next') ||
     pathname.startsWith('/favicon') ||
+    pathname === '/sitemap.xml' ||
+    pathname === '/robots.txt' ||
     /\.(ico|png|jpg|jpeg|svg|css|js|woff|woff2|webp)$/.test(pathname)
   ) {
     return NextResponse.next();
