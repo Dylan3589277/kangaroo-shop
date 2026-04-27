@@ -132,7 +132,7 @@ export default async function ProductsPage({
   };
 
   // 构建分类 Tab 的 href
-  const basePath = `/${locale}/products`;
+  const basePath = '/products';
 
   return (
     <main className="container products-page">
