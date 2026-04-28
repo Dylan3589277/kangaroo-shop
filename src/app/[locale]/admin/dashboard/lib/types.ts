@@ -25,11 +25,11 @@ export interface Alert {
   status: MetricStatus;
   threshold: number;
   currentValue: number;
-  assignee: string;
+  assignee?: string | null;
   createdAt: string;
-  deadline: string;
-  handlingResult?: string;
-  handler?: string;
+  deadline?: string | null;
+  handlingResult?: string | null;
+  handler?: string | null;
   resolvedAt?: string;
 }
 

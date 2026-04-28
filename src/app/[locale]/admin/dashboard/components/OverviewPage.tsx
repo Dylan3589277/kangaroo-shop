@@ -10,7 +10,7 @@ import {
   StarOutlined,
   DashboardOutlined,
 } from '@ant-design/icons';
-import { useRouter } from 'next/navigation';
+import { useParams, useRouter } from 'next/navigation';
 import { MetricCard } from './MetricCard';
 import { TrendChart } from './TrendChart';
 import { AlertList } from './AlertList';
@@ -34,6 +34,8 @@ interface OverviewPageProps {
 
 export const OverviewPage: React.FC<OverviewPageProps> = ({ initialData }) => {
   const router = useRouter();
+  const params = useParams<{ locale?: string }>();
+  const locale = params?.locale || 'zh';
   const [overview, setOverview] = useState<OverviewData | null>(initialData || null);
   const [loading, setLoading] = useState(!initialData);
   const [trendRange, setTrendRange] = useState<string>('30天');
@@ -163,7 +165,7 @@ export const OverviewPage: React.FC<OverviewPageProps> = ({ initialData }) => {
               <Col xs={12} sm={8} lg={4} key={module}>
                 <Card
                   hoverable
-                  onClick={() => router.push(`/admin/dashboard/${module}`)}
+                  onClick={() => router.push(`/${locale}/admin/dashboard/${module}`)}
                   style={{ textAlign: 'center' }}
                 >
                   <div style={{ fontSize: '32px', color: config.color, marginBottom: '8px' }}>

@@ -1,4 +1,4 @@
-import type { OverviewData, Alert, ModuleType } from './types';
+import type { OverviewData, Alert, ModuleData, ModuleType } from './types';
 
 const API_BASE = '/api/dashboard';
 
@@ -19,6 +19,10 @@ async function fetchJson<T>(url: string, options?: RequestInit): Promise<T> {
 
 export async function getOverview(): Promise<OverviewData> {
   return fetchJson<OverviewData>(`${API_BASE}/overview`);
+}
+
+export async function getModuleData(module: ModuleType): Promise<ModuleData> {
+  return fetchJson<ModuleData>(`${API_BASE}/${module}`);
 }
 
 export async function getAlerts(params?: {

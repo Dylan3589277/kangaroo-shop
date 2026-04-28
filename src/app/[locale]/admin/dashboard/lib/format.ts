@@ -59,13 +59,21 @@ export function getStatusBadgeStatus(status: MetricStatus): 'success' | 'warning
 }
 
 // 计算剩余时间（倒计时）
-export function getRemainingTime(deadline: string): {
+export function getRemainingTime(deadline?: string | null): {
   text: string;
   hours: number;
   isOverdue: boolean;
 } {
+  if (!deadline) {
+    return { text: '未设置时效', hours: Number.POSITIVE_INFINITY, isOverdue: false };
+  }
+
   const now = dayjs();
   const end = dayjs(deadline);
+  if (!end.isValid()) {
+    return { text: '时效无效', hours: Number.POSITIVE_INFINITY, isOverdue: false };
+  }
+
   const diffHours = end.diff(now, 'hour', true);
   const isOverdue = diffHours < 0;
 

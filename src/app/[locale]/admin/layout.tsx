@@ -57,6 +57,60 @@ export default async function AdminLayout({
           }}>
             📈 Dashboard
           </a>
+          <a href={`/${params.locale}/admin/dashboard/alerts`} style={{
+            padding: 'var(--space-3) var(--space-4)',
+            borderRadius: 'var(--radius-md)',
+            color: 'var(--color-text-secondary)',
+            textDecoration: 'none',
+            fontSize: 'var(--text-sm)',
+          }}>
+            🚨 告警中心
+          </a>
+          <a href={`/${params.locale}/admin/dashboard/operation`} style={{
+            padding: 'var(--space-3) var(--space-4)',
+            borderRadius: 'var(--radius-md)',
+            color: 'var(--color-text-secondary)',
+            textDecoration: 'none',
+            fontSize: 'var(--text-sm)',
+          }}>
+            ⚙️ 运营模块
+          </a>
+          <a href={`/${params.locale}/admin/dashboard/hr`} style={{
+            padding: 'var(--space-3) var(--space-4)',
+            borderRadius: 'var(--radius-md)',
+            color: 'var(--color-text-secondary)',
+            textDecoration: 'none',
+            fontSize: 'var(--text-sm)',
+          }}>
+            👥 人事模块
+          </a>
+          <a href={`/${params.locale}/admin/dashboard/finance`} style={{
+            padding: 'var(--space-3) var(--space-4)',
+            borderRadius: 'var(--radius-md)',
+            color: 'var(--color-text-secondary)',
+            textDecoration: 'none',
+            fontSize: 'var(--text-sm)',
+          }}>
+            💰 财务模块
+          </a>
+          <a href={`/${params.locale}/admin/dashboard/supply-chain`} style={{
+            padding: 'var(--space-3) var(--space-4)',
+            borderRadius: 'var(--radius-md)',
+            color: 'var(--color-text-secondary)',
+            textDecoration: 'none',
+            fontSize: 'var(--text-sm)',
+          }}>
+            📦 供应链模块
+          </a>
+          <a href={`/${params.locale}/admin/dashboard/influencer`} style={{
+            padding: 'var(--space-3) var(--space-4)',
+            borderRadius: 'var(--radius-md)',
+            color: 'var(--color-text-secondary)',
+            textDecoration: 'none',
+            fontSize: 'var(--text-sm)',
+          }}>
+            ⭐ 红人模块
+          </a>
           <a href={`/${params.locale}/admin/orders`} style={{
             padding: 'var(--space-3) var(--space-4)',
             borderRadius: 'var(--radius-md)',

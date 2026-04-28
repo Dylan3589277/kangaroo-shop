@@ -85,7 +85,7 @@ export const AlertList: React.FC<Props> = ({
       dataIndex: 'deadline',
       key: 'deadline',
       width: 120,
-      render: (deadline: string, record: Alert) => {
+      render: (deadline: string | null | undefined, record: Alert) => {
         // 如果已解决，显示解决时间
         if (record.resolvedAt) {
           return (
