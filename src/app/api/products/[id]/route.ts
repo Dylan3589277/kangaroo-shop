@@ -30,7 +30,8 @@ export async function PUT(req: NextRequest, { params }: { params: { id: string }
     if (!existing) return NextResponse.json({ error: 'Product not found' }, { status: 404 });
 
     const {
-      title, titleEn, price, originalPrice, currency,
+      title, titleEn, titleJa, brand,
+      price, originalPrice, currency,
       images, category, source, sourceUrl,
       rating, reviews, inStock, stock, description, weight, isActive,
     } = body;
@@ -40,6 +41,8 @@ export async function PUT(req: NextRequest, { params }: { params: { id: string }
       data: {
         ...(title !== undefined && { title }),
         ...(titleEn !== undefined && { titleEn }),
+        ...(titleJa !== undefined && { titleJa }),
+        ...(brand !== undefined && { brand }),
         ...(price !== undefined && { price }),
         ...(originalPrice !== undefined && { originalPrice }),
         ...(currency !== undefined && { currency }),

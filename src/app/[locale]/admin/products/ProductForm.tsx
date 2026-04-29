@@ -7,6 +7,8 @@ type Product = {
   id?: string;
   title: string;
   titleEn?: string | null;
+  titleJa?: string | null;
+  brand?: string | null;
   price: number;
   originalPrice?: number | null;
   currency?: string;
@@ -37,6 +39,8 @@ export default function ProductForm({ product, isNew, locale }: Props) {
 
   const [title, setTitle] = useState(product?.title || '');
   const [titleEn, setTitleEn] = useState(product?.titleEn || '');
+  const [titleJa, setTitleJa] = useState(product?.titleJa || '');
+  const [brand, setBrand] = useState(product?.brand || '');
   const [price, setPrice] = useState(product?.price ? String(product.price) : '');
   const [originalPrice, setOriginalPrice] = useState(
     product?.originalPrice ? String(product.originalPrice) : ''
@@ -156,6 +160,8 @@ export default function ProductForm({ product, isNew, locale }: Props) {
     const payload = {
       title,
       titleEn: titleEn || null,
+      titleJa: titleJa || null,
+      brand: brand || null,
       price: priceInt,
       originalPrice: origInt,
       category,
@@ -217,6 +223,28 @@ export default function ProductForm({ product, isNew, locale }: Props) {
           placeholder="e.g. Mackerel Plush"
         />
       </FormField>
+
+      {/* Title JA + Brand */}
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 'var(--space-4)' }}>
+        <FormField label={locale === 'zh' ? '日文名' : locale === 'en' ? 'Japanese Title' : '日本語名'}>
+          <input
+            type="text"
+            value={titleJa}
+            onChange={e => setTitleJa(e.target.value)}
+            style={inputStyle}
+            placeholder="例: サバのぬいぐるみ"
+          />
+        </FormField>
+        <FormField label={locale === 'zh' ? '品牌' : locale === 'en' ? 'Brand' : 'ブランド'}>
+          <input
+            type="text"
+            value={brand}
+            onChange={e => setBrand(e.target.value)}
+            style={inputStyle}
+            placeholder="e.g. Sanrio"
+          />
+        </FormField>
+      </div>
 
       {/* Price + Original Price */}
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 'var(--space-4)' }}>

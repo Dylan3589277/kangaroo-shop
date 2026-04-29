@@ -4,6 +4,7 @@ import { ProductCard } from '@/components/features/ProductCard';
 import { SearchForm } from '@/components/features/SearchForm';
 import { Suspense } from 'react';
 import { FilterSidebar } from '@/components/features/FilterSidebar';
+import { prisma } from '@/lib/prisma';
 
 export const dynamic = 'force-dynamic';
 
@@ -61,45 +62,6 @@ function buildPageUrl(basePath: string, category: string, page: number, search?:
   return qs ? `${basePath}?${qs}` : basePath;
 }
 
-// platform enum → source string
-function platformToSource(platform: string): string {
-  const map: Record<string, string> = {
-    MERCARI: 'mercari',
-    RAKUTEN: 'rakuten',
-    AMAZON: 'amazon',
-    ZOZO: 'zozotown',
-    YODOBASHI: 'yodobashi',
-    BICCAMERA: 'biccamera',
-    YAMADA: 'yamada',
-    NOJIMA: 'nojima',
-    EHON: 'ehon',
-    OWN: 'own',
-  };
-  return map[platform?.toUpperCase()] ?? 'own';
-}
-
-// NestJS product → Product interface
-function transformProduct(p: Record<string, unknown>): Record<string, unknown> {
-  return {
-    id: p.id,
-    title: p.titleZh ?? p.title ?? '',
-    titleEn: p.titleEn ?? null,
-    price: p.priceJpy ?? 0,
-    originalPrice: null,
-    currency: 'JPY',
-    images: Array.isArray(p.images) ? p.images : [],
-    category: typeof p.categoryId === 'string' ? p.categoryId : (p.category as string) ?? 'brainrot',
-    source: platformToSource(p.platform as string),
-    sourceUrl: p.platformUrl ?? null,
-    rating: typeof p.rating === 'number' ? p.rating : 0,
-    reviews: typeof p.reviewCount === 'number' ? p.reviewCount : 0,
-    inStock: p.inStock !== false,
-    description: p.descriptionZh ?? p.description ?? null,
-    weight: 200,
-  };
-}
-
-const NESTJS_BASE = 'http://localhost:3001/api/v1/products';
 
 export default async function ProductsPage({
   params,
@@ -119,32 +81,42 @@ export default async function ProductsPage({
   const { category, page: pageParam, search: searchParam, minPrice, maxPrice, source } = await searchParams;
   const activeCategory = category || 'all';
   const activeSearch = searchParam || '';
-  const currentPage = Math.max(1, parseInt(pageParam ?? '1', 10));
+  const parsedPage = parseInt(pageParam ?? '1', 10);
+  const currentPage = Number.isFinite(parsedPage) && parsedPage > 0 ? parsedPage : 1;
 
-  // 直接从 NestJS 后端获取数据
-  const apiParams = new URLSearchParams();
-  if (activeCategory !== 'all') apiParams.set('category', activeCategory);
-  if (activeSearch) apiParams.set('search', activeSearch);
-  if (minPrice) apiParams.set('minPrice', minPrice);
-  if (maxPrice) apiParams.set('maxPrice', maxPrice);
-  if (source) apiParams.set('source', source);
-  apiParams.set('page', String(currentPage));
-  apiParams.set('limit', String(PAGE_SIZE));
 
   let products: Record<string, unknown>[] = [];
   let totalPages = 0;
 
   try {
-    const query = apiParams.toString();
-    const backendUrl = `${NESTJS_BASE}${query ? `?${query}` : ''}`;
-    const res = await fetch(backendUrl, { signal: AbortSignal.timeout(10000) });
-    if (res.ok) {
-      const result = await res.json();
-      products = Array.isArray(result.data) ? result.data.map(transformProduct) : [];
-      totalPages = result.pagination?.totalPages ?? 0;
+    const where: Record<string, unknown> = { isActive: true };
+
+    if (activeCategory !== 'all') {
+      where.category = activeCategory;
     }
+    if (activeSearch) {
+      where.OR = [
+        { title: { contains: activeSearch } },
+        { titleEn: { contains: activeSearch } },
+        { titleJa: { contains: activeSearch } },
+        { brand: { contains: activeSearch } },
+        { description: { contains: activeSearch } },
+      ];
+    }
+    if (minPrice) where.price = { ...(where.price as object ?? {}), gte: parseInt(minPrice, 10) };
+    if (maxPrice) where.price = { ...(where.price as object ?? {}), lte: parseInt(maxPrice, 10) };
+    if (source) where.source = source;
+
+    const skip = (currentPage - 1) * PAGE_SIZE;
+    const [rows, total] = await Promise.all([
+      prisma.product.findMany({ where, orderBy: { createdAt: 'desc' }, skip, take: PAGE_SIZE }),
+      prisma.product.count({ where }),
+    ]);
+
+    products = rows as unknown as Record<string, unknown>[];
+    totalPages = Math.ceil(total / PAGE_SIZE);
   } catch {
-    // fallback to empty
+    // fallback to empty — DB may be unavailable in preview builds
   }
 
   const labels = {

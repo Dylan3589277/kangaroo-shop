@@ -17,7 +17,7 @@ export default async function AdminLayout({
     redirect(`/${params.locale}/admin/login`);
   }
 
-  if (!session) {
+  if (!session || session.user?.role !== 'admin') {
     redirect(`/${params.locale}/admin/login`);
   }
 
@@ -128,6 +128,15 @@ export default async function AdminLayout({
             fontSize: 'var(--text-sm)',
           }}>
             🛍️ 商品管理
+          </a>
+          <a href={`/${params.locale}/admin/import`} style={{
+            padding: 'var(--space-3) var(--space-4)',
+            borderRadius: 'var(--radius-md)',
+            color: 'var(--color-text-secondary)',
+            textDecoration: 'none',
+            fontSize: 'var(--text-sm)',
+          }}>
+            📥 商品导入
           </a>
         </nav>
 

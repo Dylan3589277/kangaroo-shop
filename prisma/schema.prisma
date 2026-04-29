@@ -35,11 +35,107 @@ model Product {
   createdAt     DateTime @default(now()) @map("created_at")
   updatedAt     DateTime @updatedAt @map("updated_at")
 
+  titleJa       String?  @map("title_ja")      // 日文商品名
+  brand         String?                         // 品牌名
+
   orderItems  OrderItem[]
   reviewItems  Review[]
   wishlists   Wishlist[]
+  variants    ProductVariant[]
+  listings    ProductPlatformListing[]
 
   @@map("products")
+}
+
+// ============================================
+// 商品 SKU/规格变体
+// ============================================
+model ProductVariant {
+  id          String   @id @default(cuid())
+  productId   String   @map("product_id")
+  sku         String?                        // 商家内部 SKU
+  optionName  String?  @map("option_name")  // 例如: "カラー", "サイズ"
+  optionValue String?  @map("option_value") // 例如: "レッド", "L"
+  price       Int?                           // JPY 分，null = 继承商品价格
+  stock       Int      @default(0)
+  isActive    Boolean  @default(true) @map("is_active")
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  product  Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+  listings ProductPlatformListing[]
+
+  @@index([productId])
+  @@map("product_variants")
+}
+
+// ============================================
+// 平台上架记录（乐天/Amazon/自营）
+// ============================================
+model ProductPlatformListing {
+  id             String   @id @default(cuid())
+  productId      String   @map("product_id")
+  variantId      String?  @map("variant_id")
+  platform       String   // rakuten | amazon | own
+  platformItemId String?  @map("platform_item_id")  // 平台商品 ID / ASIN
+  platformSku    String?  @map("platform_sku")       // 平台 SKU / 商品管理番号
+  platformPrice  Int?     @map("platform_price")     // 平台售价 JPY 分
+  platformUrl    String?  @map("platform_url")
+  status         String   @default("draft")          // draft | active | inactive
+  rawData        Json?    @map("raw_data")            // 保存原始平台字段
+  createdAt      DateTime @default(now()) @map("created_at")
+  updatedAt      DateTime @updatedAt @map("updated_at")
+
+  product Product         @relation(fields: [productId], references: [id], onDelete: Cascade)
+  variant ProductVariant? @relation(fields: [variantId], references: [id])
+
+  @@index([productId])
+  @@index([platform])
+  @@index([platformItemId])
+  @@map("product_platform_listings")
+}
+
+// ============================================
+// 导入作业（CSV/TSV 批量导入记录）
+// ============================================
+model SyncJob {
+  id         String   @id @default(cuid())
+  platform   String   // rakuten | amazon | own
+  status     String   @default("pending")  // pending | running | done | failed
+  fileName   String?  @map("file_name")
+  totalRows  Int      @default(0) @map("total_rows")
+  doneRows   Int      @default(0) @map("done_rows")
+  errorRows  Int      @default(0) @map("error_rows")
+  meta       Json?                          // 额外元数据（文件大小、列映射等）
+  createdAt  DateTime @default(now()) @map("created_at")
+  updatedAt  DateTime @updatedAt @map("updated_at")
+
+  items SyncJobItem[]
+
+  @@index([status])
+  @@index([platform])
+  @@map("sync_jobs")
+}
+
+// ============================================
+// 导入作业行级记录
+// ============================================
+model SyncJobItem {
+  id          String   @id @default(cuid())
+  syncJobId   String   @map("sync_job_id")
+  rowIndex    Int      @map("row_index")
+  platformSku String?  @map("platform_sku")
+  status      String   @default("pending")  // pending | created | updated | skipped | error
+  productId   String?  @map("product_id")   // 创建/更新的商品 ID
+  errorMsg    String?  @map("error_msg")
+  rawRow      Json?    @map("raw_row")      // 原始行数据
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  syncJob SyncJob @relation(fields: [syncJobId], references: [id], onDelete: Cascade)
+
+  @@index([syncJobId])
+  @@index([status])
+  @@map("sync_job_items")
 }
 
 // ============================================
