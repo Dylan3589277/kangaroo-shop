@@ -1,45 +1,71 @@
 import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
-import { locales } from '@/i18n/routing';
-import { routing } from '@/i18n/routing';
-
-// 强制 Node.js Runtime（middleware 默认是 Edge，但 IP 检测 fetch 在某些环境受限）
-export const runtime = 'nodejs';
+import { locales, routing } from '@/i18n/routing';
 
 const DEFAULT_LOCALE = routing.defaultLocale;
+const LOCALE_COOKIE_NAMES = ['NEXT_LOCALE', 'preferredLocale'];
 
-// 语言映射：国家代码 → locale
+// IP/地区自动语言只在用户没有手动选择时生效：
+// 日本默认 ja，中国大陆/港澳台默认 zh，其他国家地区统一回落 en。
 const COUNTRY_TO_LOCALE: Record<string, string> = {
   JP: 'ja',
   CN: 'zh',
   TW: 'zh',
   HK: 'zh',
   MO: 'zh',
-  KR: 'ko',
-  US: 'en',
-  GB: 'en',
-  AU: 'en',
-  CA: 'en',
-  DE: 'de',
-  FR: 'fr',
-  IT: 'it',
-  ES: 'es',
-  TH: 'th',
-  ID: 'id',
-  VN: 'vi',
-  SG: 'en',
-  MY: 'en',
-  PH: 'en',
 };
 
-export async function middleware(request: NextRequest) {
+function isSupportedLocale(locale: string | undefined): locale is (typeof locales)[number] {
+  return Boolean(locale && (locales as readonly string[]).includes(locale));
+}
+
+function getManualLocale(request: NextRequest) {
+  for (const name of LOCALE_COOKIE_NAMES) {
+    const locale = request.cookies.get(name)?.value;
+    if (isSupportedLocale(locale)) return locale;
+  }
+  return undefined;
+}
+
+function getCountryCode(request: NextRequest) {
+  return (
+    request.headers.get('x-vercel-ip-country') ||
+    request.headers.get('cf-ipcountry') ||
+    request.headers.get('x-country-code') ||
+    request.headers.get('x-geo-country')
+  )?.toUpperCase();
+}
+
+function redirectWithLocale(request: NextRequest, locale: string, cacheGeo = false) {
+  const url = request.nextUrl.clone();
+  url.pathname = '/' + locale + request.nextUrl.pathname;
+  const response = NextResponse.redirect(url);
+
+  if (cacheGeo) {
+    response.cookies.set('geoLocale', locale, {
+      maxAge: 60 * 60 * 24 * 30,
+      path: '/',
+      sameSite: 'lax',
+    });
+  }
+
+  return response;
+}
+
+export function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
   // 跳过已带 locale 的路径（如 /ja/、/zh/）
-  const pathnameHasLocale = locales.some(
+  const pathnameLocale = locales.find(
     (locale) => pathname.startsWith('/' + locale + '/') || pathname === '/' + locale
   );
-  if (pathnameHasLocale) return NextResponse.next();
+  if (pathnameLocale) {
+    const response = NextResponse.next();
+    // 用户访问显式 locale 路径视为手动选择，后续根路径访问优先使用该语言。
+    response.cookies.set('NEXT_LOCALE', pathnameLocale, { path: '/', sameSite: 'lax', maxAge: 60 * 60 * 24 * 365 });
+    response.cookies.set('preferredLocale', pathnameLocale, { path: '/', sameSite: 'lax', maxAge: 60 * 60 * 24 * 365 });
+    return response;
+  }
 
   // 跳过 API、SEO文件、静态资源
   if (
@@ -54,70 +80,22 @@ export async function middleware(request: NextRequest) {
   }
 
   // 优先级1: 用户手动选择（Cookie）
-  const cookieLocale = request.cookies.get('preferredLocale')?.value;
-  if (cookieLocale && (locales as readonly string[]).includes(cookieLocale)) {
-    const url = request.nextUrl.clone();
-    url.pathname = '/' + cookieLocale + pathname;
-    return NextResponse.redirect(url);
+  const cookieLocale = getManualLocale(request);
+  if (cookieLocale) {
+    return redirectWithLocale(request, cookieLocale);
   }
 
-  // 优先级2: IP 地理位置推断（首次检测后缓存到 Cookie）
-  // 检查是否已有检测结果的 Cookie
+  // 优先级2: 已缓存的 IP 地理位置推断。
   const cachedGeoLocale = request.cookies.get('geoLocale')?.value;
-  if (cachedGeoLocale && (locales as readonly string[]).includes(cachedGeoLocale)) {
-    const url = request.nextUrl.clone();
-    url.pathname = '/' + cachedGeoLocale + pathname;
-    return NextResponse.redirect(url);
+  if (isSupportedLocale(cachedGeoLocale)) {
+    return redirectWithLocale(request, cachedGeoLocale);
   }
 
-  try {
-    const forwarded = request.headers.get('x-forwarded-for')?.split(',')[0]?.trim();
-    const ip = forwarded || request.ip || '127.0.0.1';
-
-    // 本地/内网开发环境直接跳过 IP 检测
-    if (
-      ip === '127.0.0.1' ||
-      ip === '::1' ||
-      ip.startsWith('192.168.') ||
-      ip.startsWith('10.') ||
-      ip.startsWith('172.')
-    ) {
-      const url = request.nextUrl.clone();
-      url.pathname = '/' + DEFAULT_LOCALE + pathname;
-      return NextResponse.redirect(url);
-    }
-
-    // 免费 GeoIP API（无需 key）
-    const res = await fetch(
-      'https://ipwhois.app/json/' + ip + '?objects=country_code',
-      { next: { revalidate: 3600 } }
-    );
-
-    if (res.ok) {
-      const data = (await res.json()) as { country_code?: string };
-      const countryCode = data.country_code;
-      const detectedLocale = (countryCode && COUNTRY_TO_LOCALE[countryCode]) || DEFAULT_LOCALE;
-
-      const url = request.nextUrl.clone();
-      url.pathname = '/' + detectedLocale + pathname;
-
-      // 首次检测后设置 Cookie（30 天缓存）
-      const response = NextResponse.redirect(url);
-      response.cookies.set('geoLocale', detectedLocale, {
-        maxAge: 60 * 60 * 24 * 30,
-        path: '/',
-        sameSite: 'lax',
-      });
-      return response;
-    }
-  } catch {
-    // IP 检测失败，静默降级到默认语言
-  }
-
-  // 优先级3: 默认语言（en）
-  const url = request.nextUrl.clone();
-  url.pathname = '/' + DEFAULT_LOCALE + pathname;
-  return NextResponse.redirect(url);
+  // 优先级3: 部署/CDN 提供的国家地区头，不在 middleware 中调用外部 GeoIP 服务。
+  // 未命中指定地区时默认语言为 en。
+  const countryCode = getCountryCode(request);
+  const detectedLocale = (countryCode && COUNTRY_TO_LOCALE[countryCode]) || DEFAULT_LOCALE;
+  return redirectWithLocale(request, detectedLocale, Boolean(countryCode));
 }
 
 export const config = {
