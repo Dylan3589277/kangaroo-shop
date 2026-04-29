@@ -13,14 +13,14 @@ export default function ProductActiveToggle({ productId, isActive, locale }: Pro
   const router = useRouter();
   const [active, setActive] = useState(isActive);
   const [loading, setLoading] = useState(false);
-  const [previewLoading, setPreviewLoading] = useState('');
+  const [downloadLoading, setDownloadLoading] = useState('');
   const [error, setError] = useState('');
-  const [preview, setPreview] = useState('');
+  const [notice, setNotice] = useState('');
 
   async function toggle() {
     setLoading(true);
     setError('');
-    setPreview('');
+    setNotice('');
     try {
       const res = await fetch('/api/admin/platform-listings', {
         method: 'POST',
@@ -43,29 +43,26 @@ export default function ProductActiveToggle({ productId, isActive, locale }: Pro
     }
   }
 
-  async function previewExternal(platform: 'rakuten' | 'amazon') {
-    setPreviewLoading(platform);
+  function downloadTemplate(platform: 'rakuten' | 'amazon') {
+    setDownloadLoading(platform);
     setError('');
-    setPreview('');
+    setNotice('');
     try {
-      const res = await fetch('/api/admin/platform-listings', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ productId, platform, action: 'preview' }),
-      });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error || 'Preview failed');
-      setPreview(
+      const url = `/api/admin/platform-listings/template?productId=${encodeURIComponent(productId)}&platform=${platform}`;
+      window.location.href = url;
+      setNotice(
         platform === 'rakuten'
-          ? (locale === 'ja' ? '楽天CSVテンプレートのみ' : locale === 'zh' ? '乐天仅生成 CSV 模板' : 'Rakuten CSV template only')
-          : (locale === 'ja' ? 'Amazonテンプレートのみ' : locale === 'zh' ? 'Amazon 仅生成模板' : 'Amazon template only')
+          ? (locale === 'ja' ? '楽天CSVテンプレートをダウンロードします。外部平台には上架しません。' : locale === 'zh' ? '正在下载乐天 CSV 模板，不会直接上架。' : 'Downloading Rakuten CSV template. No external publish.')
+          : (locale === 'ja' ? 'Amazon TSVテンプレートをダウンロードします。外部平台には上架しません。' : locale === 'zh' ? '正在下载 Amazon TSV 模板，不会直接上架。' : 'Downloading Amazon TSV template. No external publish.')
       );
-      setTimeout(() => setPreview(''), 4000);
+      setTimeout(() => {
+        setNotice('');
+        setDownloadLoading('');
+      }, 4000);
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Preview failed');
+      setDownloadLoading('');
+      setError(err instanceof Error ? err.message : 'Download failed');
       setTimeout(() => setError(''), 3000);
-    } finally {
-      setPreviewLoading('');
     }
   }
 
@@ -96,8 +93,8 @@ export default function ProductActiveToggle({ productId, isActive, locale }: Pro
           <button
             key={platform}
             type="button"
-            onClick={() => previewExternal(platform)}
-            disabled={Boolean(previewLoading)}
+            onClick={() => downloadTemplate(platform)}
+            disabled={Boolean(downloadLoading)}
             style={{
               padding: '3px 8px',
               borderRadius: '999px',
@@ -105,15 +102,15 @@ export default function ProductActiveToggle({ productId, isActive, locale }: Pro
               border: '1px solid var(--color-border)',
               background: 'var(--color-surface)',
               color: 'var(--color-text-secondary)',
-              cursor: previewLoading ? 'not-allowed' : 'pointer',
+              cursor: downloadLoading ? 'not-allowed' : 'pointer',
             }}
           >
-            {previewLoading === platform ? '...' : platform === 'rakuten' ? 'Rakuten preview' : 'Amazon preview'}
+            {downloadLoading === platform ? '...' : platform === 'rakuten' ? 'Rakuten CSV' : 'Amazon TSV'}
           </button>
         ))}
       </div>
-      {preview && (
-        <span style={{ fontSize: 'var(--text-xs)', color: 'var(--color-text-muted)' }}>{preview}</span>
+      {notice && (
+        <span style={{ fontSize: 'var(--text-xs)', color: 'var(--color-text-muted)' }}>{notice}</span>
       )}
       {error && (
         <span style={{ fontSize: 'var(--text-xs)', color: '#dc2626' }}>{error}</span>
