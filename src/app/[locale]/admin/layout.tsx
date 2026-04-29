@@ -133,6 +133,15 @@ export default async function AdminLayout({
           }}>
             🛍️ 商品管理
           </a>
+          <a href={`/${params.locale}/admin/listings`} style={{
+            padding: 'var(--space-3) var(--space-4)',
+            borderRadius: 'var(--radius-md)',
+            color: 'var(--color-text-secondary)',
+            textDecoration: 'none',
+            fontSize: 'var(--text-sm)',
+          }}>
+            🧾 多平台上架
+          </a>
           <a href={`/${params.locale}/admin/import`} style={{
             padding: 'var(--space-3) var(--space-4)',
             borderRadius: 'var(--radius-md)',
