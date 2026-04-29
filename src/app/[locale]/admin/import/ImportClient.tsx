@@ -22,6 +22,8 @@ type PreviewResult = {
   toUpdate: number;
   toSkip: number;
   parseErrors: number;
+  fileSha256: string;
+  confirmationToken: string;
   items: PreviewItem[];
   errors?: { rowIndex: number; message: string }[];
 };
@@ -44,6 +46,7 @@ export default function ImportClient({ locale }: { locale: string }) {
   const [platform, setPlatform] = useState<Platform>('rakuten');
   const [file, setFile] = useState<File | null>(null);
   const [preview, setPreview] = useState<PreviewResult | null>(null);
+  const [previewConfirmed, setPreviewConfirmed] = useState(false);
   const [executeResult, setExecuteResult] = useState<ExecuteResult | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
@@ -53,6 +56,16 @@ export default function ImportClient({ locale }: { locale: string }) {
       setError('请先选择文件');
       return;
     }
+    if (mode === 'execute') {
+      if (!preview || !previewConfirmed) {
+        setError('请先解析预览并勾选确认，再执行导入');
+        return;
+      }
+      if (preview.parseErrors > 0) {
+        setError('预览中仍有解析错误，请修正文件后重新预览');
+        return;
+      }
+    }
     setLoading(true);
     setError('');
     setExecuteResult(null);
@@ -60,14 +73,19 @@ export default function ImportClient({ locale }: { locale: string }) {
       const fd = new FormData();
       fd.append('platform', platform);
       fd.append('file', file);
+      if (mode === 'execute' && preview) {
+        fd.append('confirmationToken', preview.confirmationToken);
+      }
       const res = await fetch(mode === 'preview' ? '/api/admin/import/upload' : '/api/admin/import/execute', {
         method: 'POST',
         body: fd,
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || '请求失败');
-      if (mode === 'preview') setPreview(data);
-      else {
+      if (mode === 'preview') {
+        setPreview(data);
+        setPreviewConfirmed(false);
+      } else {
         setExecuteResult(data);
         setPreview(null);
       }
@@ -84,7 +102,12 @@ export default function ImportClient({ locale }: { locale: string }) {
         <div style={{ display: 'grid', gridTemplateColumns: '220px 1fr', gap: 'var(--space-4)', alignItems: 'end' }}>
           <label style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-2)' }}>
             <span style={labelStyle}>平台</span>
-            <select value={platform} onChange={e => setPlatform(e.target.value as Platform)} style={inputStyle}>
+            <select value={platform} onChange={e => {
+              setPlatform(e.target.value as Platform);
+              setPreview(null);
+              setPreviewConfirmed(false);
+              setExecuteResult(null);
+            }} style={inputStyle}>
               {Object.entries(PLATFORM_LABELS).map(([value, label]) => (
                 <option key={value} value={value}>{label}</option>
               ))}
@@ -98,6 +121,7 @@ export default function ImportClient({ locale }: { locale: string }) {
               onChange={e => {
                 setFile(e.target.files?.[0] ?? null);
                 setPreview(null);
+                setPreviewConfirmed(false);
                 setExecuteResult(null);
               }}
               style={inputStyle}
@@ -108,7 +132,7 @@ export default function ImportClient({ locale }: { locale: string }) {
           <button type="button" onClick={() => upload('preview')} disabled={loading || !file} style={primaryButtonStyle}>
             {loading ? '处理中...' : '解析预览'}
           </button>
-          <button type="button" onClick={() => upload('execute')} disabled={loading || !file} style={secondaryButtonStyle}>
+          <button type="button" onClick={() => upload('execute')} disabled={loading || !file || !preview || !previewConfirmed || preview.parseErrors > 0} style={secondaryButtonStyle}>
             执行导入为草稿
           </button>
           <a href={`/${locale}/admin/products`} style={linkButtonStyle}>查看商品</a>
@@ -131,6 +155,26 @@ export default function ImportClient({ locale }: { locale: string }) {
               {preview.errors.slice(0, 5).map(err => <div key={`${err.rowIndex}-${err.message}`}>第 {err.rowIndex + 1} 行：{err.message}</div>)}
             </div>
           )}
+          <div style={confirmBoxStyle}>
+            <div style={{ fontWeight: 700, marginBottom: 'var(--space-2)' }}>导入前确认</div>
+            <p style={{ margin: 0, color: 'var(--color-text-muted)', fontSize: 'var(--text-sm)' }}>
+              执行导入只会写入 kangaroo-shop 自建站草稿/更新已有映射，不会直接发布到乐天或 Amazon。文件指纹：{preview.fileSha256.slice(0, 12)}...
+            </p>
+            <label style={{ display: 'flex', gap: 'var(--space-2)', alignItems: 'center', marginTop: 'var(--space-3)', fontSize: 'var(--text-sm)' }}>
+              <input
+                type="checkbox"
+                checked={previewConfirmed}
+                disabled={preview.parseErrors > 0}
+                onChange={e => setPreviewConfirmed(e.target.checked)}
+              />
+              我已确认新增 {preview.toCreate}、更新 {preview.toUpdate}、跳过 {preview.toSkip}，并同意导入为草稿
+            </label>
+            {preview.parseErrors > 0 && (
+              <p style={{ margin: 'var(--space-2) 0 0', color: 'var(--color-danger)', fontSize: 'var(--text-sm)' }}>
+                当前存在解析错误，必须修正文件并重新预览后才能执行导入。
+              </p>
+            )}
+          </div>
           <div style={{ overflowX: 'auto' }}>
             <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 'var(--text-sm)' }}>
               <thead>
@@ -182,6 +226,14 @@ const cardStyle: React.CSSProperties = {
   border: '1px solid var(--color-border)',
   borderRadius: 'var(--radius-lg)',
   padding: 'var(--space-5)',
+};
+
+const confirmBoxStyle: React.CSSProperties = {
+  marginBottom: 'var(--space-4)',
+  padding: 'var(--space-4)',
+  border: '1px solid var(--color-border)',
+  borderRadius: 'var(--radius-md)',
+  background: 'var(--color-bg)',
 };
 
 const labelStyle: React.CSSProperties = { fontSize: 'var(--text-sm)', fontWeight: 600 };

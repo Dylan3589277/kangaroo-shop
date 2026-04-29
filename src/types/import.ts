@@ -72,6 +72,10 @@ export interface ImportPreviewResult {
   toSkip: number;
   parseErrors: number;
   items: ImportPreviewItem[];
+  /** 文件内容 SHA-256 摘要，用于执行前确认文件未被调包 */
+  fileSha256: string;
+  /** 预览确认令牌，执行导入时必须回传 */
+  confirmationToken: string;
 }
 
 /** Execute 导入响应 */

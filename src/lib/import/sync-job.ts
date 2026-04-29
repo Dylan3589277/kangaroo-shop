@@ -1,3 +1,4 @@
+import { createHash, createHmac, timingSafeEqual } from 'crypto';
 import { prisma } from '@/lib/prisma';
 import type {
   ImportPlatform,
@@ -11,6 +12,46 @@ import { parseAmazonReport } from './amazon-report';
 import { parseRakutenCsv } from './rakuten-csv';
 
 const MAX_EXECUTE_ROWS = 5000;
+
+function sha256Text(text: string): string {
+  return createHash('sha256').update(text, 'utf8').digest('hex');
+}
+
+function importConfirmationSecret(): string {
+  const secret = process.env.IMPORT_CONFIRMATION_SECRET || process.env.NEXTAUTH_SECRET;
+  if (secret) return secret;
+  if (process.env.NODE_ENV !== 'production') return 'kangaroo-shop-import-preview-dev-secret';
+  throw new Error('IMPORT_CONFIRMATION_SECRET or NEXTAUTH_SECRET is required');
+}
+
+function buildConfirmationPayload(platform: ImportPlatform, fileName: string, fileSha256: string, totalRows: number) {
+  return `${platform}\n${fileName}\n${fileSha256}\n${totalRows}`;
+}
+
+export function buildImportConfirmationToken(
+  platform: ImportPlatform,
+  fileName: string,
+  fileSha256: string,
+  totalRows: number,
+): string {
+  return createHmac('sha256', importConfirmationSecret())
+    .update(buildConfirmationPayload(platform, fileName, fileSha256, totalRows), 'utf8')
+    .digest('hex');
+}
+
+export function verifyImportConfirmationToken(
+  token: string | null | undefined,
+  platform: ImportPlatform,
+  fileName: string,
+  fileSha256: string,
+  totalRows: number,
+): boolean {
+  if (!token) return false;
+  const expected = buildImportConfirmationToken(platform, fileName, fileSha256, totalRows);
+  const tokenBuffer = Buffer.from(token, 'hex');
+  const expectedBuffer = Buffer.from(expected, 'hex');
+  return tokenBuffer.length === expectedBuffer.length && timingSafeEqual(tokenBuffer, expectedBuffer);
+}
 
 function normalisePlatform(value: string | null | undefined): ImportPlatform {
   if (value === 'rakuten' || value === 'amazon' || value === 'own') return value;
@@ -108,33 +149,58 @@ export async function buildImportPreview(
   text: string,
 ): Promise<{ parse: ParseResult; preview: ImportPreviewResult }> {
   const parse = parseImportFile(platformValue, text);
+  if (parse.rows.length > MAX_EXECUTE_ROWS) {
+    throw new Error(`Import row limit exceeded: ${MAX_EXECUTE_ROWS}`);
+  }
+  const skuValues = Array.from(new Set(parse.rows.map(row => row.platformSku).filter(Boolean) as string[]));
+  const itemIdValues = Array.from(new Set(parse.rows.map(row => row.platformItemId).filter(Boolean) as string[]));
+  const existingListings = skuValues.length || itemIdValues.length
+    ? await prisma.productPlatformListing.findMany({
+        where: {
+          platform: parse.platform,
+          OR: [
+            skuValues.length ? { platformSku: { in: skuValues } } : undefined,
+            itemIdValues.length ? { platformItemId: { in: itemIdValues } } : undefined,
+          ].filter(Boolean) as { platformSku?: { in: string[] }; platformItemId?: { in: string[] } }[],
+        },
+        select: { productId: true, platformSku: true, platformItemId: true },
+      })
+    : [];
+  const existingBySku = new Map(existingListings.filter(item => item.platformSku).map(item => [item.platformSku, item.productId]));
+  const existingByItemId = new Map(existingListings.filter(item => item.platformItemId).map(item => [item.platformItemId, item.productId]));
+  const pendingCreateProductId = '同文件前序行';
   const items: ImportPreviewItem[] = [];
+  let toCreate = 0;
+  let toUpdate = 0;
+  let toSkip = parse.skippedRows;
 
-  for (const row of parse.rows.slice(0, 200)) {
-    const existing = row.platformSku || row.platformItemId
-      ? await prisma.productPlatformListing.findFirst({
-          where: {
-            platform: parse.platform,
-            OR: [
-              row.platformSku ? { platformSku: row.platformSku } : undefined,
-              row.platformItemId ? { platformItemId: row.platformItemId } : undefined,
-            ].filter(Boolean) as { platformSku?: string; platformItemId?: string }[],
-          },
-          select: { productId: true },
-        })
-      : null;
+  for (const row of parse.rows) {
+    const existingProductId = (row.platformSku ? existingBySku.get(row.platformSku) : undefined)
+      ?? (row.platformItemId ? existingByItemId.get(row.platformItemId) : undefined);
 
     const missingTitle = !row.titleJa && !row.titleEn && !row.titleZh;
-    items.push({
-      rowIndex: row.rowIndex,
-      action: missingTitle ? 'skip' : existing ? 'update' : 'create',
-      reason: missingTitle ? '缺少商品名' : undefined,
-      platformSku: row.platformSku,
-      titleJa: row.titleJa,
-      platformPrice: row.platformPrice,
-      existingProductId: existing?.productId,
-    });
+    const action: ImportPreviewItem['action'] = missingTitle ? 'skip' : existingProductId ? 'update' : 'create';
+    if (action === 'create') {
+      toCreate++;
+      if (row.platformSku) existingBySku.set(row.platformSku, pendingCreateProductId);
+      if (row.platformItemId) existingByItemId.set(row.platformItemId, pendingCreateProductId);
+    } else if (action === 'update') toUpdate++;
+    else toSkip++;
+
+    if (items.length < 200) {
+      items.push({
+        rowIndex: row.rowIndex,
+        action,
+        reason: missingTitle ? '缺少商品名' : undefined,
+        platformSku: row.platformSku,
+        titleJa: row.titleJa,
+        platformPrice: row.platformPrice,
+        existingProductId,
+      });
+    }
   }
+
+  const fileSha256 = sha256Text(text);
 
   return {
     parse,
@@ -142,11 +208,13 @@ export async function buildImportPreview(
       platform: parse.platform,
       fileName,
       totalRows: parse.totalRows,
-      toCreate: items.filter(i => i.action === 'create').length,
-      toUpdate: items.filter(i => i.action === 'update').length,
-      toSkip: items.filter(i => i.action === 'skip').length + parse.skippedRows,
+      toCreate,
+      toUpdate,
+      toSkip,
       parseErrors: parse.errors.length,
       items,
+      fileSha256,
+      confirmationToken: buildImportConfirmationToken(parse.platform, fileName, fileSha256, parse.totalRows),
     },
   };
 }
