@@ -1,4 +1,5 @@
 import type { Metadata } from 'next';
+import { buildIndexableMetadata } from '@/lib/seo';
 
 type Props = {
   params: Promise<{ locale: string }>;
@@ -16,13 +17,12 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
     zh: '联系袋鼠君客服团队，获取商品咨询、订单问题等方面的帮助。',
     en: 'Get in touch with Kangaroo Shop. Contact us for product inquiries, order support, and general questions.',
   };
-  return {
+  return buildIndexableMetadata({
+    locale,
+    path: '/contact',
     title: titles[locale] ?? titles.en,
     description: descriptions[locale] ?? descriptions.en,
-    alternates: {
-      canonical: `https://kangaroo-shop-tan.vercel.app/${locale}/contact`,
-    },
-  };
+  });
 }
 
 export default async function ContactPage({

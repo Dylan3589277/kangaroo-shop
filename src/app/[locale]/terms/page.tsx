@@ -1,4 +1,5 @@
 import type { Metadata } from 'next';
+import { buildIndexableMetadata } from '@/lib/seo';
 
 type Props = {
   params: Promise<{ locale: string }>;
@@ -11,12 +12,11 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
     zh: '使用条款',
     en: 'Terms of Service',
   };
-  return {
+  return buildIndexableMetadata({
+    locale,
+    path: '/terms',
     title: titles[locale] ?? titles.en,
-    alternates: {
-      canonical: `https://kangaroo-shop-tan.vercel.app/${locale}/terms`,
-    },
-  };
+  });
 }
 
 export default async function TermsPage({

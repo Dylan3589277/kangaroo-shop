@@ -1,4 +1,5 @@
 import type { Metadata } from 'next';
+import { buildIndexableMetadata } from '@/lib/seo';
 
 type Props = {
   params: Promise<{ locale: string }>;
@@ -11,12 +12,11 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
     zh: '隐私政策',
     en: 'Privacy Policy',
   };
-  return {
+  return buildIndexableMetadata({
+    locale,
+    path: '/privacy',
     title: titles[locale] ?? titles.en,
-    alternates: {
-      canonical: `https://kangaroo-shop-tan.vercel.app/${locale}/privacy`,
-    },
-  };
+  });
 }
 
 export default async function PrivacyPage({

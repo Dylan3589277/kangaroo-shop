@@ -1,5 +1,6 @@
 import type { Metadata } from 'next';
 import { Link } from '@/i18n/routing';
+import { buildIndexableMetadata } from '@/lib/seo';
 
 type Props = {
   params: Promise<{ locale: string }>;
@@ -17,13 +18,12 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
     zh: '从中国采购/进口商品，面向日本、欧美等全球市场销售的跨境电商平台。',
     en: 'A cross-border commerce platform sourcing and importing products from China for Japan, Europe, North America and global markets.',
   };
-  return {
+  return buildIndexableMetadata({
+    locale,
+    path: '',
     title: titles[locale] ?? titles.en,
     description: descriptions[locale] ?? descriptions.en,
-    alternates: {
-      canonical: `https://kangaroo-shop-orpin.vercel.app/${locale}`,
-    },
-  };
+  });
 }
 
 const CATEGORIES = [

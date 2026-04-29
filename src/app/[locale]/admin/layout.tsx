@@ -1,6 +1,10 @@
 import { getServerSession } from 'next-auth';
 import { redirect } from 'next/navigation';
+import type { Metadata } from 'next';
 import { authOptions } from '@/lib/auth';
+import { buildNoIndexMetadata } from '@/lib/seo';
+
+export const metadata: Metadata = buildNoIndexMetadata();
 
 export default async function AdminLayout({
   children,

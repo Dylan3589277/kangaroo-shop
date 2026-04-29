@@ -5,6 +5,7 @@ import { SearchForm } from '@/components/features/SearchForm';
 import { Suspense } from 'react';
 import { FilterSidebar } from '@/components/features/FilterSidebar';
 import { prisma } from '@/lib/prisma';
+import { buildIndexableMetadata } from '@/lib/seo';
 
 export const dynamic = 'force-dynamic';
 
@@ -25,13 +26,12 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
     zh: '浏览袋鼠君从中国采购/进口、面向日本欧美与全球销售的商品。',
     en: 'Browse products sourced and imported from China for Japan, Europe, North America and global customers.',
   };
-  return {
+  return buildIndexableMetadata({
+    locale,
+    path: '/products',
     title: titles[locale] ?? titles.en,
     description: descriptions[locale] ?? descriptions.en,
-    alternates: {
-      canonical: `https://kangaroo-shop-orpin.vercel.app/${locale}/products`,
-    },
-  };
+  });
 }
 
 const CATEGORIES = [

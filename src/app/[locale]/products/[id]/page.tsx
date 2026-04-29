@@ -7,8 +7,13 @@ import { AddToCartButton } from '@/components/features/AddToCartButton';
 import { ProductReviews } from '@/components/features/ProductReviews';
 import { WishlistButton } from '@/components/features/WishlistButton';
 import { prisma } from '@/lib/prisma';
-
-const BASE_URL = 'https://kangaroo-shop-orpin.vercel.app';
+import {
+  buildAbsoluteUrl,
+  buildIndexableMetadata,
+  buildNoIndexMetadata,
+  SEO_BASE_URL,
+  toAbsoluteImageUrls,
+} from '@/lib/seo';
 
 interface Params {
   locale: string;
@@ -28,7 +33,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   });
 
   if (!product) {
-    return { title: 'Product Not Found' };
+    return buildNoIndexMetadata({ title: 'Product Not Found' });
   }
 
   const title = product.title;
@@ -37,24 +42,25 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
     : `Shop ${title} at Kangaroo Shop. Products sourced and imported from China for global markets.`;
   const ogImage = `/og/${id}`;
 
-  return {
+  return buildIndexableMetadata({
+    locale,
+    path: `/products/${id}`,
     title,
     description,
-    alternates: {
-      canonical: `${BASE_URL}/${locale}/products/${id}`,
+    extra: {
+      openGraph: {
+        title: `${title} | Kangaroo Shop`,
+        description,
+        images: [{ url: ogImage, width: 1200, height: 630, alt: title }],
+      },
+      twitter: {
+        card: 'summary_large_image',
+        title: `${title} | Kangaroo Shop`,
+        description,
+        images: [ogImage],
+      },
     },
-    openGraph: {
-      title: `${title} | Kangaroo Shop`,
-      description,
-      images: [{ url: ogImage, width: 1200, height: 630, alt: title }],
-    },
-    twitter: {
-      card: 'summary_large_image',
-      title: `${title} | Kangaroo Shop`,
-      description,
-      images: [ogImage],
-    },
-  };
+  });
 }
 
 export default async function ProductDetailPage({ params }: Props) {
@@ -111,6 +117,8 @@ export default async function ProductDetailPage({ params }: Props) {
   ];
 
   const images = parseProductImages(product.images);
+  const absoluteImages = toAbsoluteImageUrls(images);
+  const productUrl = buildAbsoluteUrl(`/${locale}/products/${product.id}`);
 
   // JSON-LD: BreadcrumbList
   const breadcrumbJsonLd = {
@@ -121,19 +129,19 @@ export default async function ProductDetailPage({ params }: Props) {
         '@type': 'ListItem',
         position: 1,
         name: locale === 'ja' ? 'ホーム' : locale === 'zh' ? '首页' : 'Home',
-        item: `${BASE_URL}/${locale}`,
+        item: `${SEO_BASE_URL}/${locale}`,
       },
       {
         '@type': 'ListItem',
         position: 2,
         name: locale === 'ja' ? '商品一覧' : locale === 'zh' ? '商品列表' : 'Products',
-        item: `${BASE_URL}/${locale}/products`,
+        item: `${SEO_BASE_URL}/${locale}/products`,
       },
       {
         '@type': 'ListItem',
         position: 3,
         name: product.title,
-        item: `${BASE_URL}/${locale}/products/${product.id}`,
+        item: productUrl,
       },
     ],
   };
@@ -144,15 +152,17 @@ export default async function ProductDetailPage({ params }: Props) {
     '@type': 'Product',
     name: product.title,
     description: product.description || product.title,
-    image: images.length > 0 ? images : undefined,
+    image: absoluteImages.length > 0 ? absoluteImages : undefined,
+    url: productUrl,
     offers: {
       '@type': 'Offer',
-      price: (product.price / 100).toFixed(2),
+      price: product.price.toString(),
       priceCurrency: 'JPY',
+      itemCondition: 'https://schema.org/NewCondition',
       availability: product.inStock
         ? 'https://schema.org/InStock'
         : 'https://schema.org/OutOfStock',
-      url: `${BASE_URL}/${locale}/products/${product.id}`,
+      url: productUrl,
       seller: {
         '@type': 'Organization',
         name: 'Kangaroo Shop',

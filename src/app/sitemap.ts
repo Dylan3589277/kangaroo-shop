@@ -1,25 +1,23 @@
 import { MetadataRoute } from "next";
 import { prisma } from "@/lib/prisma";
 import { routing } from "@/i18n/routing";
+import { buildAbsoluteUrl, buildLocaleAlternates } from '@/lib/seo';
 
-const BASE_URL = "https://kangaroo-shop-orpin.vercel.app";
 const locales = routing.locales.filter((l) => typeof l === "string") as string[];
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   // Static pages shared across all locales
-  const staticPaths = ["", "/products", "/about", "/contact", "/privacy", "/terms", "/cart", "/wishlist"];
+  const staticPaths = ["", "/products", "/about", "/contact", "/privacy", "/terms"];
 
   // Generate sitemap entries for each locale
   const staticEntries: MetadataRoute.Sitemap = locales.flatMap((locale) =>
     staticPaths.map((path) => ({
-      url: `${BASE_URL}/${locale}${path}`,
+      url: buildAbsoluteUrl(`/${locale}${path}`),
       lastModified: new Date(),
       changeFrequency: "weekly" as const,
       priority: path === "" ? 1.0 : path === "/products" ? 0.9 : 0.7,
       alternates: {
-        languages: Object.fromEntries(
-          locales.map((l) => [l, `${BASE_URL}/${l}${path}`])
-        ),
+        languages: buildLocaleAlternates(path),
       },
     }))
   );
@@ -35,14 +33,12 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
 
     productEntries = locales.flatMap((locale) =>
       products.map((product) => ({
-        url: `${BASE_URL}/${locale}/products/${product.id}`,
+        url: buildAbsoluteUrl(`/${locale}/products/${product.id}`),
         lastModified: product.updatedAt,
         changeFrequency: "weekly" as const,
         priority: 0.8,
         alternates: {
-          languages: Object.fromEntries(
-            locales.map((l) => [l, `${BASE_URL}/${l}/products/${product.id}`])
-          ),
+          languages: buildLocaleAlternates(`/products/${product.id}`),
         },
       }))
     );
