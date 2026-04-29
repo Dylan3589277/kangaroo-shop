@@ -8,7 +8,7 @@ import { ProductReviews } from '@/components/features/ProductReviews';
 import { WishlistButton } from '@/components/features/WishlistButton';
 import { prisma } from '@/lib/prisma';
 
-const BASE_URL = 'https://kangaroo-shop-tan.vercel.app';
+const BASE_URL = 'https://kangaroo-shop-orpin.vercel.app';
 
 interface Params {
   locale: string;
@@ -34,7 +34,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const title = product.title;
   const description = product.description
     ? product.description.slice(0, 160)
-    : `Shop ${title} at Kangaroo Shop. Japanese products shipped worldwide.`;
+    : `Shop ${title} at Kangaroo Shop. Products sourced and imported from China for global markets.`;
   const ogImage = `/og/${id}`;
 
   return {

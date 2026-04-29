@@ -8,20 +8,20 @@ type Props = {
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { locale } = await params;
   const titles: Record<string, string> = {
-    ja: '袋鼠君 | 日本から世界へ',
-    zh: '袋鼠君 | 从日本到世界',
-    en: 'Kangaroo Shop | From Japan to the World',
+    ja: '袋鼠君 | 中国調達から世界市場へ',
+    zh: '袋鼠君 | 中国采购，卖往全球',
+    en: 'Kangaroo Shop | China Sourcing for Global Markets',
   };
   const descriptions: Record<string, string> = {
-    ja: '厳選された日本商品を海外へ。Italian Brainrot、アニメグッズ、ベビー用品、ライフスタイル商品を取り扱う跨境ECサイト。',
-    zh: '精选日本商品，全球直邮。Italian Brainrot周边、动漫周边、母婴用品、生活用品跨境购物平台。',
-    en: 'Discover curated Japanese products shipped worldwide. Italian Brainrot collectibles, anime goods, baby products, and lifestyle items — all from Japan.',
+    ja: '中国で調達・輸入した商品を、日本・欧米を中心に世界へ届ける越境ECサイト。',
+    zh: '从中国采购/进口商品，面向日本、欧美等全球市场销售的跨境电商平台。',
+    en: 'A cross-border commerce platform sourcing and importing products from China for Japan, Europe, North America and global markets.',
   };
   return {
     title: titles[locale] ?? titles.en,
     description: descriptions[locale] ?? descriptions.en,
     alternates: {
-      canonical: `https://kangaroo-shop-tan.vercel.app/${locale}`,
+      canonical: `https://kangaroo-shop-orpin.vercel.app/${locale}`,
     },
   };
 }
@@ -48,8 +48,8 @@ export default async function HomePage({
   const { locale } = await params;
 
   const labels = {
-    heroTitle: locale === 'ja' ? '日本から世界へ' : locale === 'zh' ? '从日本到世界' : 'From Japan to the World',
-    heroSub: locale === 'ja' ? '厳選された日本商品を、海外の方へ' : locale === 'zh' ? '精选日本商品，海外直邮送达' : 'Carefully selected Japanese products, shipped worldwide',
+    heroTitle: locale === 'ja' ? '中国調達から世界市場へ' : locale === 'zh' ? '中国采购，卖往全球' : 'China Sourcing for Global Markets',
+    heroSub: locale === 'ja' ? '中国で調達・輸入した商品を、日本・欧米を中心に世界へ届けます' : locale === 'zh' ? '从中国采购/进口商品，面向日本、欧美等全球市场销售' : 'Products sourced and imported from China for Japan, Europe, North America and beyond',
     cta: locale === 'ja' ? '商品を見る' : locale === 'zh' ? '查看商品' : 'Browse Products',
     featured: locale === 'ja' ? 'おすすめ商品' : locale === 'zh' ? '推荐商品' : 'Featured',
     categories: locale === 'ja' ? 'カテゴリー' : locale === 'zh' ? '分类' : 'Categories',

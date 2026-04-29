@@ -2,7 +2,7 @@ import { ImageResponse } from '@vercel/og';
 
 export const runtime = 'edge';
 
-const BASE_URL = 'https://kangaroo-shop-tan.vercel.app';
+const BASE_URL = 'https://kangaroo-shop-orpin.vercel.app';
 
 async function getProduct(id: string) {
   try {
@@ -161,7 +161,7 @@ export async function GET(
               fontWeight: 400,
             }}
           >
-            From Japan to the World
+            China Sourcing for Global Markets
           </div>
         </div>
       </div>

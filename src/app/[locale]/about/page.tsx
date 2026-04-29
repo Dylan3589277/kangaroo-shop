@@ -12,15 +12,15 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
     en: 'About Us',
   };
   const descriptions: Record<string, string> = {
-    ja: '袋鼠君は日本と世界を繋ぐ跨境ECサイトです。Italian Brainrot IP製品を始めとする高品質な日本商品を海外へお届けします。',
-    zh: '袋鼠君是连接日本与世界的跨境电商平台，将Italian Brainrot IP周边等优质日本商品带给海外消费者。',
-    en: 'Kangaroo Kun is a cross-border e-commerce platform connecting Japan with the world, bringing quality Japanese products to global customers.',
+    ja: '袋鼠君は中国で商品を調達・輸入し、日本・欧米を中心に世界へ販売する越境ECサイトです。',
+    zh: '袋鼠君是从中国采购/进口商品，并面向日本、欧美与全球市场销售的跨境电商平台。',
+    en: 'Kangaroo Shop sources and imports products from China, then sells them to Japan, Europe, North America and global markets.',
   };
   return {
     title: titles[locale] ?? titles.en,
     description: descriptions[locale] ?? descriptions.en,
     alternates: {
-      canonical: `https://kangaroo-shop-tan.vercel.app/${locale}/about`,
+      canonical: `https://kangaroo-shop-orpin.vercel.app/${locale}/about`,
     },
   };
 }
@@ -34,10 +34,10 @@ export default async function AboutPage({
   const labels = {
     title: locale === 'ja' ? '会社概要' : locale === 'zh' ? '关于我们' : 'About Us',
     desc: locale === 'ja'
-      ? '袋鼠君は、日本と世界を繋ぐ跨境ECサイトです。Italian Brainrot IP製品を始めとする質の高い日本商品を、海外の消費者にお届けします。'
+      ? '袋鼠君は、中国で商品を調達・輸入し、日本・欧米を中心とした世界の消費者へ届ける越境ECサイトです。日本の代理購入サービスではありません。'
       : locale === 'zh'
-      ? '袋鼠君是连接日本与世界的跨境电商平台，将Italian Brainrot IP周边等优质日本商品带给海外消费者。'
-      : 'Kangaroo Kun is a cross-border e-commerce platform connecting Japan and the world.',
+      ? '袋鼠君从中国采购/进口商品，并面向日本、欧美等全球市场销售。本站不是日本代拍站。'
+      : 'Kangaroo Shop sources and imports products from China for global customers, with Japan, Europe and North America as key markets. It is not a Japan proxy-shopping service.',
   };
   return (
     <main className="container" style={{ paddingTop: 'var(--space-12)', paddingBottom: 'var(--space-16)' }}>

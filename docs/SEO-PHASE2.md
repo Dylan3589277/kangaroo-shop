@@ -1,5 +1,7 @@
 # 第二阶段 SEO 方案
 
+> 2026-04-29 更新：业务定位已调整为“从中国采购/进口商品，卖往日本、欧美与全球市场”。本文中旧的 “From Japan to the World” 方向已废弃，后续 SEO 文案以 `docs/global-commerce-p1.md` 为准。
+
 ## 1. OG 分享图制作
 
 ### 方案选择：使用 @vercel/og (Satori) 程序生成
@@ -31,10 +33,10 @@ export async function GET() {
         </div>
         {/* 标语 */}
         <div style={{ fontSize: 36, opacity: 0.9, textAlign: 'center', padding: '0 60px' }}>
-          From Japan to the World
+          China Sourcing for Global Markets
         </div>
         <div style={{ fontSize: 24, opacity: 0.7, marginTop: 16 }}>
-          厳選された日本商品を、海外の方へ
+          中国で調達・輸入した商品を日本・欧米・世界へ
         </div>
       </div>
     ),
@@ -57,7 +59,7 @@ pnpm add @vercel/og
 ### 备选方案：Canva + 手动上传
 
 如果暂时不想改代码，可以：
-1. 用 Canva 制作 1200×630 品牌图（袋鼠 Logo + 品牌色 + "From Japan to the World"）
+1. 用 Canva 制作 1200×630 品牌图（袋鼠 Logo + 品牌色 + "China Sourcing for Global Markets"）
 2. 导出为 `public/og-image.png`
 3. 需要在 `next.config.mjs` 中配置 `output: 'standalone'` 确保静态文件被包含
 
@@ -70,8 +72,8 @@ pnpm add @vercel/og
 | 字段 | 当前值 | 问题 | 优化建议 |
 |------|--------|------|---------|
 | `appName` | `Kangaroo Kun` | "Kun" 是日语敬称，英语用户可能不理解 | `Kangaroo Shop`（品牌一致性更好） |
-| `hero.title` | `From Japan to the World` | 良好，简洁有力 | 保留 |
-| `hero.subtitle` | `Carefully selected Japanese products, shipped worldwide` | 良好 | 保留 |
+| `hero.title` | `China Sourcing for Global Markets` | 与新业务定位一致 | 保留 |
+| `hero.subtitle` | `Products sourced and imported from China for Japan, Europe, North America and beyond` | 与新业务定位一致 | 保留 |
 | `home.categories` | `Categories` | 过于通用 | `Shop by Category`（含行动号召） |
 | `home.featured` | `Featured Products` | 尚可 | `Trending Now` 或 `Best Sellers`（更有紧迫感） |
 | `product.addToCart` | `Add to Cart` | 标准 | 保留 |
@@ -83,8 +85,8 @@ pnpm add @vercel/og
 | 字段 | 当前值 | 问题 | 优化建议 |
 |------|--------|------|---------|
 | `appName` | `袋鼠君` | 中文名称用在日语环境 | 保留（品牌名），但可考虑加注音 |
-| `hero.title` | `日本から世界へ` | 良好，简洁有力 | 保留 |
-| `hero.subtitle` | `厳選された日本商品を海外の方へ` | 语法有瑕疵 | `厳選された日本製品を海外へお届けします`（更自然） |
+| `hero.title` | `中国調達から世界市場へ` | 与新业务定位一致 | 保留 |
+| `hero.subtitle` | `中国で調達・輸入した商品を日本・欧米・世界へ届けます` | 与新业务定位一致 | 保留 |
 | `home.categories` | `カテゴリー` | 过于通用 | `カテゴリから探す`（含行动号召） |
 | `home.featured` | `おすすめ商品` | 良好 | 保留 |
 | `product.price` | `価格` | 标准 | 保留 |

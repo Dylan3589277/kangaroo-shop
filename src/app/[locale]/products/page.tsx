@@ -21,15 +21,15 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
     en: 'Products',
   };
   const descriptions: Record<string, string> = {
-    ja: '袋鼠君の全商品一覧。Italian Brainrot、アニメグッズ、ベビー用品、ライフスタイル商品をブラウズ。',
-    zh: '浏览袋鼠君的所有商品，包括Italian Brainrot周边、动漫周边、母婴用品和生活用品。',
-    en: 'Browse all products at Kangaroo Shop — Italian Brainrot collectibles, anime goods, baby products, and lifestyle items from Japan.',
+    ja: '中国で調達・輸入した商品の一覧。日本・欧米を中心に世界へ販売します。',
+    zh: '浏览袋鼠君从中国采购/进口、面向日本欧美与全球销售的商品。',
+    en: 'Browse products sourced and imported from China for Japan, Europe, North America and global customers.',
   };
   return {
     title: titles[locale] ?? titles.en,
     description: descriptions[locale] ?? descriptions.en,
     alternates: {
-      canonical: `https://kangaroo-shop-tan.vercel.app/${locale}/products`,
+      canonical: `https://kangaroo-shop-orpin.vercel.app/${locale}/products`,
     },
   };
 }

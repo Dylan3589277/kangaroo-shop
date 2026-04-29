@@ -2,7 +2,7 @@ import { MetadataRoute } from "next";
 import { prisma } from "@/lib/prisma";
 import { routing } from "@/i18n/routing";
 
-const BASE_URL = "https://kangaroo-shop-tan.vercel.app";
+const BASE_URL = "https://kangaroo-shop-orpin.vercel.app";
 const locales = routing.locales.filter((l) => typeof l === "string") as string[];
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {

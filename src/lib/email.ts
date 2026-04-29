@@ -150,7 +150,7 @@ export async function sendOrderConfirmation(order: OrderData): Promise<void> {
       </p>
     </div>
     <div class="footer">
-      袋鼠君 — 日本から世界へ、厳選商品をお届け<br/>
+      袋鼠君 — 中国調達の商品を日本・欧米・世界へ<br/>
       このメールは袋鼠君公式オンラインストアより送信されました
     </div>
   </div>
@@ -236,7 +236,7 @@ export async function sendStatusChangeEmail(data: StatusChangeData): Promise<voi
       </p>
     </div>
     <div class="footer">
-      袋鼠君 — 日本から世界へ、厳選商品をお届け
+      袋鼠君 — 中国調達の商品を日本・欧米・世界へ
     </div>
   </div>
 </body>

@@ -52,6 +52,7 @@ export default async function AdminProductsPage({ params, searchParams }: Props)
       price: '価格',
       stock: '在庫',
       actions: '操作',
+      status: 'ステータス',
       edit: '編集',
       noProducts: '商品がありません',
       page: 'ページ',
@@ -70,6 +71,7 @@ export default async function AdminProductsPage({ params, searchParams }: Props)
       price: '价格',
       stock: '库存',
       actions: '操作',
+      status: '状态/发布',
       edit: '编辑',
       noProducts: '暂无商品',
       page: '页',
@@ -88,6 +90,7 @@ export default async function AdminProductsPage({ params, searchParams }: Props)
       price: 'Price',
       stock: 'Stock',
       actions: 'Actions',
+      status: 'Status / Publish',
       edit: 'Edit',
       noProducts: 'No products yet',
       page: 'Page',
@@ -192,7 +195,7 @@ export default async function AdminProductsPage({ params, searchParams }: Props)
                   <th style={thStyle}>{labels.category}</th>
                   <th style={{ ...thStyle, textAlign: 'right' }}>{labels.price}</th>
                   <th style={{ ...thStyle, textAlign: 'right' }}>{labels.stock}</th>
-                  <th style={thStyle}>ステータス</th>
+                  <th style={thStyle}>{labels.status}</th>
                   <th style={thStyle}>{labels.actions}</th>
                 </tr>
               </thead>

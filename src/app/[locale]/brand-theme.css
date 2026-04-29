@@ -1,0 +1,35 @@
+/*
+  Brand theme tokens extracted from the provided logo / visual reference.
+  Palette source: airy aqua sign background, white lettering, soft pink heart,
+  warm orange underline and fresh green vine accents. The semantic values keep
+  enough contrast for a clean Japan / Europe / US cross-border storefront.
+*/
+
+:root {
+  /* Core logo palette */
+  --brand-sky: #BFE8EF;
+  --brand-sky-soft: #EAF7F9;
+  --brand-white: #FFFFFF;
+  --brand-heart: #F2A0B8;
+  --brand-sunline: #F4A261;
+  --brand-leaf: #7BAA63;
+
+  /* Semantic theme tokens */
+  --brand-primary: #2F7F8E;
+  --brand-primary-hover: #256B78;
+  --brand-primary-strong: #174B55;
+  --brand-accent: var(--brand-heart);
+  --brand-accent-warm: var(--brand-sunline);
+  --brand-accent-natural: var(--brand-leaf);
+
+  --brand-bg: #F4FBFC;
+  --brand-bg-muted: #EAF7F9;
+  --brand-surface: #FFFFFF;
+  --brand-surface-raised: #FEFFFF;
+  --brand-border: #CFE8EC;
+  --brand-border-strong: #98CBD4;
+
+  --brand-text: #17323A;
+  --brand-text-secondary: #48636A;
+  --brand-text-muted: #6F858B;
+}

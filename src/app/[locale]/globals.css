@@ -1,42 +1,42 @@
 /*
-  袋鼠君独立站 - 日式UI设计系统
-  设计参考：MUJI / 任天堂 / Rakuten 日本电商风格
-  特点：留白多、圆角柔和、色调克制、强调质感
+  袋鼠君跨境电商站 - 全球跨境电商 UI 基线
+  品牌主色来自花哥提供的 logo/视觉参考图，集中维护在 brand-theme.css。
 */
 
 /* ==================== 字体系统 ==================== */
 @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@300;400;500;700&family=Shippori+Mincho:wght@400;500;700&display=swap');
+@import './brand-theme.css';
 
 /* ==================== 设计Token ==================== */
 :root {
   /* --- 主色调 --- */
-  --color-primary: #8B0000;        /* 深绯红·日本传统色 */
-  --color-primary-light: #B22222;   /* 亮绯红 */
-  --color-primary-dark: #5C0000;   /* 暗绯红 */
+  --color-primary: var(--brand-primary);
+  --color-primary-light: var(--brand-primary-hover);
+  --color-primary-dark: var(--brand-primary-strong);
 
   /* --- 背景色 --- */
-  --color-bg: #FDFBF7;              /* 米白·温暖底色 */
-  --color-bg-alt: #F5F0E8;          /* 淡麻色 */
-  --color-surface: #FFFFFF;         /* 纯白卡片 */
-  --color-surface-raised: #FFFCF5;  /* 微暖白 */
+  --color-bg: var(--brand-bg);
+  --color-bg-alt: var(--brand-bg-muted);
+  --color-surface: var(--brand-surface);
+  --color-surface-raised: var(--brand-surface-raised);
 
   /* --- 文字色 --- */
-  --color-text: #1A1A1A;           /* 墨黑 */
-  --color-text-secondary: #5C5C5C;  /* 灰色 */
-  --color-text-muted: #9C9C9C;     /* 淡灰 */
+  --color-text: var(--brand-text);
+  --color-text-secondary: var(--brand-text-secondary);
+  --color-text-muted: var(--brand-text-muted);
   --color-text-inverse: #FFFFFF;   /* 白字 */
 
   /* --- 边框/分割 --- */
-  --color-border: #E8E2D9;          /* 麻色边框 */
-  --color-border-strong: #C9BFB0;   /* 深麻边框 */
-  --color-divider: #EEE8DD;        /* 分割线 */
+  --color-border: var(--brand-border);
+  --color-border-strong: var(--brand-border-strong);
+  --color-divider: var(--brand-border);        /* 分割线 */
 
   /* --- 功能色 --- */
-  --color-accent: #D4AF37;          /* 金色点缀 */
-  --color-success: #2E7D32;         /* 绿色 */
-  --color-warning: #E65100;         /* 橙色 */
-  --color-error: #C62828;           /* 红色 */
-  --color-info: #1565C0;            /* 蓝色 */
+  --color-accent: var(--brand-accent);
+  --color-success: var(--brand-accent-natural); /* 自然绿 */
+  --color-warning: var(--brand-accent-warm);    /* 暖橙 */
+  --color-error: #C95F73;                       /* 柔红 */
+  --color-info: var(--brand-primary);           /* 海蓝 */
 
   /* --- 阴影 --- */
   --shadow-xs: 0 1px 2px rgba(0,0,0,0.04);

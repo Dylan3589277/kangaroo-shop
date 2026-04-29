@@ -56,7 +56,7 @@ export default async function LocaleLayout({
                 <div>
                   <div className="footer-title">袋鼠君</div>
                   <p style={{ fontSize: 'var(--text-sm)', color: 'var(--color-text-secondary)', marginBottom: 0 }}>
-                    {locale === 'ja' ? '日本から世界へ、厳選商品をお届け' : locale === 'zh' ? '从日本到世界，精选好物' : 'From Japan to the World'}
+                    {locale === 'ja' ? '中国調達の商品を日本・欧米・世界へ' : locale === 'zh' ? '中国采购/进口商品，卖往日本、欧美与全球' : 'China-sourced goods for Japan, Europe, North America and global markets'}
                   </p>
                 </div>
                 <div>

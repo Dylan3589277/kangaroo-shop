@@ -84,7 +84,7 @@ export async function GET() {
               textAlign: 'center',
             }}
           >
-            From Japan to the World
+            China Sourcing for Global Markets
           </div>
         </div>
       </div>
