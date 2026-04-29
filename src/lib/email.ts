@@ -8,7 +8,46 @@ import { formatPrice } from '@/lib/products';
 
 // 驼峰转 kebab-case（用于 CSS class 名）
 function toKebabCase(str: string): string {
-  return str.replace(/_/g, '-');
+  return str.replace(/_/g, '-').replace(/[^a-zA-Z0-9-]/g, '');
+}
+
+function sanitizeHeader(value: string | number | null | undefined): string {
+  return String(value ?? '').replace(/[\r\n]/g, ' ').trim();
+}
+
+function escapeHtml(value: string | number | null | undefined): string {
+  return String(value ?? '')
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+}
+
+export type EmailConfigStatus = {
+  configured: boolean;
+  missing: string[];
+  hostSet: boolean;
+  port: number;
+  secure: boolean;
+  userSet: boolean;
+  fromSet: boolean;
+};
+
+export function getEmailConfigStatus(): EmailConfigStatus {
+  const port = parseInt(process.env.SMTP_PORT || '465', 10);
+  const required = ['SMTP_HOST', 'SMTP_USER', 'SMTP_PASS', 'SMTP_FROM'];
+  const missing = required.filter((name) => !process.env[name]);
+
+  return {
+    configured: missing.length === 0 && Number.isFinite(port),
+    missing: Number.isFinite(port) ? missing : [...missing, 'SMTP_PORT'],
+    hostSet: Boolean(process.env.SMTP_HOST),
+    port: Number.isFinite(port) ? port : 465,
+    secure: process.env.SMTP_SECURE === 'true',
+    userSet: Boolean(process.env.SMTP_USER),
+    fromSet: Boolean(process.env.SMTP_FROM),
+  };
 }
 
 export type OrderData = {
@@ -44,14 +83,15 @@ export type StatusChangeData = {
 
 // 创建邮件传输器
 function createTransporter() {
-  const host = process.env.SMTP_HOST;
-  const port = parseInt(process.env.SMTP_PORT || '465', 10);
-  const secure = process.env.SMTP_SECURE === 'true';
+  const config = getEmailConfigStatus();
+  if (!config.configured) {
+    throw new Error(`SMTP is not configured. Missing: ${config.missing.join(', ')}`);
+  }
 
   return nodemailer.createTransport({
-    host,
-    port,
-    secure,
+    host: process.env.SMTP_HOST,
+    port: config.port,
+    secure: config.secure,
     auth: {
       user: process.env.SMTP_USER,
       pass: process.env.SMTP_PASS,
@@ -61,11 +101,7 @@ function createTransporter() {
 
 // 判断邮件服务是否已配置
 export function isEmailConfigured(): boolean {
-  return !!(
-    process.env.SMTP_HOST &&
-    process.env.SMTP_USER &&
-    process.env.SMTP_PASS
-  );
+  return getEmailConfigStatus().configured;
 }
 
 // 发送订单确认邮件
@@ -80,7 +116,7 @@ export async function sendOrderConfirmation(order: OrderData): Promise<void> {
       (item) => `
       <tr>
         <td style="padding: 10px 0; border-bottom: 1px solid #eee;">
-          ${item.productTitle} × ${item.quantity}
+          ${escapeHtml(item.productTitle)} × ${escapeHtml(item.quantity)}
         </td>
         <td style="padding: 10px 0; border-bottom: 1px solid #eee; text-align: right;">
           ${formatPrice(item.price * item.quantity)}
@@ -112,11 +148,11 @@ export async function sendOrderConfirmation(order: OrderData): Promise<void> {
       <h1>🦘 袋鼠君 — 注文確認</h1>
     </div>
     <div class="body">
-      <p>${order.customerName} 様</p>
+      <p>${escapeHtml(order.customerName)} 様</p>
       <p>ご注文ありがとうございます。ご注文内容の確認です。</p>
 
       <h3 style="border-bottom: 2px solid #FF6B35; padding-bottom: 6px;">注文情報</h3>
-      <p><strong>注文番号：</strong> ${order.orderNumber}</p>
+      <p><strong>注文番号：</strong> ${escapeHtml(order.orderNumber)}</p>
       <p><strong>支払い方法：</strong> ${order.paymentMethod === 'stripe' ? 'Stripe（クレジットカード）' : 'PayPal'}</p>
 
       <h3 style="border-bottom: 2px solid #FF6B35; padding-bottom: 6px;">商品明细</h3>
@@ -139,10 +175,10 @@ export async function sendOrderConfirmation(order: OrderData): Promise<void> {
 
       <div class="address">
         <strong>配送先：</strong><br/>
-        ${order.shippingName}<br/>
-        〒${order.shippingPostal} ${order.shippingPrefecture}${order.shippingCity}<br/>
-        ${order.shippingAddress1}${order.shippingAddress2 ? ` ${order.shippingAddress2}` : ''}<br/>
-        ${order.shippingPhone ? `📞 ${order.shippingPhone}` : ''}
+        ${escapeHtml(order.shippingName)}<br/>
+        〒${escapeHtml(order.shippingPostal)} ${escapeHtml(order.shippingPrefecture)}${escapeHtml(order.shippingCity)}<br/>
+        ${escapeHtml(order.shippingAddress1)}${order.shippingAddress2 ? ` ${escapeHtml(order.shippingAddress2)}` : ''}<br/>
+        ${order.shippingPhone ? `📞 ${escapeHtml(order.shippingPhone)}` : ''}
       </div>
 
       <p style="margin-top: 20px; font-size: 13px; color: #666;">
@@ -160,7 +196,7 @@ export async function sendOrderConfirmation(order: OrderData): Promise<void> {
   await createTransporter().sendMail({
     from: process.env.SMTP_FROM,
     to: order.customerEmail,
-    subject: `【袋鼠君】ご注文完了 — ${order.orderNumber}`,
+    subject: `【袋鼠君】ご注文完了 — ${sanitizeHeader(order.orderNumber)}`,
     html,
   });
 }
@@ -212,22 +248,22 @@ export async function sendStatusChangeEmail(data: StatusChangeData): Promise<voi
       <h1>🦘 袋鼠君 — ステータス更新</h1>
     </div>
     <div class="body">
-      <p>${data.customerName} 様</p>
-      <p>ご注文 ${data.orderNumber} のステータスが更新されました。</p>
+      <p>${escapeHtml(data.customerName)} 様</p>
+      <p>ご注文 ${escapeHtml(data.orderNumber)} のステータスが更新されました。</p>
 
-      <p><strong>注文番号：</strong> ${data.orderNumber}</p>
+      <p><strong>注文番号：</strong> ${escapeHtml(data.orderNumber)}</p>
 
       <p>
         <strong>ステータス変更：</strong><br/>
-        <span class="status-box status-${oldStatusKebab}">${oldLabel}</span>
+        <span class="status-box status-${oldStatusKebab}">${escapeHtml(oldLabel)}</span>
         &nbsp;→&nbsp;
-        <span class="status-box status-${newStatusKebab}">${newLabel}</span>
+        <span class="status-box status-${newStatusKebab}">${escapeHtml(newLabel)}</span>
       </p>
 
       ${data.note ? `
       <div class="note">
         <strong>備考：</strong><br/>
-        ${data.note}
+        ${escapeHtml(data.note)}
       </div>
       ` : ''}
 
@@ -245,7 +281,7 @@ export async function sendStatusChangeEmail(data: StatusChangeData): Promise<voi
   await createTransporter().sendMail({
     from: process.env.SMTP_FROM,
     to: data.customerEmail,
-    subject: `【袋鼠君】ご注文 ${data.orderNumber} ステータス更新 — ${newLabel}`,
+    subject: `【袋鼠君】ご注文 ${sanitizeHeader(data.orderNumber)} ステータス更新 — ${sanitizeHeader(newLabel)}`,
     html,
   });
 }

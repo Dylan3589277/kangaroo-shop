@@ -17,7 +17,8 @@ export async function POST(req: NextRequest, { params }: { params: { orderId: st
     const { response } = await requireAdminSession();
     if (response) return response;
 
-    const { type, note } = await req.json();
+    const body = await req.json().catch(() => ({}));
+    const { type, note, oldStatus = 'pending' } = body;
 
     if (!['confirmation', 'status_change'].includes(type)) {
       return NextResponse.json({ error: 'Invalid notification type' }, { status: 400 });
@@ -67,7 +68,6 @@ export async function POST(req: NextRequest, { params }: { params: { orderId: st
         shippingPhone: order.shippingPhone ?? undefined,
       });
     } else if (type === 'status_change') {
-      const { oldStatus = 'pending' } = await req.json().catch(() => ({}));
       await sendStatusChangeEmail({
         orderNumber: order.orderNumber,
         customerEmail: order.shippingEmail,
