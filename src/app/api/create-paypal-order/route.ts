@@ -1,4 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { prisma } from '@/lib/prisma';
+import { getPayableOrder, PaymentOrderError } from '@/lib/payment-order';
 
 // 强制使用 Node.js Runtime（解决 Edge Runtime 无法认证 PayPal 的问题）
 export const runtime = 'nodejs';
@@ -14,7 +16,12 @@ function getPaypalBaseUrl(): string {
 
 export async function POST(req: NextRequest) {
   try {
-    const { amount, currency = 'JPY' } = await req.json();
+    const { orderId } = await req.json();
+    const order = await getPayableOrder(orderId);
+
+    if (order.paymentMethod !== 'paypal') {
+      return NextResponse.json({ error: 'Order payment method is not paypal' }, { status: 400 });
+    }
 
     const clientId = process.env.PAYPAL_CLIENT_ID ?? '';
     const clientSecret = process.env.PAYPAL_CLIENT_SECRET ?? '';
@@ -44,10 +51,7 @@ export async function POST(req: NextRequest) {
 
     const { access_token } = await tokenRes.json();
 
-    // JPY 无小数位，value 传整数
-    const currencyCode = currency === 'jpy' ? 'JPY' : currency.toUpperCase();
-    const value = currencyCode === 'JPY' ? String(Math.round(amount)) : (amount / 100).toFixed(2);
-
+    // JPY 无小数位，金额只从服务端订单 total 获取，不信任前端 amount/currency
     const orderRes = await fetch(getPaypalBaseUrl() + '/v2/checkout/orders', {
       method: 'POST',
       headers: {
@@ -57,9 +61,11 @@ export async function POST(req: NextRequest) {
       body: JSON.stringify({
         intent: 'CAPTURE',
         purchase_units: [{
+          custom_id: order.id,
+          description: `Kangaroo Shop order ${order.orderNumber}`,
           amount: {
-            currency_code: currencyCode,
-            value,
+            currency_code: 'JPY',
+            value: String(order.total),
           },
         }],
       }),
@@ -70,9 +76,19 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'PayPal order error: ' + err }, { status: 502 });
     }
 
-    const order = await orderRes.json();
-    return NextResponse.json({ orderID: order.id });
+    const paypalOrder = await orderRes.json();
+
+    await prisma.order.update({
+      where: { id: order.id },
+      data: { paypalOrderId: paypalOrder.id },
+    });
+
+    return NextResponse.json({ orderID: paypalOrder.id });
   } catch (err) {
+    if (err instanceof PaymentOrderError) {
+      return NextResponse.json({ error: err.message }, { status: err.status });
+    }
+
     const message = err instanceof Error ? err.message : 'Unknown error';
     return NextResponse.json({ error: message }, { status: 500 });
   }

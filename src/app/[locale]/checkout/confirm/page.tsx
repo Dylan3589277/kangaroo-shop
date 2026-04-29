@@ -113,7 +113,7 @@ function ConfirmContent({ locale }: { locale: string }) {
         const res = await fetch('/api/create-paypal-order', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ amount: order.total, currency: 'JPY' }),
+          body: JSON.stringify({ orderId: order.id }),
         });
         const data = await res.json();
         if (data.error) {

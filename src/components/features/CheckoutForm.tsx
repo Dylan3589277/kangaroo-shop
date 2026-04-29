@@ -95,13 +95,12 @@ export function CheckoutForm({ amount, locale, orderId, onSuccess, onError }: Ch
   const [fetchError, setFetchError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
-  // 进入 Stripe 步骤时，立即从后端拿 clientSecret（带上 orderId）
+  // 进入 Stripe 步骤时，立即从后端拿 clientSecret（金额由后端按 orderId 查询订单 total）
   useEffect(() => {
-    const currency = 'jpy';
     fetch('/api/create-payment-intent', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ amount: Math.round(amount), currency, locale, orderId }),
+      body: JSON.stringify({ locale, orderId }),
     })
       .then(r => r.json())
       .then(data => {
@@ -118,7 +117,7 @@ export function CheckoutForm({ amount, locale, orderId, onSuccess, onError }: Ch
         onError?.(msg);
       })
       .finally(() => setIsLoading(false));
-  }, [amount]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [locale, orderId]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const loadingLabels = {
     ja: '読み込み中...',
