@@ -1,21 +1,14 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getServerSession } from 'next-auth';
-import { authOptions } from '@/lib/auth';
 import { buildImportPreview } from '@/lib/import/sync-job';
+import { requireAdminSession } from '@/lib/admin-auth';
 
 export const runtime = 'nodejs';
 const MAX_IMPORT_FILE_SIZE = 5 * 1024 * 1024;
 
-async function requireAdmin() {
-  const session = await getServerSession(authOptions);
-  return Boolean(session && session.user?.role === 'admin');
-}
-
 export async function POST(req: NextRequest) {
   try {
-    if (!(await requireAdmin())) {
-      return NextResponse.json({ error: 'Unauthorized - admin only' }, { status: 401 });
-    }
+    const { response } = await requireAdminSession();
+    if (response) return response;
 
     const formData = await req.formData();
     const platform = String(formData.get('platform') || 'rakuten');

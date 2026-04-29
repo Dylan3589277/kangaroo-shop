@@ -23,6 +23,23 @@ declare module 'next-auth/jwt' {
   }
 }
 
+const WEAK_DEFAULT_ADMIN_PASSWORDS = new Set([
+  'changeme',
+  'changeme123',
+  'password',
+  'admin',
+  '123456',
+]);
+
+function isProduction() {
+  return process.env.NODE_ENV === 'production' || process.env.VERCEL_ENV === 'production';
+}
+
+function isWeakDefaultAdminPassword(password: string | undefined) {
+  if (!password || password.startsWith('$2')) return false;
+  return WEAK_DEFAULT_ADMIN_PASSWORDS.has(password.trim().toLowerCase());
+}
+
 export const authOptions: NextAuthOptions = {
   providers: [
     CredentialsProvider({
@@ -44,6 +61,11 @@ export const authOptions: NextAuthOptions = {
         // Verify email first
         if (credentials.email !== adminEmail) {
           return null;
+        }
+
+        if (isProduction() && isWeakDefaultAdminPassword(adminPassword)) {
+          console.error('SECURITY: Refusing admin login because ADMIN_PASSWORD is a weak default value in production.');
+          throw new Error('UnsafeAdminPassword');
         }
 
         // Verify password using bcrypt if it's a hash, otherwise plain text compare

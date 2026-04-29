@@ -1,7 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getServerSession } from 'next-auth';
 import { prisma } from '@/lib/prisma';
-import { authOptions } from '@/lib/auth';
+import { requireAdminSession } from '@/lib/admin-auth';
 
 export const runtime = 'nodejs';
 
@@ -20,10 +19,8 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
 // PUT /api/products/[id] - 更新商品（仅管理员）
 export async function PUT(req: NextRequest, { params }: { params: { id: string } }) {
   try {
-    const session = await getServerSession(authOptions);
-    if (!session || session.user?.role !== 'admin') {
-      return NextResponse.json({ error: 'Unauthorized - admin only' }, { status: 401 });
-    }
+    const { response } = await requireAdminSession();
+    if (response) return response;
 
     const body = await req.json();
     const existing = await prisma.product.findUnique({ where: { id: params.id } });
@@ -70,10 +67,8 @@ export async function PUT(req: NextRequest, { params }: { params: { id: string }
 // DELETE /api/products/[id] - 软删除（仅管理员）
 export async function DELETE(req: NextRequest, { params }: { params: { id: string } }) {
   try {
-    const session = await getServerSession(authOptions);
-    if (!session || session.user?.role !== 'admin') {
-      return NextResponse.json({ error: 'Unauthorized - admin only' }, { status: 401 });
-    }
+    const { response } = await requireAdminSession();
+    if (response) return response;
 
     const existing = await prisma.product.findUnique({ where: { id: params.id } });
     if (!existing) return NextResponse.json({ error: 'Product not found' }, { status: 404 });

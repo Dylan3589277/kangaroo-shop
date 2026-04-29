@@ -1,12 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getServerSession } from 'next-auth';
 import { prisma } from '@/lib/prisma';
 import {
   isEmailConfigured,
   sendOrderConfirmation,
   sendStatusChangeEmail,
 } from '@/lib/email';
-import { authOptions } from '@/lib/auth';
+import { requireAdminSession } from '@/lib/admin-auth';
 
 export const runtime = 'nodejs';
 
@@ -15,10 +14,8 @@ export const runtime = 'nodejs';
 // 管理员才能发送通知邮件
 export async function POST(req: NextRequest, { params }: { params: { orderId: string } }) {
   try {
-    const session = await getServerSession(authOptions);
-    if (!session || session.user?.role !== 'admin') {
-      return NextResponse.json({ error: 'Unauthorized - admin only' }, { status: 401 });
-    }
+    const { response } = await requireAdminSession();
+    if (response) return response;
 
     const { type, note } = await req.json();
 

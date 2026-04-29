@@ -1,7 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getServerSession } from 'next-auth';
-import { authOptions } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
+import { requireAdminSession } from '@/lib/admin-auth';
 import { parseProductImages } from '@/lib/products';
 
 export const runtime = 'nodejs';
@@ -79,10 +78,8 @@ function buildAmazonTsv(product: Awaited<ReturnType<typeof prisma.product.findUn
 
 export async function GET(req: NextRequest) {
   try {
-    const session = await getServerSession(authOptions);
-    if (!session || session.user?.role !== 'admin') {
-      return NextResponse.json({ error: 'Unauthorized - admin only' }, { status: 401 });
-    }
+    const { response } = await requireAdminSession();
+    if (response) return response;
 
     const productId = req.nextUrl.searchParams.get('productId');
     const platform = req.nextUrl.searchParams.get('platform');

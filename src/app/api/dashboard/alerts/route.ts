@@ -1,8 +1,12 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
+import { requireAdminSession } from '@/lib/admin-auth';
 
 export async function GET(req: Request) {
   try {
+    const { response } = await requireAdminSession();
+    if (response) return response;
+
     const { searchParams } = new URL(req.url);
     const status = searchParams.get('status');
     const moduleParam = searchParams.get('module');
@@ -28,6 +32,9 @@ export async function GET(req: Request) {
 
 export async function POST(req: Request) {
   try {
+    const { response } = await requireAdminSession();
+    if (response) return response;
+
     const body = await req.json();
     const {
       metricId,

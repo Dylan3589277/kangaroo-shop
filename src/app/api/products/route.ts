@@ -1,7 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getServerSession } from 'next-auth';
 import { prisma } from '@/lib/prisma';
-import { authOptions } from '@/lib/auth';
+import { requireAdminSession } from '@/lib/admin-auth';
 
 export const runtime = 'nodejs';
 
@@ -94,10 +93,8 @@ export async function GET(req: NextRequest) {
 // POST /api/products - 新增商品（仅管理员）
 export async function POST(req: NextRequest) {
   try {
-    const session = await getServerSession(authOptions);
-    if (!session || session.user?.role !== 'admin') {
-      return NextResponse.json({ error: 'Unauthorized - admin only' }, { status: 401 });
-    }
+    const { response } = await requireAdminSession();
+    if (response) return response;
 
     const body = await req.json();
     const {

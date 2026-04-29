@@ -1,7 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getServerSession } from 'next-auth';
 import { prisma } from '@/lib/prisma';
-import { authOptions } from '@/lib/auth';
+import { requireAdminSession } from '@/lib/admin-auth';
 
 export const runtime = 'nodejs';
 
@@ -10,10 +9,8 @@ const VALID_STATUSES = ['pending', 'paid', 'failed', 'cancelled', 'refunded'];
 // 管理员才能更新订单状态
 export async function PATCH(req: NextRequest, { params }: { params: { orderId: string } }) {
   try {
-    const session = await getServerSession(authOptions);
-    if (!session || session.user?.role !== 'admin') {
-      return NextResponse.json({ error: 'Unauthorized - admin only' }, { status: 401 });
-    }
+    const { response } = await requireAdminSession();
+    if (response) return response;
 
     const { status, note } = await req.json();
 

@@ -36,6 +36,14 @@ export default function AdminLoginPage() {
     setLoading(false);
 
     if (result?.error) {
+      if (result.error === 'UnsafeAdminPassword') {
+        setError(locale === 'ja'
+          ? '本番環境では弱いデフォルト管理者パスワードは使用できません。ADMIN_PASSWORDを変更してください。'
+          : locale === 'en'
+            ? 'Weak default admin password is blocked in production. Please rotate ADMIN_PASSWORD.'
+            : '生产环境已拒绝弱默认管理员密码，请更换 ADMIN_PASSWORD。');
+        return;
+      }
       setError(locale === 'ja' ? 'メールアドレスまたはパスワードが正しくありません' : locale === 'en' ? 'Invalid email or password' : '邮箱或密码错误');
       return;
     }

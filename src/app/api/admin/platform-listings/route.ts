@@ -1,8 +1,7 @@
 import { createHmac, timingSafeEqual } from 'crypto';
 import { NextRequest, NextResponse } from 'next/server';
-import { getServerSession } from 'next-auth';
-import { authOptions } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
+import { requireAdminSession, type AdminSession } from '@/lib/admin-auth';
 
 export const runtime = 'nodejs';
 
@@ -13,13 +12,6 @@ const EXTERNAL_PLATFORMS = ['rakuten', 'amazon'] as const;
 type Platform = (typeof VALID_PLATFORMS)[number];
 type ExternalPlatform = (typeof EXTERNAL_PLATFORMS)[number];
 type Action = (typeof VALID_ACTIONS)[number];
-
-type AdminSession = {
-  user?: {
-    email?: string | null;
-    role?: string | null;
-  };
-} | null;
 
 function isPlatform(value: unknown): value is Platform {
   return typeof value === 'string' && VALID_PLATFORMS.includes(value as Platform);
@@ -156,10 +148,9 @@ export async function POST(req: NextRequest) {
   let action: Action | undefined;
 
   try {
-    session = (await getServerSession(authOptions)) as AdminSession;
-    if (!session || session.user?.role !== 'admin') {
-      return NextResponse.json({ error: 'Unauthorized - admin only' }, { status: 401 });
-    }
+    const auth = await requireAdminSession();
+    session = auth.session;
+    if (auth.response) return auth.response;
 
     const body = await req.json();
     productId = typeof body.productId === 'string' ? body.productId : '';

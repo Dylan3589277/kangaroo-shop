@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { refreshDashboardAlerts } from '@/lib/dashboard-alerts';
+import { requireAdminSession } from '@/lib/admin-auth';
 
 // 模块类型
 type ModuleType = 'hr' | 'finance' | 'supply_chain' | 'operation' | 'influencer';
@@ -55,6 +56,9 @@ export async function GET(
   { params }: { params: { module: string } }
 ) {
   try {
+    const { response } = await requireAdminSession();
+    if (response) return response;
+
     const moduleId = params.module as ModuleType;
 
     // 验证模块类型

@@ -1,11 +1,15 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
+import { requireAdminSession } from '@/lib/admin-auth';
 
 export async function PATCH(
   req: Request,
   { params }: { params: { alertId: string } }
 ) {
   try {
+    const { response } = await requireAdminSession();
+    if (response) return response;
+
     const { handler, handlingResult } = await req.json();
 
     const alert = await prisma.dashboardAlert.update({
