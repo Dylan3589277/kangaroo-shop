@@ -3,6 +3,7 @@ import { getServerSession } from 'next-auth';
 import { prisma } from '@/lib/prisma';
 import { parseProductImages } from '@/lib/products';
 import { authOptions } from '@/lib/auth';
+import { isAdminSession, toPublicOrder } from '@/lib/order-privacy';
 
 // 强制 Node.js Runtime
 export const runtime = 'nodejs';
@@ -96,25 +97,28 @@ export async function GET(req: NextRequest) {
     const { searchParams } = new URL(req.url);
     const id = searchParams.get('id');
     const status = searchParams.get('status');
-    const page = parseInt(searchParams.get('page') ?? '1', 10);
-    const pageSize = parseInt(searchParams.get('pageSize') ?? '20', 10);
-
-    // 单个订单查询——需要登录（通过 /api/orders/[orderId] 更安全）
-    // 此处不做权限区分，统一重定向到有更细粒度控制的 /api/orders/[orderId] 端点
-    // 为保持兼容性，此处仅做基本校验
-    const order = await prisma.order.findUnique({
-      where: { id: id ?? undefined },
-      include: { items: true, history: { orderBy: { createdAt: 'desc' } } },
-    });
-    if (!order) {
-      return NextResponse.json({ error: 'Order not found' }, { status: 404 });
-    }
-    return NextResponse.json({ order });
-
-    // 列表查询（后台用）—— 需要管理员权限
+    const page = Math.max(parseInt(searchParams.get('page') ?? '1', 10) || 1, 1);
+    const pageSize = Math.min(Math.max(parseInt(searchParams.get('pageSize') ?? '20', 10) || 20, 1), 100);
     const session = await getServerSession(authOptions);
-    if (!session) {
-      return NextResponse.json({ error: 'Unauthorized - admin only' }, { status: 401 });
+    const isAdmin = isAdminSession(session);
+
+    // 单个订单查询：公开 checkout/success 需要通过 orderId 读取必要支付信息，
+    // 但只有管理员可以得到完整订单（含地址/手机号/邮箱/history/网关ID等）。
+    if (id) {
+      const order = await prisma.order.findUnique({
+        where: { id },
+        include: isAdmin ? { items: true, history: { orderBy: { createdAt: 'desc' } } } : { items: true },
+      });
+      if (!order) {
+        return NextResponse.json({ error: 'Order not found' }, { status: 404 });
+      }
+
+      return NextResponse.json({ order: isAdmin ? order : toPublicOrder(order) });
+    }
+
+    // 列表查询（后台用）：必须是管理员，不能对未登录/普通用户开放订单枚举。
+    if (!isAdmin) {
+      return NextResponse.json({ error: 'Unauthorized - admin only' }, { status: session ? 403 : 401 });
     }
 
     const where: Record<string, unknown> = {};
