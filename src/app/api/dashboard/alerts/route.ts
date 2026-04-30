@@ -1,6 +1,7 @@
-import { NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { requireAdminSession } from '@/lib/admin-auth';
+import { parseRequestJsonObject } from '@/lib/request-json';
 
 export async function GET(req: Request) {
   try {
@@ -30,12 +31,15 @@ export async function GET(req: Request) {
   }
 }
 
-export async function POST(req: Request) {
+export async function POST(req: NextRequest) {
   try {
     const { response } = await requireAdminSession();
     if (response) return response;
 
-    const body = await req.json();
+    const parsed = await parseRequestJsonObject(req);
+    if (!parsed.success) return parsed.response;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const body = parsed.data as Record<string, any>;
     const {
       metricId,
       metricName,

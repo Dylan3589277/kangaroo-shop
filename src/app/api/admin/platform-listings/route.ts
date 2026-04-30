@@ -3,6 +3,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { requireAdminSession, type AdminSession } from '@/lib/admin-auth';
 import { serverError } from '@/lib/api-error';
+import { parseRequestJsonObject } from '@/lib/request-json';
 
 export const runtime = 'nodejs';
 
@@ -153,7 +154,10 @@ export async function POST(req: NextRequest) {
     session = auth.session;
     if (auth.response) return auth.response;
 
-    const body = await req.json();
+    const parsed = await parseRequestJsonObject(req);
+    if (!parsed.success) return parsed.response;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const body = parsed.data as Record<string, any>;
     productId = typeof body.productId === 'string' ? body.productId : '';
     platform = isPlatform(body.platform) ? body.platform : undefined;
     action = isAction(body.action) ? body.action : undefined;
