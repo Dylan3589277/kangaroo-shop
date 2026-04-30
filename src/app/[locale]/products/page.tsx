@@ -5,6 +5,7 @@ import { SearchForm } from '@/components/features/SearchForm';
 import { Suspense } from 'react';
 import { FilterSidebar } from '@/components/features/FilterSidebar';
 import { prisma } from '@/lib/prisma';
+import { isNextDynamicServerUsage } from '@/lib/api-error';
 import { buildIndexableMetadata } from '@/lib/seo';
 
 export const dynamic = 'force-dynamic';
@@ -101,36 +102,44 @@ export default async function ProductsPage({
   let products: Record<string, unknown>[] = [];
   let totalPages = 0;
 
-  try {
-    const where: Record<string, unknown> = { isActive: true };
+  const where: Record<string, unknown> = { isActive: true };
 
-    if (activeCategory !== 'all') {
-      where.category = activeCategory;
+  if (activeCategory !== 'all') {
+    where.category = activeCategory;
+  }
+  if (activeSearch) {
+    where.OR = [
+      { title: { contains: activeSearch } },
+      { titleEn: { contains: activeSearch } },
+      { titleJa: { contains: activeSearch } },
+      { brand: { contains: activeSearch } },
+      { description: { contains: activeSearch } },
+    ];
+  }
+  if (minPrice) where.price = { ...(where.price as object ?? {}), gte: parseInt(minPrice, 10) };
+  if (maxPrice) where.price = { ...(where.price as object ?? {}), lte: parseInt(maxPrice, 10) };
+  if (source) where.source = source;
+  if (inStock === 'true') where.inStock = true;
+
+  if (!process.env.DATABASE_URL) {
+    console.warn('[ProductsPage] DATABASE_URL is not configured; rendering products page without database results.');
+  } else {
+    try {
+      const skip = (currentPage - 1) * PAGE_SIZE;
+      const [rows, total] = await Promise.all([
+        prisma.product.findMany({ where, orderBy, skip, take: PAGE_SIZE }),
+        prisma.product.count({ where }),
+      ]);
+
+      products = rows as unknown as Record<string, unknown>[];
+      totalPages = Math.ceil(total / PAGE_SIZE);
+    } catch (error) {
+      if (isNextDynamicServerUsage(error)) {
+        throw error;
+      }
+
+      console.error('[ProductsPage] Failed to load products; rendering empty product list.', error);
     }
-    if (activeSearch) {
-      where.OR = [
-        { title: { contains: activeSearch } },
-        { titleEn: { contains: activeSearch } },
-        { titleJa: { contains: activeSearch } },
-        { brand: { contains: activeSearch } },
-        { description: { contains: activeSearch } },
-      ];
-    }
-    if (minPrice) where.price = { ...(where.price as object ?? {}), gte: parseInt(minPrice, 10) };
-    if (maxPrice) where.price = { ...(where.price as object ?? {}), lte: parseInt(maxPrice, 10) };
-    if (source) where.source = source;
-    if (inStock === 'true') where.inStock = true;
-
-    const skip = (currentPage - 1) * PAGE_SIZE;
-    const [rows, total] = await Promise.all([
-      prisma.product.findMany({ where, orderBy, skip, take: PAGE_SIZE }),
-      prisma.product.count({ where }),
-    ]);
-
-    products = rows as unknown as Record<string, unknown>[];
-    totalPages = Math.ceil(total / PAGE_SIZE);
-  } catch {
-    // fallback to empty — DB may be unavailable in preview builds
   }
 
   const labels = {

@@ -3,6 +3,7 @@ import { notFound } from 'next/navigation';
 import Link from 'next/link';
 import { ProductCard } from '@/components/features/ProductCard';
 import { prisma } from '@/lib/prisma';
+import { isNextDynamicServerUsage } from '@/lib/api-error';
 import { buildIndexableMetadata, SEO_BASE_URL } from '@/lib/seo';
 
 export const dynamic = 'force-dynamic';
@@ -81,14 +82,23 @@ export default async function CategoryPage({ params }: Props) {
   const categoryKey = config.key;
 
   let products: Record<string, unknown>[] = [];
-  try {
-    products = (await prisma.product.findMany({
-      where: { category: categoryKey, isActive: true },
-      orderBy: { createdAt: 'desc' },
-      take: 30,
-    })) as unknown as Record<string, unknown>[];
-  } catch {
-    // DB unavailable
+
+  if (!process.env.DATABASE_URL) {
+    console.warn('[CategoryPage] DATABASE_URL is not configured; rendering category page without database results.');
+  } else {
+    try {
+      products = (await prisma.product.findMany({
+        where: { category: categoryKey, isActive: true },
+        orderBy: { createdAt: 'desc' },
+        take: 30,
+      })) as unknown as Record<string, unknown>[];
+    } catch (error) {
+      if (isNextDynamicServerUsage(error)) {
+        throw error;
+      }
+
+      console.error('[CategoryPage] Failed to load products; rendering empty product list.', error);
+    }
   }
 
   const faq = [
