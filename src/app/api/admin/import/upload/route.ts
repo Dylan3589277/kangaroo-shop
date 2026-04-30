@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { buildImportPreview } from '@/lib/import/sync-job';
 import { requireAdminSession } from '@/lib/admin-auth';
+import { serverError } from '@/lib/api-error';
 
 export const runtime = 'nodejs';
 const MAX_IMPORT_FILE_SIZE = 5 * 1024 * 1024;
@@ -24,7 +25,6 @@ export async function POST(req: NextRequest) {
     const result = await buildImportPreview(platform, file.name, text);
     return NextResponse.json({ ...result.preview, errors: result.parse.errors });
   } catch (err) {
-    const message = err instanceof Error ? err.message : 'Unknown error';
-    return NextResponse.json({ error: message }, { status: 500 });
+    return serverError(err);
   }
 }

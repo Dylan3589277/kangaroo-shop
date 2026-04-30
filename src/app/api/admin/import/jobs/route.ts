@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { requireAdminSession } from '@/lib/admin-auth';
+import { serverError } from '@/lib/api-error';
 
 export const runtime = 'nodejs';
 
@@ -16,7 +17,6 @@ export async function GET() {
     });
     return NextResponse.json({ jobs });
   } catch (err) {
-    const message = err instanceof Error ? err.message : 'Unknown error';
-    return NextResponse.json({ error: message }, { status: 500 });
+    return serverError(err);
   }
 }

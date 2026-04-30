@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { executeImport, buildImportPreview, verifyImportConfirmationToken } from '@/lib/import/sync-job';
 import { requireAdminSession } from '@/lib/admin-auth';
+import { serverError } from '@/lib/api-error';
 
 export const runtime = 'nodejs';
 const MAX_IMPORT_FILE_SIZE = 5 * 1024 * 1024;
@@ -39,7 +40,6 @@ export async function POST(req: NextRequest) {
     const result = await executeImport(platform, file.name, text);
     return NextResponse.json(result);
   } catch (err) {
-    const message = err instanceof Error ? err.message : 'Unknown error';
-    return NextResponse.json({ error: message }, { status: 500 });
+    return serverError(err);
   }
 }

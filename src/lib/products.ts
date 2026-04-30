@@ -28,12 +28,23 @@ export interface Product {
  */
 export function parseProductImages(images: unknown): string[] {
   if (!images) return [];
-  if (Array.isArray(images)) return images as string[];
+
+  const normalize = (value: unknown): string[] => Array.isArray(value)
+    ? value.filter((item): item is string => typeof item === 'string' && item.trim().length > 0)
+    : [];
+
+  if (Array.isArray(images)) return normalize(images);
+  if (typeof images !== 'string') return normalize(images);
+
+  const trimmed = images.trim();
+  if (!trimmed) return [];
+
   try {
-    const parsed = typeof images === 'string' ? JSON.parse(images) : images;
-    return Array.isArray(parsed) ? (parsed as string[]) : [];
+    const parsed = JSON.parse(trimmed);
+    return normalize(parsed);
   } catch {
-    return [];
+    // Some legacy rows may store a single image URL as a plain string rather than a JSON array.
+    return [trimmed];
   }
 }
 
@@ -138,6 +149,22 @@ export const MOCK_PRODUCTS: Product[] = [
     weight: 50,
   },
 ];
+
+/** Canonical fallback placeholder used across all product image renders */
+export const PRODUCT_IMAGE_PLACEHOLDER =
+  'https://placehold.co/400x400/F5F0E8/8B0000?text=No+Image';
+
+/**
+ * Returns the first valid image URL for a product, or the fallback placeholder.
+ * Wraps parseProductImages so callers don't need a separate null-check on [0].
+ */
+export function getProductImageUrl(
+  images: unknown,
+  fallback = PRODUCT_IMAGE_PLACEHOLDER
+): string {
+  const parsed = parseProductImages(images);
+  return parsed[0] || fallback;
+}
 
 export function formatPrice(price: number, currency = 'JPY'): string {
   return new Intl.NumberFormat('ja-JP', {

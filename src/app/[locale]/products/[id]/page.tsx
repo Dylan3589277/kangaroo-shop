@@ -2,7 +2,7 @@ import type { Metadata } from 'next';
 import { notFound } from 'next/navigation';
 import Image from 'next/image';
 import Link from 'next/link';
-import { formatPrice, parseProductImages } from '@/lib/products';
+import { formatPrice, parseProductImages, getProductImageUrl } from '@/lib/products';
 import { AddToCartButton } from '@/components/features/AddToCartButton';
 import { ProductReviews } from '@/components/features/ProductReviews';
 import { WishlistButton } from '@/components/features/WishlistButton';
@@ -232,7 +232,7 @@ export default async function ProductDetailPage({ params }: Props) {
         <div>
           <div style={{ position: 'relative', aspectRatio: '1/1', borderRadius: 'var(--radius-lg)', overflow: 'hidden', background: 'var(--color-bg-alt)', marginBottom: 'var(--space-3)' }}>
             <Image
-              src={images[0]}
+              src={getProductImageUrl(images)}
               alt={product.title}
               fill
               style={{ objectFit: 'contain' }}

@@ -3,6 +3,7 @@ import { getServerSession } from 'next-auth';
 import { prisma } from '@/lib/prisma';
 import { authOptions } from '@/lib/auth';
 import { isAdminSession, toPublicOrder } from '@/lib/order-privacy';
+import { serverError } from '@/lib/api-error';
 
 export const runtime = 'nodejs';
 
@@ -23,7 +24,6 @@ export async function GET(_req: NextRequest, { params }: { params: { orderId: st
     // 因此只返回公开结账/支付成功页所需的脱敏视图。
     return NextResponse.json({ order: isAdmin ? order : toPublicOrder(order) });
   } catch (err) {
-    const message = err instanceof Error ? err.message : 'Unknown error';
-    return NextResponse.json({ error: message }, { status: 500 });
+    return serverError(err);
   }
 }

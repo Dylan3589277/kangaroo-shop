@@ -6,6 +6,7 @@ import {
   sendStatusChangeEmail,
 } from '@/lib/email';
 import { requireAdminSession } from '@/lib/admin-auth';
+import { serverError } from '@/lib/api-error';
 
 export const runtime = 'nodejs';
 
@@ -84,7 +85,6 @@ export async function POST(req: NextRequest, { params }: { params: { orderId: st
       orderNumber: order.orderNumber,
     });
   } catch (err) {
-    const message = err instanceof Error ? err.message : 'Unknown error';
-    return NextResponse.json({ error: message }, { status: 500 });
+    return serverError(err);
   }
 }

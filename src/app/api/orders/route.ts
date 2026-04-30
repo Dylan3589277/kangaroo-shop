@@ -5,6 +5,7 @@ import { parseProductImages } from '@/lib/products';
 import { authOptions } from '@/lib/auth';
 import { isAdminSession, toPublicOrder } from '@/lib/order-privacy';
 import { getShippingOptions } from '@/lib/shipping';
+import { serverError } from '@/lib/api-error';
 
 // 强制 Node.js Runtime
 export const runtime = 'nodejs';
@@ -181,8 +182,7 @@ export async function POST(req: NextRequest) {
 
     return NextResponse.json({ orderId: order.id, orderNumber: order.orderNumber }, { status: 201 });
   } catch (err) {
-    const message = err instanceof Error ? err.message : 'Unknown error';
-    return NextResponse.json({ error: message }, { status: 500 });
+    return serverError(err);
   }
 }
 
@@ -236,7 +236,6 @@ export async function GET(req: NextRequest) {
       pagination: { page, pageSize, total, totalPages: Math.ceil(total / pageSize) },
     });
   } catch (err) {
-    const message = err instanceof Error ? err.message : 'Unknown error';
-    return NextResponse.json({ error: message }, { status: 500 });
+    return serverError(err);
   }
 }

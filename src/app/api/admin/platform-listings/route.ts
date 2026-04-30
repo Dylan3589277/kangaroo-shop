@@ -2,6 +2,7 @@ import { createHmac, timingSafeEqual } from 'crypto';
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { requireAdminSession, type AdminSession } from '@/lib/admin-auth';
+import { serverError } from '@/lib/api-error';
 
 export const runtime = 'nodejs';
 
@@ -384,6 +385,6 @@ export async function POST(req: NextRequest) {
         requestId,
       });
     }
-    return NextResponse.json({ error: message }, { status: 500 });
+    return serverError(err);
   }
 }
