@@ -1,16 +1,20 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { serverError } from '@/lib/api-error';
+import { parseRequestJsonObject } from '@/lib/request-json';
 
 export const runtime = 'nodejs';
 
 // POST /api/promotions - 验证优惠券并计算折扣
 export async function POST(req: NextRequest) {
   try {
-    const body = await req.json();
+    const parsedBody = await parseRequestJsonObject(req);
+    if (!parsedBody.success) return parsedBody.response;
+
+    const body = parsedBody.data;
     const { code, subtotal } = body;
 
-    if (!code || typeof subtotal !== 'number') {
+    if (typeof code !== 'string' || !code || typeof subtotal !== 'number') {
       return NextResponse.json(
         { error: 'code and subtotal are required' },
         { status: 400 }

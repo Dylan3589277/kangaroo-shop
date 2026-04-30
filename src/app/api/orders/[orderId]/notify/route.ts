@@ -7,6 +7,7 @@ import {
 } from '@/lib/email';
 import { requireAdminSession } from '@/lib/admin-auth';
 import { serverError } from '@/lib/api-error';
+import { parseRequestJsonObject } from '@/lib/request-json';
 
 export const runtime = 'nodejs';
 
@@ -18,10 +19,13 @@ export async function POST(req: NextRequest, { params }: { params: { orderId: st
     const { response } = await requireAdminSession();
     if (response) return response;
 
-    const body = await req.json().catch(() => ({}));
+    const parsedBody = await parseRequestJsonObject(req);
+    if (!parsedBody.success) return parsedBody.response;
+
+    const body = parsedBody.data;
     const { type, note, oldStatus = 'pending' } = body;
 
-    if (!['confirmation', 'status_change'].includes(type)) {
+    if (typeof type !== 'string' || !['confirmation', 'status_change'].includes(type)) {
       return NextResponse.json({ error: 'Invalid notification type' }, { status: 400 });
     }
 
@@ -73,9 +77,9 @@ export async function POST(req: NextRequest, { params }: { params: { orderId: st
         orderNumber: order.orderNumber,
         customerEmail: order.shippingEmail,
         customerName: order.shippingName ?? 'Customer',
-        oldStatus,
+        oldStatus: typeof oldStatus === 'string' ? oldStatus : 'pending',
         newStatus: order.paymentStatus,
-        note,
+        note: typeof note === 'string' ? note : undefined,
       });
     }
 

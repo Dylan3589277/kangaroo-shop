@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { requireAdminSession } from '@/lib/admin-auth';
 import { serverError } from '@/lib/api-error';
+import { parseRequestJsonObject } from '@/lib/request-json';
 
 export const runtime = 'nodejs';
 
@@ -13,9 +14,12 @@ export async function PATCH(req: NextRequest, { params }: { params: { orderId: s
     const { response } = await requireAdminSession();
     if (response) return response;
 
-    const { status, note } = await req.json();
+    const parsedBody = await parseRequestJsonObject(req);
+    if (!parsedBody.success) return parsedBody.response;
 
-    if (!status || !VALID_STATUSES.includes(status)) {
+    const { status, note } = parsedBody.data;
+
+    if (typeof status !== 'string' || !VALID_STATUSES.includes(status)) {
       return NextResponse.json({ error: 'Invalid status' }, { status: 400 });
     }
 
@@ -35,7 +39,7 @@ export async function PATCH(req: NextRequest, { params }: { params: { orderId: s
           orderId: params.orderId,
           fromStatus: existing.paymentStatus,
           toStatus: status,
-          note: note ?? null,
+          note: (note ?? null) as string | null,
         },
       }),
     ]);
