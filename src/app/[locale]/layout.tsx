@@ -66,6 +66,7 @@ export default async function LocaleLayout({
                     <li><Link href="/">{locale === 'ja' ? 'ホーム' : locale === 'zh' ? '首页' : 'Home'}</Link></li>
                     <li><Link href="/products">{locale === 'ja' ? '商品一覧' : locale === 'zh' ? '商品列表' : 'Products'}</Link></li>
                     <li><Link href="/about">{locale === 'ja' ? '会社概要' : locale === 'zh' ? '关于我们' : 'About'}</Link></li>
+                    <li><Link href="/help">{locale === 'ja' ? 'ヘルプ・FAQ' : locale === 'zh' ? '帮助中心' : 'Help / FAQ'}</Link></li>
                   </ul>
                 </div>
                 <div>
