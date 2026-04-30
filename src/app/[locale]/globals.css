@@ -369,6 +369,73 @@ a:hover {
   color: var(--color-primary);
 }
 
+.navbar-actions {
+  display: flex;
+  align-items: center;
+  gap: var(--space-4);
+}
+
+.language-switcher {
+  position: relative;
+}
+
+.language-switcher-button {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  min-height: 36px;
+  padding: 0.45rem 0.75rem;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-full);
+  background: var(--color-surface);
+  color: var(--color-text-secondary);
+  font-size: var(--text-sm);
+  font-weight: 500;
+  cursor: pointer;
+  transition: all var(--transition-fast);
+}
+
+.language-switcher-button:hover,
+.language-switcher-button:focus-visible {
+  border-color: var(--color-primary);
+  color: var(--color-primary);
+  outline: none;
+}
+
+.language-switcher-menu {
+  position: absolute;
+  top: calc(100% + var(--space-2));
+  right: 0;
+  z-index: 200;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(120px, 1fr));
+  gap: var(--space-1);
+  min-width: 280px;
+  padding: var(--space-2);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  background: var(--color-surface-raised);
+  box-shadow: var(--shadow-lg);
+}
+
+.language-switcher-option {
+  width: 100%;
+  padding: 0.55rem 0.75rem;
+  border: 0;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: var(--color-text-secondary);
+  font-size: var(--text-sm);
+  text-align: left;
+  cursor: pointer;
+}
+
+.language-switcher-option:hover,
+.language-switcher-option.active {
+  background: var(--color-bg-alt);
+  color: var(--color-primary);
+}
+
 /* ==================== Footer ==================== */
 .footer {
   background: var(--color-bg-alt);
@@ -729,5 +796,23 @@ a:hover {
 
   .navbar-nav {
     display: none;
+  }
+
+  .navbar-inner {
+    padding: 0 var(--space-4);
+  }
+
+  .navbar-actions {
+    gap: var(--space-2);
+  }
+
+  .language-switcher-current {
+    display: none;
+  }
+
+  .language-switcher-menu {
+    right: -72px;
+    grid-template-columns: 1fr;
+    min-width: 180px;
   }
 }

@@ -16,7 +16,8 @@
     "products": "商品一覧",
     "about": "会社概要",
     "contact": "お問い合わせ",
-    "cart": "カート"
+    "cart": "カート",
+    "wishlist": "お気に入り"
   },
   "home": {
     "hero": {
@@ -25,7 +26,19 @@
       "cta": "商品を見る"
     },
     "featured": "おすすめ商品",
-    "categories": "カテゴリから探す"
+    "categories": "カテゴリから探す",
+    "shopNow": "今すぐ購入",
+    "trust": {
+      "china": "中国サプライチェーンから厳選",
+      "global": "日本・欧米・世界へ配送対応",
+      "secure": "Stripe・PayPal 安全決済"
+    },
+    "categoryLabels": {
+      "brainrot": "Italian Brainrot",
+      "anime": "アニメグッズ",
+      "baby": "ベビー・ファミリー",
+      "lifestyle": "ライフスタイル"
+    }
   },
   "product": {
     "price": "価格",
@@ -46,7 +59,11 @@
   "footer": {
     "copyright": "© 2026 袋鼠君 All Rights Reserved.",
     "privacy": "プライバシーポリシー",
-    "terms": "利用規約"
+    "terms": "利用規約",
+    "tagline": "中国調達の商品を日本・欧米・世界へ",
+    "quickLinks": "クイックリンク",
+    "help": "ヘルプ・FAQ",
+    "legal": "法的情報"
   },
   "wishlist": {
     "title": "お気に入り",

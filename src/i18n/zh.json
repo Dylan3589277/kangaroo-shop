@@ -16,7 +16,8 @@
     "products": "商品列表",
     "about": "关于我们",
     "contact": "联系我们",
-    "cart": "购物车"
+    "cart": "购物车",
+    "wishlist": "收藏"
   },
   "home": {
     "hero": {
@@ -25,7 +26,19 @@
       "cta": "查看商品"
     },
     "featured": "推荐商品",
-    "categories": "分类"
+    "categories": "分类",
+    "shopNow": "立即购买",
+    "trust": {
+      "china": "中国供应链精选",
+      "global": "支持日本、欧美与全球配送",
+      "secure": "Stripe · PayPal 安全支付"
+    },
+    "categoryLabels": {
+      "brainrot": "Italian Brainrot 周边",
+      "anime": "动漫周边",
+      "baby": "母婴用品",
+      "lifestyle": "生活好物"
+    }
   },
   "product": {
     "price": "价格",
@@ -46,7 +59,11 @@
   "footer": {
     "copyright": "© 2026 袋鼠君 All Rights Reserved.",
     "privacy": "隐私政策",
-    "terms": "使用条款"
+    "terms": "使用条款",
+    "tagline": "中国采购/进口商品，卖往日本、欧美与全球",
+    "quickLinks": "快速链接",
+    "help": "帮助 / 常见问题",
+    "legal": "法律信息"
   },
   "wishlist": {
     "title": "我的收藏",

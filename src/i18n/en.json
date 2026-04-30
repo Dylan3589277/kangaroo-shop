@@ -16,7 +16,8 @@
     "products": "Products",
     "about": "About Us",
     "contact": "Contact",
-    "cart": "Cart"
+    "cart": "Cart",
+    "wishlist": "Wishlist"
   },
   "home": {
     "hero": {
@@ -25,7 +26,19 @@
       "cta": "Browse Products"
     },
     "featured": "Featured Products",
-    "categories": "Shop by Category"
+    "categories": "Shop by Category",
+    "shopNow": "Shop Now",
+    "trust": {
+      "china": "Curated from China",
+      "global": "Ships Worldwide",
+      "secure": "Secure Checkout"
+    },
+    "categoryLabels": {
+      "brainrot": "Italian Brainrot",
+      "anime": "Anime Goods",
+      "baby": "Baby & Family",
+      "lifestyle": "Lifestyle Finds"
+    }
   },
   "product": {
     "price": "Price",
@@ -46,7 +59,11 @@
   "footer": {
     "copyright": "© 2026 Kangaroo Shop All Rights Reserved.",
     "privacy": "Privacy Policy",
-    "terms": "Terms of Service"
+    "terms": "Terms of Service",
+    "tagline": "China-sourced goods for Japan, Europe, North America and global markets",
+    "quickLinks": "Quick Links",
+    "help": "Help / FAQ",
+    "legal": "Legal"
   },
   "wishlist": {
     "title": "My Wishlist",

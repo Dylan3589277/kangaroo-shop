@@ -16,16 +16,29 @@
     "products": "Produk",
     "about": "Tentang Kami",
     "contact": "Kontak",
-    "cart": "Keranjang"
+    "cart": "Keranjang",
+    "wishlist": "Wishlist"
   },
   "home": {
     "hero": {
-      "title": "Dari Jepang ke Seluruh Dunia",
-      "subtitle": "Produk Jepang pilihan, dikirim ke seluruh dunia",
+      "title": "Sumber Produk dari China untuk Pasar Global",
+      "subtitle": "Produk yang bersumber dan diimpor dari China untuk Jepang, Eropa, Amerika Utara, dan lainnya",
       "cta": "Lihat Produk"
     },
     "featured": "Produk Unggulan",
-    "categories": "Kategori"
+    "categories": "Kategori",
+    "shopNow": "Beli sekarang",
+    "trust": {
+      "china": "Dikurasi dari China",
+      "global": "Pengiriman global",
+      "secure": "Pembayaran aman Stripe · PayPal"
+    },
+    "categoryLabels": {
+      "brainrot": "Italian Brainrot",
+      "anime": "Produk anime",
+      "baby": "Bayi & keluarga",
+      "lifestyle": "Pilihan lifestyle"
+    }
   },
   "product": {
     "price": "Harga",
@@ -46,7 +59,11 @@
   "footer": {
     "copyright": "© 2024 Kangaroo Shop Hak cipta dilindungi.",
     "privacy": "Kebijakan Privasi",
-    "terms": "Syarat & Ketentuan"
+    "terms": "Syarat & Ketentuan",
+    "tagline": "Produk dari China untuk Jepang, Eropa, Amerika Utara, dan pasar global",
+    "quickLinks": "Tautan cepat",
+    "help": "Bantuan / FAQ",
+    "legal": "Legal"
   },
   "wishlist": {
     "title": "Daftar Keinginan",

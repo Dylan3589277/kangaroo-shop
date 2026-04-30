@@ -13,6 +13,18 @@ const COUNTRY_TO_LOCALE: Record<string, string> = {
   TW: 'zh',
   HK: 'zh',
   MO: 'zh',
+  KR: 'ko',
+  DE: 'de',
+  AT: 'de',
+  CH: 'de',
+  FR: 'fr',
+  BE: 'fr',
+  IT: 'it',
+  ES: 'es',
+  MX: 'es',
+  TH: 'th',
+  ID: 'id',
+  VN: 'vi',
 };
 
 function isSupportedLocale(locale: string | undefined): locale is (typeof locales)[number] {
@@ -60,11 +72,7 @@ export function middleware(request: NextRequest) {
     (locale) => pathname.startsWith('/' + locale + '/') || pathname === '/' + locale
   );
   if (pathnameLocale) {
-    const response = NextResponse.next();
-    // 用户访问显式 locale 路径视为手动选择，后续根路径访问优先使用该语言。
-    response.cookies.set('NEXT_LOCALE', pathnameLocale, { path: '/', sameSite: 'lax', maxAge: 60 * 60 * 24 * 365 });
-    response.cookies.set('preferredLocale', pathnameLocale, { path: '/', sameSite: 'lax', maxAge: 60 * 60 * 24 * 365 });
-    return response;
+    return NextResponse.next();
   }
 
   // 跳过 API、SEO文件、静态资源

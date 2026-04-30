@@ -16,16 +16,29 @@
     "products": "Produits",
     "about": "À propos",
     "contact": "Contact",
-    "cart": "Panier"
+    "cart": "Panier",
+    "wishlist": "Favoris"
   },
   "home": {
     "hero": {
-      "title": "Du Japon vers le Monde",
-      "subtitle": "Produits japonais soigneusement sélectionnés, expédiés dans le monde entier",
+      "title": "Sourcing en Chine pour les marchés mondiaux",
+      "subtitle": "Produits sourcés et importés de Chine pour le Japon, l’Europe, l’Amérique du Nord et au-delà",
       "cta": "Voir les produits"
     },
     "featured": "Produits vedettes",
-    "categories": "Catégories"
+    "categories": "Catégories",
+    "shopNow": "Acheter",
+    "trust": {
+      "china": "Sélection depuis la Chine",
+      "global": "Livraison mondiale",
+      "secure": "Paiement sécurisé Stripe · PayPal"
+    },
+    "categoryLabels": {
+      "brainrot": "Italian Brainrot",
+      "anime": "Produits anime",
+      "baby": "Bébé & famille",
+      "lifestyle": "Sélection lifestyle"
+    }
   },
   "product": {
     "price": "Prix",
@@ -46,7 +59,11 @@
   "footer": {
     "copyright": "© 2026 Kangaroo Shop Tous droits réservés.",
     "privacy": "Politique de confidentialité",
-    "terms": "Conditions d'utilisation"
+    "terms": "Conditions d'utilisation",
+    "tagline": "Produits sourcés en Chine pour le Japon, l’Europe, l’Amérique du Nord et le monde",
+    "quickLinks": "Liens rapides",
+    "help": "Aide / FAQ",
+    "legal": "Mentions légales"
   },
   "wishlist": {
     "title": "Liste de souhaits",

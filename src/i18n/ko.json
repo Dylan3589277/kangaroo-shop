@@ -16,16 +16,29 @@
     "products": "상품",
     "about": "회사 소개",
     "contact": "문의하기",
-    "cart": "장바구니"
+    "cart": "장바구니",
+    "wishlist": "위시리스트"
   },
   "home": {
     "hero": {
-      "title": "일본에서 세계로",
-      "subtitle": "엄선된 일본 상품을 전 세계로 배송",
+      "title": "글로벌 시장을 위한 중국 소싱",
+      "subtitle": "중국에서 소싱·수입한 상품을 일본, 유럽, 북미 및 전 세계로 제공합니다",
       "cta": "상품 보기"
     },
     "featured": "추천 상품",
-    "categories": "카테고리"
+    "categories": "카테고리",
+    "shopNow": "지금 구매",
+    "trust": {
+      "china": "중국 공급망 엄선",
+      "global": "전 세계 배송 지원",
+      "secure": "Stripe · PayPal 안전 결제"
+    },
+    "categoryLabels": {
+      "brainrot": "Italian Brainrot",
+      "anime": "애니메이션 굿즈",
+      "baby": "유아·가족용품",
+      "lifestyle": "라이프스타일"
+    }
   },
   "product": {
     "price": "가격",
@@ -46,7 +59,11 @@
   "footer": {
     "copyright": "© 2024 Kangaroo 샵 All Rights Reserved.",
     "privacy": "개인정보 처리방침",
-    "terms": "이용약관"
+    "terms": "이용약관",
+    "tagline": "중국 소싱 상품을 일본·유럽·미국·전 세계로",
+    "quickLinks": "빠른 링크",
+    "help": "도움말 / FAQ",
+    "legal": "법적 고지"
   },
   "wishlist": {
     "title": "위시리스트",

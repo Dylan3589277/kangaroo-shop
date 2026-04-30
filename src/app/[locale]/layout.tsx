@@ -1,9 +1,10 @@
 import { NextIntlClientProvider } from 'next-intl';
-import { getMessages } from 'next-intl/server';
+import { getMessages, getTranslations } from 'next-intl/server';
 import { notFound } from 'next/navigation';
 import { routing, Locale, Link } from '@/i18n/routing';
 import { CartProvider } from '@/contexts/CartContext';
 import { NavbarCart } from '@/components/features/NavbarCart';
+import { LanguageSwitcher } from '@/components/features/LanguageSwitcher';
 import { TawkToWidget } from '@/components/support/TawkToWidget';
 import { AnalyticsProvider } from '@/components/analytics/AnalyticsProvider';
 import './globals.css';
@@ -22,6 +23,8 @@ export default async function LocaleLayout({
   }
 
   const messages = await getMessages();
+  const nav = await getTranslations({ locale, namespace: 'nav' });
+  const footer = await getTranslations({ locale, namespace: 'footer' });
 
   return (
     <html lang={locale}>
@@ -36,14 +39,15 @@ export default async function LocaleLayout({
                 </Link>
                 <nav>
                   <ul className="navbar-nav">
-                    <li><Link href="/">{locale === 'ja' ? 'ホーム' : locale === 'zh' ? '首页' : 'Home'}</Link></li>
-                    <li><Link href="/products">{locale === 'ja' ? '商品' : locale === 'zh' ? '商品' : 'Products'}</Link></li>
-                    <li><Link href="/about">{locale === 'ja' ? '会社概要' : locale === 'zh' ? '关于我们' : 'About'}</Link></li>
-                    <li><Link href="/contact">{locale === 'ja' ? 'お問い合わせ' : locale === 'zh' ? '联系' : 'Contact'}</Link></li>
+                    <li><Link href="/">{nav('home')}</Link></li>
+                    <li><Link href="/products">{nav('products')}</Link></li>
+                    <li><Link href="/about">{nav('about')}</Link></li>
+                    <li><Link href="/contact">{nav('contact')}</Link></li>
                   </ul>
                 </nav>
-                <div className="flex items-center gap-4">
-                  <Link href="/wishlist" style={{ fontSize: 'var(--text-lg)' }}>❤️</Link>
+                <div className="navbar-actions">
+                  <LanguageSwitcher />
+                  <Link href="/wishlist" style={{ fontSize: 'var(--text-lg)' }} aria-label={nav('wishlist')}>❤️</Link>
                   <NavbarCart />
                 </div>
               </div>
@@ -58,28 +62,28 @@ export default async function LocaleLayout({
                 <div>
                   <div className="footer-title">袋鼠君</div>
                   <p style={{ fontSize: 'var(--text-sm)', color: 'var(--color-text-secondary)', marginBottom: 0 }}>
-                    {locale === 'ja' ? '中国調達の商品を日本・欧米・世界へ' : locale === 'zh' ? '中国采购/进口商品，卖往日本、欧美与全球' : 'China-sourced goods for Japan, Europe, North America and global markets'}
+                    {footer('tagline')}
                   </p>
                 </div>
                 <div>
-                  <div className="footer-title">{locale === 'ja' ? 'クイックリンク' : locale === 'zh' ? '快速链接' : 'Quick Links'}</div>
+                  <div className="footer-title">{footer('quickLinks')}</div>
                   <ul className="footer-links">
-                    <li><Link href="/">{locale === 'ja' ? 'ホーム' : locale === 'zh' ? '首页' : 'Home'}</Link></li>
-                    <li><Link href="/products">{locale === 'ja' ? '商品一覧' : locale === 'zh' ? '商品列表' : 'Products'}</Link></li>
-                    <li><Link href="/about">{locale === 'ja' ? '会社概要' : locale === 'zh' ? '关于我们' : 'About'}</Link></li>
-                    <li><Link href="/help">{locale === 'ja' ? 'ヘルプ・FAQ' : locale === 'zh' ? '帮助中心' : 'Help / FAQ'}</Link></li>
+                    <li><Link href="/">{nav('home')}</Link></li>
+                    <li><Link href="/products">{nav('products')}</Link></li>
+                    <li><Link href="/about">{nav('about')}</Link></li>
+                    <li><Link href="/help">{footer('help')}</Link></li>
                   </ul>
                 </div>
                 <div>
-                  <div className="footer-title">{locale === 'ja' ? '法的情報' : locale === 'zh' ? '法律信息' : 'Legal'}</div>
+                  <div className="footer-title">{footer('legal')}</div>
                   <ul className="footer-links">
-                    <li><Link href="/privacy">{locale === 'ja' ? 'プライバシーポリシー' : locale === 'zh' ? '隐私政策' : 'Privacy'}</Link></li>
-                    <li><Link href="/terms">{locale === 'ja' ? '利用規約' : locale === 'zh' ? '使用条款' : 'Terms'}</Link></li>
+                    <li><Link href="/privacy">{footer('privacy')}</Link></li>
+                    <li><Link href="/terms">{footer('terms')}</Link></li>
                   </ul>
                 </div>
               </div>
               <div className="footer-bottom">
-                © 2024 袋鼠君 All Rights Reserved.
+                {footer('copyright')}
               </div>
             </footer>
             <TawkToWidget />

@@ -16,16 +16,29 @@
     "products": "Sản phẩm",
     "about": "Về chúng tôi",
     "contact": "Liên hệ",
-    "cart": "Giỏ hàng"
+    "cart": "Giỏ hàng",
+    "wishlist": "Yêu thích"
   },
   "home": {
     "hero": {
-      "title": "Từ Nhật Bản đến Thế giới",
-      "subtitle": "Sản phẩm Nhật Bản chọn lọc, giao hàng toàn cầu",
+      "title": "Nguồn hàng Trung Quốc cho thị trường toàn cầu",
+      "subtitle": "Sản phẩm được tìm nguồn và nhập khẩu từ Trung Quốc cho Nhật Bản, châu Âu, Bắc Mỹ và hơn thế nữa",
       "cta": "Xem sản phẩm"
     },
     "featured": "Sản phẩm nổi bật",
-    "categories": "Danh mục"
+    "categories": "Danh mục",
+    "shopNow": "Mua ngay",
+    "trust": {
+      "china": "Tuyển chọn từ Trung Quốc",
+      "global": "Giao hàng toàn cầu",
+      "secure": "Thanh toán an toàn Stripe · PayPal"
+    },
+    "categoryLabels": {
+      "brainrot": "Italian Brainrot",
+      "anime": "Sản phẩm anime",
+      "baby": "Em bé & gia đình",
+      "lifestyle": "Đồ lifestyle"
+    }
   },
   "product": {
     "price": "Giá",
@@ -46,7 +59,11 @@
   "footer": {
     "copyright": "© 2024 Kangaroo Shop Đã đăng ký bản quyền.",
     "privacy": "Chính sách bảo mật",
-    "terms": "Điều khoản dịch vụ"
+    "terms": "Điều khoản dịch vụ",
+    "tagline": "Hàng hóa nhập từ Trung Quốc cho Nhật Bản, châu Âu, Bắc Mỹ và thị trường toàn cầu",
+    "quickLinks": "Liên kết nhanh",
+    "help": "Trợ giúp / FAQ",
+    "legal": "Pháp lý"
   },
   "wishlist": {
     "title": "Danh sách yêu thích",
