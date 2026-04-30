@@ -4,6 +4,7 @@ import { notFound } from 'next/navigation';
 import { routing, Locale, Link } from '@/i18n/routing';
 import { CartProvider } from '@/contexts/CartContext';
 import { NavbarCart } from '@/components/features/NavbarCart';
+import { TawkToWidget } from '@/components/support/TawkToWidget';
 import './globals.css';
 
 export default async function LocaleLayout({
@@ -79,6 +80,7 @@ export default async function LocaleLayout({
                 © 2024 袋鼠君 All Rights Reserved.
               </div>
             </footer>
+            <TawkToWidget />
           </NextIntlClientProvider>
         </CartProvider>
       </body>
