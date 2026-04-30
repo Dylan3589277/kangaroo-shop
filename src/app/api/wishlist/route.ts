@@ -1,19 +1,14 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
+import { serverError } from '@/lib/api-error';
+import { validateWishlistProductId, WISHLIST_SESSION_COOKIE } from '@/lib/wishlist';
 
 export const runtime = 'nodejs';
-
-const SESSION_COOKIE = 'wishlist_session';
-
-// Simple validation without Zod (not installed)
-function validateProductId(productId: unknown): productId is string {
-  return typeof productId === 'string' && productId.length > 0;
-}
 
 // GET /api/wishlist — 获取当前用户的心愿单
 export async function GET(request: NextRequest) {
   try {
-    const sessionId = request.cookies.get(SESSION_COOKIE)?.value || '';
+    const sessionId = request.cookies.get(WISHLIST_SESSION_COOKIE)?.value || '';
     if (!sessionId) {
       return NextResponse.json({ items: [], total: 0 });
     }
@@ -34,8 +29,7 @@ export async function GET(request: NextRequest) {
       total: items.length,
     });
   } catch (error) {
-    console.error('[Wishlist GET]', error);
-    return NextResponse.json({ error: 'Server error' }, { status: 500 });
+    return serverError(error);
   }
 }
 
@@ -45,7 +39,7 @@ export async function POST(request: NextRequest) {
     const { productId } = await request.json();
 
     // Validate productId
-    if (!validateProductId(productId)) {
+    if (!validateWishlistProductId(productId)) {
       return NextResponse.json({ error: 'Invalid productId' }, { status: 400 });
     }
 
@@ -58,7 +52,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Product not found' }, { status: 404 });
     }
 
-    let sessionId = request.cookies.get(SESSION_COOKIE)?.value;
+    let sessionId = request.cookies.get(WISHLIST_SESSION_COOKIE)?.value;
 
     if (!sessionId) {
       sessionId = crypto.randomUUID();
@@ -79,8 +73,8 @@ export async function POST(request: NextRequest) {
     });
 
     const response = NextResponse.json({ message: 'Added to wishlist', id: item.id, product: item.product });
-    if (!request.cookies.get(SESSION_COOKIE)) {
-      response.cookies.set(SESSION_COOKIE, sessionId, {
+    if (!request.cookies.get(WISHLIST_SESSION_COOKIE)) {
+      response.cookies.set(WISHLIST_SESSION_COOKIE, sessionId, {
         httpOnly: true,
         path: '/',
         maxAge: 60 * 60 * 24 * 30, // 30天
@@ -88,8 +82,7 @@ export async function POST(request: NextRequest) {
     }
     return response;
   } catch (error) {
-    console.error('[Wishlist POST]', error);
-    return NextResponse.json({ error: 'Server error' }, { status: 500 });
+    return serverError(error);
   }
 }
 
@@ -99,11 +92,11 @@ export async function DELETE(request: NextRequest) {
     const { productId } = await request.json();
 
     // Validate productId
-    if (!validateProductId(productId)) {
+    if (!validateWishlistProductId(productId)) {
       return NextResponse.json({ error: 'Invalid productId' }, { status: 400 });
     }
 
-    const sessionId = request.cookies.get(SESSION_COOKIE)?.value || '';
+    const sessionId = request.cookies.get(WISHLIST_SESSION_COOKIE)?.value || '';
 
     if (!sessionId) {
       return NextResponse.json({ message: 'No wishlist' });
@@ -119,7 +112,6 @@ export async function DELETE(request: NextRequest) {
 
     return NextResponse.json({ message: 'Removed from wishlist' });
   } catch (error) {
-    console.error('[Wishlist DELETE]', error);
-    return NextResponse.json({ error: 'Server error' }, { status: 500 });
+    return serverError(error);
   }
 }
