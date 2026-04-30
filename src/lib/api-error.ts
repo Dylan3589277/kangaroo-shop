@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server';
 
 const IS_DEV = process.env.NODE_ENV !== 'production';
 
-function isNextDynamicServerUsage(err: unknown): boolean {
+export function isNextDynamicServerUsage(err: unknown): boolean {
   return typeof err === 'object'
     && err !== null
     && 'digest' in err

@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { serverError } from '@/lib/api-error';
+import { parseRequestJsonObject } from '@/lib/request-json';
 import { validateWishlistProductId, WISHLIST_SESSION_COOKIE } from '@/lib/wishlist';
 
 export const runtime = 'nodejs';
@@ -36,7 +37,12 @@ export async function GET(request: NextRequest) {
 // POST /api/wishlist — 添加商品到心愿单
 export async function POST(request: NextRequest) {
   try {
-    const { productId } = await request.json();
+    const body = await parseRequestJsonObject(request);
+    if (!body.success) {
+      return body.response;
+    }
+
+    const { productId } = body.data;
 
     // Validate productId
     if (!validateWishlistProductId(productId)) {
@@ -89,7 +95,12 @@ export async function POST(request: NextRequest) {
 // DELETE /api/wishlist — 从心愿单移除商品
 export async function DELETE(request: NextRequest) {
   try {
-    const { productId } = await request.json();
+    const body = await parseRequestJsonObject(request);
+    if (!body.success) {
+      return body.response;
+    }
+
+    const { productId } = body.data;
 
     // Validate productId
     if (!validateWishlistProductId(productId)) {

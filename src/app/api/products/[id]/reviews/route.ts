@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { serverError } from '@/lib/api-error';
+import { parseRequestJsonObject } from '@/lib/request-json';
 import { normalizeReviewPagination, validateReviewInput } from '@/lib/reviews';
 import { prisma } from '@/lib/prisma';
 
@@ -42,7 +43,12 @@ export async function POST(
 ) {
   try {
     const { id } = params;
-    const reviewInput = validateReviewInput(await request.json());
+    const body = await parseRequestJsonObject(request);
+    if (!body.success) {
+      return body.response;
+    }
+
+    const reviewInput = validateReviewInput(body.data);
 
     if (!reviewInput.success) {
       return NextResponse.json({ error: reviewInput.error }, { status: 400 });
