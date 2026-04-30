@@ -1,6 +1,7 @@
 import type { Metadata } from 'next';
 import { getTranslations } from 'next-intl/server';
 import { Link } from '@/i18n/routing';
+import { isNextDynamicServerUsage } from '@/lib/api-error';
 import { buildIndexableMetadata } from '@/lib/seo';
 import { prisma } from '@/lib/prisma';
 import { formatPrice, parseProductImages } from '@/lib/products';
@@ -42,6 +43,28 @@ const TRUST_BADGES = [
   { key: 'secure', emoji: '🔒' },
 ] as const;
 
+async function getFeaturedProducts() {
+  if (!process.env.DATABASE_URL) {
+    console.warn('[HomePage] DATABASE_URL is not configured; rendering home without featured products.');
+    return [];
+  }
+
+  try {
+    return await prisma.product.findMany({
+      where: { isActive: true, isFeatured: true },
+      orderBy: { featuredRank: 'asc' },
+      take: 8,
+    });
+  } catch (error) {
+    if (isNextDynamicServerUsage(error)) {
+      throw error;
+    }
+
+    console.error('[HomePage] Failed to load featured products; rendering fallback home.', error);
+    return [];
+  }
+}
+
 
 export default async function HomePage({
   params,
@@ -50,11 +73,7 @@ export default async function HomePage({
 }) {
   const { locale } = await params;
 
-  const featured = await prisma.product.findMany({
-    where: { isActive: true, isFeatured: true },
-    orderBy: { featuredRank: 'asc' },
-    take: 8,
-  });
+  const featured = await getFeaturedProducts();
 
   const t = await getTranslations({ locale, namespace: 'home' });
 
