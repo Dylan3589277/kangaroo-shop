@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { serverError } from '@/lib/api-error';
 import { validatePaypalCaptureData } from '@/lib/paypal-capture-validation';
+import { parseRequestJsonObject } from '@/lib/request-json';
 
 // 强制 Node.js Runtime
 export const runtime = 'nodejs';
@@ -93,26 +94,31 @@ async function getValidatedPaypalOrder(
  */
 export async function POST(req: NextRequest) {
   try {
-    const { orderId, paypalOrderId } = await req.json();
+    const parsedBody = await parseRequestJsonObject(req);
+    if (!parsedBody.success) return parsedBody.response;
 
-    // 没有 token = 用户在 PayPal 侧取消了支付
+    const { orderId, paypalOrderId } = parsedBody.data;
+
+    if (!isNonEmptyString(orderId)) {
+      return NextResponse.json({ error: 'orderId and paypalOrderId are required' }, { status: 400 });
+    }
+
+    // 没有 token = 用户在 PayPal 侧取消了支付；必须带有效 orderId，避免空请求被误判为取消
     if (!paypalOrderId) {
-      if (isNonEmptyString(orderId)) {
-        const existing = await prisma.order.findUnique({ where: { id: orderId } });
-        if (existing && existing.paymentMethod === 'paypal' && existing.paymentStatus !== 'paid') {
-          await prisma.order.update({
-            where: { id: orderId },
-            data: { paymentStatus: 'cancelled' },
-          });
-          await prisma.orderStatusHistory.create({
-            data: { orderId, fromStatus: existing.paymentStatus, toStatus: 'cancelled', note: 'Cancelled via PayPal' },
-          });
-        }
+      const existing = await prisma.order.findUnique({ where: { id: orderId } });
+      if (existing && existing.paymentMethod === 'paypal' && existing.paymentStatus !== 'paid') {
+        await prisma.order.update({
+          where: { id: orderId },
+          data: { paymentStatus: 'cancelled' },
+        });
+        await prisma.orderStatusHistory.create({
+          data: { orderId, fromStatus: existing.paymentStatus, toStatus: 'cancelled', note: 'Cancelled via PayPal' },
+        });
       }
       return NextResponse.json({ success: false, reason: 'cancelled' }, { status: 200 });
     }
 
-    if (!isNonEmptyString(orderId) || !isNonEmptyString(paypalOrderId)) {
+    if (!isNonEmptyString(paypalOrderId)) {
       return NextResponse.json({ error: 'orderId and paypalOrderId are required' }, { status: 400 });
     }
 
@@ -208,7 +214,7 @@ export async function POST(req: NextRequest) {
           orderId,
           total: existing.total,
         });
-        if (!validation.ok) return validation.response;
+        if (validation.ok === false) return validation.response;
 
         await prisma.order.update({
           where: { id: orderId },
