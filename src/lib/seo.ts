@@ -1,7 +1,7 @@
 import type { Metadata } from 'next';
 import { routing } from '@/i18n/routing';
 
-export const SEO_BASE_URL = 'https://kangaroo-shop-orpin.vercel.app';
+export const SEO_BASE_URL = process.env.NEXT_PUBLIC_SITE_URL || 'https://kangaroo-shop-orpin.vercel.app';
 
 function normalizePath(path = '') {
   if (!path || path === '/') return '';

@@ -53,11 +53,11 @@ export default function CartClient({
   const [currentOrderId, setCurrentOrderId] = useState<string | null>(returnOrderId);
 
   const [discountCode, setDiscountCode] = useState('');
-  const [discountResult, setDiscountResult] = useState<{code: string; discount: number; name: string} | null>(null);
+  const [discountResult, setDiscountResult] = useState<{code: string; discountAmount: number; name: string} | null>(null);
   const [discountError, setDiscountError] = useState('');
   const [discountLoading, setDiscountLoading] = useState(false);
 
-  const discountAmount = discountResult?.discount ?? 0;
+  const discountAmount = discountResult?.discountAmount ?? 0;
   const subtotal = totalPrice;
   const total = useMemo(() => subtotal + shippingCost - discountAmount, [subtotal, shippingCost, discountAmount]);
 
@@ -73,7 +73,7 @@ export default function CartClient({
       });
       const data = await res.json();
       if (data.valid) {
-        setDiscountResult({ code: data.promotion.code, discount: data.promotion.discount, name: data.promotion.name });
+        setDiscountResult({ code: data.promotion.code, discountAmount: data.promotion.discountAmount, name: data.promotion.name });
         setDiscountCode('');
       } else {
         setDiscountError(data.error || '折扣码无效');
@@ -108,6 +108,7 @@ export default function CartClient({
         subtotal,
         shippingFee,
         courier: selectedCourier,
+        couponCode: discountResult?.code,
         shippingAddress: currentAddress,
       }),
     })
@@ -187,11 +188,54 @@ export default function CartClient({
     );
   }
 
+  const stepLabels = {
+    ja: ['住所入力', '配送・お支払い', '確認'],
+    zh: ['填写地址', '配送&支付', '确认'],
+    en: ['Address', 'Shipping & Pay', 'Confirm'],
+  };
+  const stepKeys: Array<'address' | 'method' | 'stripe' | 'paypal'> = ['address', 'method', 'stripe'];
+  const stepIdx = paymentStep === 'paypal' ? 2 : stepKeys.indexOf(paymentStep);
+
+  const TRUST_BADGES = [
+    { icon: '🔒', ja: 'SSL安全決済', zh: 'SSL安全支付', en: 'SSL Secure' },
+    { icon: '📦', ja: '迅速発送', zh: '快速发货', en: 'Fast Ship' },
+    { icon: '🔄', ja: '7日返品OK', zh: '7天退换', en: '7-Day Returns' },
+  ];
+
   return (
     <main className="container" style={{ paddingTop: 'var(--space-8)', paddingBottom: 'var(--space-16)' }}>
-      <h1 style={{ fontFamily: 'var(--font-serif)', fontSize: 'var(--text-3xl)', marginBottom: 'var(--space-8)', textAlign: 'center' }}>
+      <h1 style={{ fontFamily: 'var(--font-serif)', fontSize: 'var(--text-3xl)', marginBottom: 'var(--space-4)', textAlign: 'center' }}>
         {t.title}
       </h1>
+
+      {/* 步骤进度条 */}
+      <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', gap: 0, marginBottom: 'var(--space-8)' }}>
+        {(stepLabels[locale as keyof typeof stepLabels] ?? stepLabels.ja).map((label, i) => (
+          <div key={i} style={{ display: 'flex', alignItems: 'center' }}>
+            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4 }}>
+              <div style={{
+                width: 28, height: 28, borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center',
+                background: i <= stepIdx ? 'var(--color-primary)' : 'var(--color-border)',
+                color: i <= stepIdx ? '#fff' : 'var(--color-text-muted)',
+                fontSize: '0.75rem', fontWeight: 700,
+              }}>{i + 1}</div>
+              <span style={{ fontSize: '0.65rem', color: i <= stepIdx ? 'var(--color-primary)' : 'var(--color-text-muted)', whiteSpace: 'nowrap' }}>
+                {label}
+              </span>
+            </div>
+            {i < 2 && (
+              <div style={{ width: 40, height: 2, background: i < stepIdx ? 'var(--color-primary)' : 'var(--color-border)', marginBottom: 18 }} />
+            )}
+          </div>
+        ))}
+      </div>
+
+      {/* 继续购物链接 */}
+      <div style={{ textAlign: 'center', marginBottom: 'var(--space-4)' }}>
+        <a href={`/${locale}/products`} style={{ fontSize: 'var(--text-sm)', color: 'var(--color-text-muted)', textDecoration: 'none' }}>
+          ← {t.continue}
+        </a>
+      </div>
 
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 380px', gap: 'var(--space-8)', maxWidth: 960, margin: '0 auto' }}>
         {/* 左列 */}
@@ -358,6 +402,7 @@ export default function CartClient({
                         subtotal,
                         shippingFee,
                         courier: selectedCourier,
+                        couponCode: discountResult?.code,
                         shippingAddress: currentAddress,
                       }),
                     });
@@ -393,7 +438,7 @@ export default function CartClient({
             {discountResult ? (
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 'var(--space-3)', fontSize: 'var(--text-sm)', color: 'var(--color-success)' }}>
                 <span>
-                  🎟 {discountResult.name} (−{formatPrice(discountResult.discount)})
+                  🎟 {discountResult.name} (−{formatPrice(discountResult.discountAmount)})
                 </span>
                 <button
                   onClick={() => { setDiscountResult(null); setDiscountError(''); }}
@@ -452,6 +497,16 @@ export default function CartClient({
               <span style={{ fontWeight: 700, fontSize: 'var(--text-lg)', color: 'var(--color-primary)' }}>
                 {formatPrice(total)}
               </span>
+            </div>
+
+            {/* 信任标识 */}
+            <div style={{ marginTop: 'var(--space-4)', paddingTop: 'var(--space-4)', borderTop: '1px solid var(--color-border)' }}>
+              {TRUST_BADGES.map(b => (
+                <div key={b.en} style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 6, fontSize: 'var(--text-xs)', color: 'var(--color-text-muted)' }}>
+                  <span>{b.icon}</span>
+                  <span>{locale === 'ja' ? b.ja : locale === 'zh' ? b.zh : b.en}</span>
+                </div>
+              ))}
             </div>
           </div>
         </div>

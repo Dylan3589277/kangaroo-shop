@@ -180,6 +180,16 @@ async function main() {
   });
   console.log('  ✅ 管理员账户: admin@kangaroo-shop.com (请修改密码!)');
 
+
+  // 将前4个商品标记为首页推荐
+  const featuredIds = ['1', '2', '3', '4'];
+  for (let i = 0; i < featuredIds.length; i++) {
+    await prisma.product.update({
+      where: { id: featuredIds[i] },
+      data: { isFeatured: true, featuredRank: i },
+    });
+  }
+  console.log('  ✅ 已标记 4 个推荐商品');
   const count = await prisma.product.count();
   console.log(`\n🎉 Seed 完成！共导入 ${count} 个商品`);
 }

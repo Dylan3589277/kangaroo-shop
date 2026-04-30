@@ -3,6 +3,8 @@ import { prisma } from '@/lib/prisma';
 import { refreshDashboardAlerts } from '@/lib/dashboard-alerts';
 import { requireAdminSession } from '@/lib/admin-auth';
 
+export const dynamic = 'force-dynamic';
+
 export async function GET() {
   try {
     const { response } = await requireAdminSession();

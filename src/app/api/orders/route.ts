@@ -4,6 +4,7 @@ import { prisma } from '@/lib/prisma';
 import { parseProductImages } from '@/lib/products';
 import { authOptions } from '@/lib/auth';
 import { isAdminSession, toPublicOrder } from '@/lib/order-privacy';
+import { getShippingOptions } from '@/lib/shipping';
 
 // 强制 Node.js Runtime
 export const runtime = 'nodejs';
@@ -32,12 +33,11 @@ export async function POST(req: NextRequest) {
     const {
       paymentMethod,
       items,
-      subtotal,
-      shippingFee,
       courier,
       shippingAddress,
       paypalOrderId,
       stripePaymentIntentId,
+      couponCode,
     } = body;
 
     if (!paymentMethod || !['stripe', 'paypal'].includes(paymentMethod)) {
@@ -46,10 +46,107 @@ export async function POST(req: NextRequest) {
     if (!items || !Array.isArray(items) || items.length === 0) {
       return NextResponse.json({ error: 'Cart is empty' }, { status: 400 });
     }
-    if (typeof subtotal !== 'number' || typeof shippingFee !== 'number') {
-      return NextResponse.json({ error: 'Invalid amount' }, { status: 400 });
+
+    type ResolvedItem = {
+      productId: string | null;
+      productTitle: string;
+      productImage: string | null;
+      price: number;
+      quantity: number;
+      weight: number;
+    };
+
+    const productIds: string[] = [];
+    for (const item of items as Record<string, unknown>[]) {
+      const productId =
+        (item.productId as string) ||
+        ((item.product as Record<string, unknown>)?.id as string);
+      if (!productId) {
+        return NextResponse.json({ error: 'Product id is required' }, { status: 400 });
+      }
+      productIds.push(productId);
     }
 
+    const products = await prisma.product.findMany({
+      where: { id: { in: productIds }, isActive: true },
+      select: { id: true, title: true, images: true, price: true, weight: true },
+    });
+    const productMap = new Map(products.map(p => [p.id, p]));
+
+    let finalSubtotal = 0;
+    let totalWeight = 0;
+    let discountAmount = 0;
+    let promotionId: string | null = null;
+    const resolvedItems: ResolvedItem[] = [];
+
+    for (const item of items as Record<string, unknown>[]) {
+      const productId =
+        (item.productId as string) ||
+        ((item.product as Record<string, unknown>)?.id as string);
+      const quantity = Number(item.quantity);
+      if (!Number.isInteger(quantity) || quantity <= 0 || quantity > 999) {
+        return NextResponse.json({ error: 'Invalid quantity' }, { status: 400 });
+      }
+      const product = productMap.get(productId);
+
+      if (!product) {
+        return NextResponse.json(
+          { error: `Product ${productId} not found or inactive` },
+          { status: 400 }
+        );
+      }
+      finalSubtotal += product.price * quantity;
+      totalWeight += (product.weight ?? 200) * quantity;
+      resolvedItems.push({
+        productId: product.id,
+        productTitle: product.title,
+        productImage: parseProductImages(product.images)[0] ?? null,
+        price: product.price,
+        quantity,
+        weight: product.weight ?? 200,
+      });
+    }
+
+    // Shipping: use server-calculated weight + selected courier
+    const shippingOptions = getShippingOptions(totalWeight);
+    const courierKey = (courier as string) ?? 'yamato';
+    const shippingOpt = shippingOptions.find(o => o.courier === courierKey);
+    let finalShippingFee = shippingOpt?.fee ?? shippingOptions[0].fee;
+
+    // Coupon validation (mirrors promotions/route.ts logic)
+    if (couponCode) {
+      const promotion = await prisma.promotion.findUnique({
+        where: { code: (couponCode as string).toUpperCase() },
+      });
+      if (
+        promotion &&
+        promotion.isActive &&
+        promotion.isPublic &&
+        new Date() >= promotion.startDate &&
+        new Date() <= promotion.endDate &&
+        (promotion.usageLimit === null || promotion.usedCount < promotion.usageLimit) &&
+        finalSubtotal >= promotion.minOrderAmount
+      ) {
+        switch (promotion.type) {
+          case 'percentage_discount': {
+            let d = Math.floor(finalSubtotal * promotion.value / 100);
+            if (promotion.maxDiscountAmount && d > promotion.maxDiscountAmount) d = promotion.maxDiscountAmount;
+            discountAmount = d;
+            break;
+          }
+          case 'fixed_discount':
+            discountAmount = Math.min(promotion.value, finalSubtotal);
+            break;
+          case 'free_shipping':
+            finalShippingFee = 0;
+            break;
+        }
+        discountAmount = Math.min(discountAmount, finalSubtotal);
+        promotionId = promotion.id;
+      }
+    }
+
+    const finalTotal = finalSubtotal + finalShippingFee - discountAmount;
     const orderNumber = await generateOrderNumber();
 
     const order = await prisma.order.create({
@@ -57,10 +154,14 @@ export async function POST(req: NextRequest) {
         orderNumber,
         paymentMethod,
         paymentStatus: 'pending',
-        subtotal,
-        shippingFee,
-        total: subtotal + shippingFee,
-        courier: courier ?? 'yamato',
+        subtotal: finalSubtotal,
+        shippingFee: finalShippingFee,
+        total: finalTotal,
+        couponCode: couponCode ?? null,
+        discountAmount,
+        originalSubtotal: finalSubtotal,
+        promotionId: promotionId ?? null,
+        courier: (courier as string) ?? 'yamato',
         paypalOrderId: paypalOrderId ?? null,
         stripePaymentIntentId: stripePaymentIntentId ?? null,
         shippingName: shippingAddress?.name ?? null,
@@ -72,14 +173,7 @@ export async function POST(req: NextRequest) {
         shippingPhone: shippingAddress?.phone ?? null,
         shippingEmail: shippingAddress?.email ?? null,
         items: {
-          create: items.map((item: { product: { id?: string; title: string; images: unknown; price: number; weight?: number }; quantity: number }) => ({
-            productId: item.product.id ?? null,
-            productTitle: item.product.title,
-            productImage: parseProductImages(item.product.images)[0] ?? null,
-            price: item.product.price,
-            quantity: item.quantity,
-            weight: item.product.weight ?? 200,
-          })),
+          create: resolvedItems,
         },
       },
       include: { items: true },

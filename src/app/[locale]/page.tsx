@@ -1,6 +1,8 @@
 import type { Metadata } from 'next';
 import { Link } from '@/i18n/routing';
 import { buildIndexableMetadata } from '@/lib/seo';
+import { prisma } from '@/lib/prisma';
+import { formatPrice, parseProductImages } from '@/lib/products';
 
 type Props = {
   params: Promise<{ locale: string }>;
@@ -33,12 +35,6 @@ const CATEGORIES = [
   { key: 'lifestyle', label: 'ライフスタイル', emoji: '🧸' },
 ];
 
-const FEATURED_PRODUCTS = [
-  { id: 1, title: 'Tralarello コラボTシャツ', price: '¥3,200', img: 'https://placehold.co/400x400/F5F0E8/8B0000?text=Tralarello' },
-  { id: 2, title: 'Brr Brr ぬいぐるみセット', price: '¥4,800', img: 'https://placehold.co/400x400/F5F0E8/8B0000?text=BrrBrr' },
-  { id: 3, title: 'Mamma Mia エコバッグ', price: '¥1,200', img: 'https://placehold.co/400x400/F5F0E8/8B0000?text=MammaMia' },
-  { id: 4, title: 'Cappuccino 文化タオル', price: '¥980', img: 'https://placehold.co/400x400/F5F0E8/8B0000?text=Cappuccino' },
-];
 
 export default async function HomePage({
   params,
@@ -46,6 +42,12 @@ export default async function HomePage({
   params: Promise<{ locale: string }>;
 }) {
   const { locale } = await params;
+
+  const featured = await prisma.product.findMany({
+    where: { isActive: true, isFeatured: true },
+    orderBy: { featuredRank: 'asc' },
+    take: 8,
+  });
 
   const labels = {
     heroTitle: locale === 'ja' ? '中国調達から世界市場へ' : locale === 'zh' ? '中国采购，卖往全球' : 'China Sourcing for Global Markets',
@@ -66,6 +68,22 @@ export default async function HomePage({
           <Link href="/products" className="btn btn-primary" style={{ fontSize: 'var(--text-base)', padding: '0.875rem 2.5rem' }}>
             {labels.cta}
           </Link>
+        </section>
+
+        {/* Trust Badges */}
+        <section style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 'var(--space-4)', marginBottom: 'var(--space-12)', maxWidth: 720, margin: '0 auto var(--space-12) auto' }}>
+          {[
+            { emoji: '🇨🇳', ja: '中国サプライチェーンから厳選', zh: '中国供应链精选', en: 'Curated from China' },
+            { emoji: '🌍', ja: '日本・欧米へ配送対応', zh: '支持日本、欧美配送', en: 'Ships Worldwide' },
+            { emoji: '🔒', ja: 'Stripe・PayPal 安全決済', zh: 'Stripe · PayPal 安全支付', en: 'Secure Checkout' },
+          ].map((badge) => (
+            <div key={badge.en} style={{ textAlign: 'center', padding: 'var(--space-4)', background: 'var(--color-bg-alt)', borderRadius: 'var(--radius-md)' }}>
+              <div style={{ fontSize: '1.8rem', marginBottom: 'var(--space-2)' }}>{badge.emoji}</div>
+              <div style={{ fontSize: 'var(--text-sm)', fontWeight: 500, color: 'var(--color-text-secondary)' }}>
+                {locale === 'ja' ? badge.ja : locale === 'zh' ? badge.zh : badge.en}
+              </div>
+            </div>
+          ))}
         </section>
 
         {/* Categories */}
@@ -89,28 +107,34 @@ export default async function HomePage({
         </section>
 
         {/* Featured Products */}
-        <section style={{ marginBottom: 'var(--space-12)' }}>
-          <h2 style={{ fontFamily: 'var(--font-serif)', fontSize: 'var(--text-2xl)', marginBottom: 'var(--space-6)', textAlign: 'center' }}>
-            {labels.featured}
-          </h2>
-          <div className="product-grid">
-            {FEATURED_PRODUCTS.map((product) => (
-              <article key={product.id} className="card">
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img src={product.img} alt={product.title} className="card-image" style={{ aspectRatio: '1/1', objectFit: 'cover', background: 'var(--color-bg-alt)' }} />
-                <div className="card-body">
-                  <h3 className="card-title">{product.title}</h3>
-                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: 'var(--space-3)' }}>
-                    <span className="card-price">{product.price}</span>
-                    <button className="btn btn-primary" style={{ padding: '0.4rem 1rem', fontSize: 'var(--text-xs)' }}>
-                      {labels.shopNow}
-                    </button>
-                  </div>
-                </div>
-              </article>
-            ))}
-          </div>
-        </section>
+        {featured.length > 0 && (
+          <section style={{ marginBottom: 'var(--space-12)' }}>
+            <h2 style={{ fontFamily: 'var(--font-serif)', fontSize: 'var(--text-2xl)', marginBottom: 'var(--space-6)', textAlign: 'center' }}>
+              {labels.featured}
+            </h2>
+            <div className="product-grid">
+              {featured.map((product) => {
+                const images = parseProductImages(product.images);
+                const imgSrc = images[0] ?? 'https://placehold.co/400x400/F5F0E8/8B0000?text=No+Image';
+                return (
+                  <article key={product.id} className="card">
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img src={imgSrc} alt={product.title} className="card-image" style={{ aspectRatio: '1/1', objectFit: 'cover', background: 'var(--color-bg-alt)' }} />
+                    <div className="card-body">
+                      <h3 className="card-title">{product.title}</h3>
+                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: 'var(--space-3)' }}>
+                        <span className="card-price">{formatPrice(product.price)}</span>
+                        <Link href={`/${locale}/products/${product.id}`} className="btn btn-primary" style={{ padding: '0.4rem 1rem', fontSize: 'var(--text-xs)' }}>
+                          {labels.shopNow}
+                        </Link>
+                      </div>
+                    </div>
+                  </article>
+                );
+              })}
+            </div>
+          </section>
+        )}
       </div>
     </main>
   );

@@ -7,6 +7,7 @@ import { AddToCartButton } from '@/components/features/AddToCartButton';
 import { ProductReviews } from '@/components/features/ProductReviews';
 import { WishlistButton } from '@/components/features/WishlistButton';
 import { prisma } from '@/lib/prisma';
+import { ShareButtons } from '@/components/features/ShareButtons';
 import {
   buildAbsoluteUrl,
   buildIndexableMetadata,
@@ -184,6 +185,10 @@ export default async function ProductDetailPage({ params }: Props) {
     sku: product.id,
   };
 
+  const discountPct = product.originalPrice && product.originalPrice > product.price
+    ? Math.round((1 - product.price / product.originalPrice) * 100)
+    : 0;
+
   return (
     <main className="container" style={{ paddingTop: 'var(--space-8)', paddingBottom: 'var(--space-16)' }}>
       {/* JSON-LD Structured Data */}
@@ -195,6 +200,19 @@ export default async function ProductDetailPage({ params }: Props) {
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(productJsonLd) }}
       />
+      {/* Responsive CSS */}
+      <style>{`
+        .pdp-grid { display: grid; grid-template-columns: 1fr 1fr; gap: var(--space-12); }
+        @media (max-width: 768px) {
+          .pdp-grid { grid-template-columns: 1fr; gap: var(--space-6); }
+          .pdp-cta { position: sticky; bottom: 0; background: var(--color-surface); padding: var(--space-4); box-shadow: 0 -2px 12px rgba(0,0,0,0.08); border-top: 1px solid var(--color-border); margin: 0 calc(-1 * var(--space-4)); }
+          .pdp-cta-inner { display: flex; flex-direction: column; gap: var(--space-2); }
+        }
+        @media (min-width: 769px) {
+          .pdp-cta { margin-top: var(--space-5); }
+          .pdp-cta-inner { display: flex; gap: var(--space-3); }
+        }
+      `}</style>
 
       {/* 面包屑 */}
       <div style={{ marginBottom: 'var(--space-6)', fontSize: 'var(--text-sm)', color: 'var(--color-text-muted)' }}>
@@ -209,7 +227,7 @@ export default async function ProductDetailPage({ params }: Props) {
         <span>{product.title}</span>
       </div>
 
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 'var(--space-12)', marginBottom: 'var(--space-12)' }}>
+      <div className="pdp-grid" style={{ marginBottom: 'var(--space-12)' }}>
         {/* 左：图片 */}
         <div>
           <div style={{ position: 'relative', aspectRatio: '1/1', borderRadius: 'var(--radius-lg)', overflow: 'hidden', background: 'var(--color-bg-alt)', marginBottom: 'var(--space-3)' }}>
@@ -256,14 +274,21 @@ export default async function ProductDetailPage({ params }: Props) {
 
           {/* 价格 */}
           <div style={{ marginBottom: 'var(--space-5)' }}>
-            <span style={{ fontSize: 'var(--text-3xl)', fontWeight: 700, color: 'var(--color-primary)' }}>
-              {formatPrice(product.price)}
-            </span>
-            {product.originalPrice && product.originalPrice > product.price && (
-              <span style={{ fontSize: 'var(--text-lg)', color: 'var(--color-text-muted)', textDecoration: 'line-through', marginLeft: 12 }}>
-                {formatPrice(product.originalPrice)}
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
+              <span style={{ fontSize: 'var(--text-3xl)', fontWeight: 700, color: 'var(--color-primary)' }}>
+                {formatPrice(product.price)}
               </span>
-            )}
+              {product.originalPrice && product.originalPrice > product.price && (
+                <>
+                  <span style={{ fontSize: 'var(--text-lg)', color: 'var(--color-text-muted)', textDecoration: 'line-through' }}>
+                    {formatPrice(product.originalPrice)}
+                  </span>
+                  <span style={{ background: '#ef4444', color: '#fff', fontSize: '0.7rem', fontWeight: 700, padding: '2px 8px', borderRadius: 4, letterSpacing: '0.03em' }}>
+                    -{discountPct}%
+                  </span>
+                </>
+              )}
+            </div>
           </div>
 
           {/* 信息列表 */}
@@ -277,21 +302,44 @@ export default async function ProductDetailPage({ params }: Props) {
           </div>
 
           {/* 操作按钮 */}
-          <div style={{ display: 'flex', gap: 'var(--space-3)' }}>
-            <AddToCartButton product={product} locale={locale} />
-            <WishlistButton productId={product.id} locale={locale} />
+          <div className="pdp-cta">
+            <div className="pdp-cta-inner">
+              <AddToCartButton product={product} locale={locale} />
+              <WishlistButton productId={product.id} locale={locale} />
+            </div>
+            {product.sourceUrl && product.sourceUrl !== '#' && (
+              <a
+                href={product.sourceUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                style={{ display: 'block', marginTop: 'var(--space-3)', textAlign: 'center', fontSize: 'var(--text-sm)', color: 'var(--color-text-muted)', textDecoration: 'underline' }}
+              >
+                {locale === 'ja' ? '元の商品を見る' : locale === 'zh' ? '查看原商品' : 'View Original'} →
+              </a>
+            )}
           </div>
 
-          {product.sourceUrl && product.sourceUrl !== '#' && (
-            <a
-              href={product.sourceUrl}
-              target="_blank"
-              rel="noopener noreferrer"
-              style={{ display: 'block', marginTop: 'var(--space-3)', textAlign: 'center', fontSize: 'var(--text-sm)', color: 'var(--color-text-muted)', textDecoration: 'underline' }}
-            >
-              {locale === 'ja' ? '元の商品を見る' : locale === 'zh' ? '查看原商品' : 'View Original'} →
-            </a>
-          )}
+          {/* 信任卖点横幅 */}
+          <div style={{
+            display: 'flex', gap: 'var(--space-3)', marginTop: 'var(--space-5)',
+            flexWrap: 'wrap',
+          }}>
+            {[
+              { icon: '🔒', ja: '安心決済', zh: '安全支付', en: 'Secure Pay' },
+              { icon: '📦', ja: '迅速配送', zh: '快速发货', en: 'Fast Ship' },
+              { icon: '🔄', ja: '7日返品', zh: '7天退换', en: '7-Day Return' },
+              { icon: '🛡', ja: '品質保証', zh: '品质保证', en: 'Quality' },
+            ].map(b => (
+              <div key={b.en} style={{
+                display: 'flex', alignItems: 'center', gap: 4,
+                fontSize: '0.72rem', color: 'var(--color-text-muted)',
+                background: 'var(--color-bg-alt)', borderRadius: 4, padding: '4px 10px',
+              }}>
+                <span>{b.icon}</span>
+                <span>{locale === 'ja' ? b.ja : locale === 'zh' ? b.zh : b.en}</span>
+              </div>
+            ))}
+          </div>
         </div>
       </div>
 
@@ -304,6 +352,83 @@ export default async function ProductDetailPage({ params }: Props) {
           {product.description}
         </p>
       </section>
+
+      {/* 种草内容区 */}
+      <div style={{ maxWidth: 700, marginBottom: 'var(--space-12)' }}>
+        {/* 推荐理由 */}
+        <section style={{ padding: 16, background: '#f9f9f9', borderRadius: 8, marginBottom: 16 }}>
+          <h3 style={{ fontFamily: 'var(--font-serif)', fontSize: 'var(--text-lg)', marginBottom: 8 }}>
+            {locale === 'ja' ? 'おすすめポイント' : locale === 'zh' ? '推荐理由' : 'Why you will like it'}
+          </h3>
+          <p style={{ fontSize: 'var(--text-sm)', lineHeight: 1.8, color: 'var(--color-text-secondary)' }}>
+            {(product.description ?? '').slice(0, 200)}
+          </p>
+        </section>
+
+        {/* 适合谁 */}
+        <section style={{ padding: 16, background: '#f9f9f9', borderRadius: 8, marginBottom: 16 }}>
+          <h3 style={{ fontFamily: 'var(--font-serif)', fontSize: 'var(--text-lg)', marginBottom: 8 }}>
+            {locale === 'ja' ? 'こんな方におすすめ' : locale === 'zh' ? '适合谁' : 'Good for'}
+          </h3>
+          <p style={{ fontSize: 'var(--text-sm)', lineHeight: 1.8, color: 'var(--color-text-secondary)' }}>
+            {(() => {
+              const cat = product.category ?? '';
+              const map: Record<string, { ja: string; zh: string; en: string }> = {
+                brainrot: { ja: 'ミーム好き・TikTokユーザー', zh: '梗图爱好者·TikTok用户', en: 'Meme lovers, TikTok fans' },
+                anime:    { ja: 'アニメファン・コレクター',   zh: '动漫迷·收藏者',          en: 'Anime fans, collectors' },
+                baby:     { ja: '新米パパママ・出産祝い',     zh: '新手父母·母婴送礼',       en: 'New parents, baby gifts' },
+                lifestyle: { ja: '生活雑貨好き・プレゼント探し', zh: '生活好物爱好者·送礼', en: 'Home lovers, gift seekers' },
+              };
+              const entry = map[cat] ?? map.lifestyle;
+              return locale === 'ja' ? entry.ja : locale === 'zh' ? entry.zh : entry.en;
+            })()}
+          </p>
+        </section>
+
+        {/* 配送说明 */}
+        <section style={{ padding: 16, background: '#f9f9f9', borderRadius: 8, marginBottom: 16 }}>
+          <h3 style={{ fontFamily: 'var(--font-serif)', fontSize: 'var(--text-lg)', marginBottom: 8 }}>
+            {locale === 'ja' ? '配送について' : locale === 'zh' ? '配送说明' : 'Shipping'}
+          </h3>
+          <p style={{ fontSize: 'var(--text-sm)', lineHeight: 1.8, color: 'var(--color-text-secondary)' }}>
+            {locale === 'ja'
+              ? '日本全国配送（Economy ¥500、Express ¥1,500）・欧米（¥2,000〜）・その他地域も対応'
+              : locale === 'zh'
+              ? '日本全国配送·欧美（¥2,000起）·其他地区可咨询'
+              : 'Ships to Japan, US/Europe (from ¥2,000) and worldwide'}
+          </p>
+        </section>
+
+        {/* 安心支付 */}
+        <section style={{ padding: 16, background: '#f9f9f9', borderRadius: 8, marginBottom: 16 }}>
+          <h3 style={{ fontFamily: 'var(--font-serif)', fontSize: 'var(--text-lg)', marginBottom: 8 }}>
+            {locale === 'ja' ? '安心のお支払い' : locale === 'zh' ? '安心支付' : 'Secure Payment'}
+          </h3>
+          <p style={{ fontSize: 'var(--text-sm)', lineHeight: 1.8, color: 'var(--color-text-secondary)' }}>
+            {locale === 'ja'
+              ? 'Stripe・PayPalに対応'
+              : locale === 'zh'
+              ? '支持Stripe和PayPal安全支付'
+              : 'Secure checkout with Stripe & PayPal'}
+          </p>
+        </section>
+
+        {/* 退换说明 */}
+        <section style={{ padding: 16, background: '#f9f9f9', borderRadius: 8, marginBottom: 16 }}>
+          <h3 style={{ fontFamily: 'var(--font-serif)', fontSize: 'var(--text-lg)', marginBottom: 8 }}>
+            {locale === 'ja' ? '返品・交換について' : locale === 'zh' ? '退换说明' : 'Returns'}
+          </h3>
+          <p style={{ fontSize: 'var(--text-sm)', lineHeight: 1.8, color: 'var(--color-text-secondary)' }}>
+            {locale === 'ja'
+              ? '未開封の商品は到着後7日以内返品可能'
+              : locale === 'zh'
+              ? '未开封商品7天内可退换'
+              : 'Unopened items returnable within 7 days'}
+          </p>
+        </section>
+
+        <ShareButtons url={productUrl} title={product.title} locale={locale} />
+      </div>
 
       {/* 商品评价 */}
       <ProductReviews productId={product.id} locale={locale} initialReviewCount={product.reviews ?? 0} />

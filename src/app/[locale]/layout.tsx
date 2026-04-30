@@ -5,6 +5,7 @@ import { routing, Locale, Link } from '@/i18n/routing';
 import { CartProvider } from '@/contexts/CartContext';
 import { NavbarCart } from '@/components/features/NavbarCart';
 import { TawkToWidget } from '@/components/support/TawkToWidget';
+import { AnalyticsProvider } from '@/components/analytics/AnalyticsProvider';
 import './globals.css';
 
 export default async function LocaleLayout({
@@ -82,6 +83,7 @@ export default async function LocaleLayout({
               </div>
             </footer>
             <TawkToWidget />
+            <AnalyticsProvider />
           </NextIntlClientProvider>
         </CartProvider>
       </body>

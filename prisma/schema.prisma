@@ -32,6 +32,8 @@ model Product {
   description   String?
   weight        Int      @default(200)  // g，运费计算用
   isActive      Boolean  @default(true) @map("is_active")  // 软删除
+  isFeatured    Boolean  @default(false) @map("is_featured")
+  featuredRank  Int      @default(0)     @map("featured_rank")
   createdAt     DateTime @default(now()) @map("created_at")
   updatedAt     DateTime @updatedAt @map("updated_at")
 
@@ -44,6 +46,7 @@ model Product {
   variants    ProductVariant[]
   listings    ProductPlatformListing[]
 
+  @@index([isFeatured, featuredRank])
   @@map("products")
 }
 
@@ -155,6 +158,10 @@ model Order {
   subtotal     Int      @map("subtotal")
   shippingFee  Int      @default(0) @map("shipping_fee")
   total        Int      @map("total")
+  couponCode       String?  @map("coupon_code")
+  discountAmount   Int      @default(0) @map("discount_amount")
+  originalSubtotal Int?     @map("original_subtotal")
+  promotionId      String?  @map("promotion_id")
 
   // 配送
   courier      String   @default("yamato")  // yamato / sagawa / japanpost / seino
@@ -181,6 +188,8 @@ model Order {
   @@index([paymentStatus])
   @@index([createdAt])
   @@index([shippingEmail])
+  @@index([couponCode])
+  @@index([promotionId])
   @@map("orders")
 }
 
