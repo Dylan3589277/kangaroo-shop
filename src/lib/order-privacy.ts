@@ -1,6 +1,9 @@
 import type { Order, OrderItem } from '@prisma/client';
+import { PRODUCT_IMAGE_PLACEHOLDER } from './products';
 
 type OrderWithItems = Order & { items?: OrderItem[] };
+
+const PUBLIC_PRODUCT_TITLE_FALLBACK = 'Product';
 
 /**
  * Public order view for checkout/payment success pages.
@@ -34,8 +37,8 @@ export function toPublicOrder(order: OrderWithItems) {
     items: (order.items ?? []).map((item) => ({
       id: item.id,
       productId: item.productId,
-      productTitle: item.productTitle,
-      productImage: item.productImage,
+      productTitle: item.productTitle.trim() || PUBLIC_PRODUCT_TITLE_FALLBACK,
+      productImage: item.productImage?.trim() || PRODUCT_IMAGE_PLACEHOLDER,
       price: item.price,
       quantity: item.quantity,
       weight: item.weight,

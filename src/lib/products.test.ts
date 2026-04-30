@@ -14,6 +14,10 @@ describe('product image helpers', () => {
     expect(parseProductImages('["/a.jpg", 123, "", null, "/b.jpg"]')).toEqual(['/a.jpg', '/b.jpg']);
   });
 
+  it('trims image URLs and removes whitespace-only entries', () => {
+    expect(parseProductImages('[" /a.jpg ", "   ", " /b.jpg"]')).toEqual(['/a.jpg', '/b.jpg']);
+  });
+
   it('uses first parsed image', () => {
     expect(getProductImageUrl('["/first.jpg","/second.jpg"]')).toBe('/first.jpg');
   });

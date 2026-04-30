@@ -30,7 +30,10 @@ export function parseProductImages(images: unknown): string[] {
   if (!images) return [];
 
   const normalize = (value: unknown): string[] => Array.isArray(value)
-    ? value.filter((item): item is string => typeof item === 'string' && item.trim().length > 0)
+    ? value
+      .filter((item): item is string => typeof item === 'string')
+      .map((item) => item.trim())
+      .filter((item) => item.length > 0)
     : [];
 
   if (Array.isArray(images)) return normalize(images);
