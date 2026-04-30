@@ -1,16 +1,20 @@
-import { NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { requireAdminSession } from '@/lib/admin-auth';
+import { parseRequestJsonObject } from '@/lib/request-json';
 
 export async function PATCH(
-  req: Request,
+  req: NextRequest,
   { params }: { params: { alertId: string } }
 ) {
   try {
     const { response } = await requireAdminSession();
     if (response) return response;
 
-    const { handler, handlingResult } = await req.json();
+    const parsed = await parseRequestJsonObject(req);
+    if (!parsed.success) return parsed.response;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const { handler, handlingResult } = parsed.data as Record<string, any>;
 
     const alert = await prisma.dashboardAlert.update({
       where: { id: params.alertId },

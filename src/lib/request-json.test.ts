@@ -1,5 +1,9 @@
 import { describe, expect, it } from 'vitest';
-import { parseJsonObjectText } from './request-json';
+import { parseJsonObjectText, parseRequestJsonObject } from './request-json';
+
+function makeRequest(body: string): Parameters<typeof parseRequestJsonObject>[0] {
+  return { text: async () => body } as Parameters<typeof parseRequestJsonObject>[0];
+}
 
 describe('parseJsonObjectText', () => {
   it('accepts valid JSON objects', () => {
@@ -46,5 +50,40 @@ describe('parseJsonObjectText', () => {
       success: false,
       error: 'Invalid JSON body',
     });
+  });
+});
+
+describe('parseRequestJsonObject', () => {
+  it('returns parsed data for a valid JSON object body', async () => {
+    const result = await parseRequestJsonObject(makeRequest('{"title":"T-shirt","price":1200}'));
+    expect(result).toEqual({ success: true, data: { title: 'T-shirt', price: 1200 } });
+  });
+
+  it('returns 400 response for empty body', async () => {
+    const result = await parseRequestJsonObject(makeRequest(''));
+    expect(result.success).toBe(false);
+    if (!result.success) {
+      expect(result.response.status).toBe(400);
+      const body = await result.response.json() as { error: string };
+      expect(body.error).toBe('Invalid request body');
+    }
+  });
+
+  it('returns 400 response for null body', async () => {
+    const result = await parseRequestJsonObject(makeRequest('null'));
+    expect(result.success).toBe(false);
+    if (!result.success) expect(result.response.status).toBe(400);
+  });
+
+  it('returns 400 response for a JSON array body', async () => {
+    const result = await parseRequestJsonObject(makeRequest('[1,2,3]'));
+    expect(result.success).toBe(false);
+    if (!result.success) expect(result.response.status).toBe(400);
+  });
+
+  it('returns 400 response for malformed JSON', async () => {
+    const result = await parseRequestJsonObject(makeRequest('{bad json'));
+    expect(result.success).toBe(false);
+    if (!result.success) expect(result.response.status).toBe(400);
   });
 });
