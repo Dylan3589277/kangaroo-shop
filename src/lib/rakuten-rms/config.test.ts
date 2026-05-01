@@ -101,6 +101,14 @@ describe('loadRakutenRmsConfig', () => {
     process.env.RAKUTEN_RMS_BASE_URL = 'http://api.rms.rakuten.co.jp/es/1.0/';
     expect(() => loadRakutenRmsConfig()).toThrow(RakutenRmsConfigError);
   });
+
+  it('rejects RAKUTEN_RMS_BASE_URL values with embedded credentials', () => {
+    setValidEnv();
+    process.env.RAKUTEN_RMS_BASE_URL =
+      'https://user:password@api.rms.rakuten.co.jp/es/1.0/';
+    expect(() => loadRakutenRmsConfig()).toThrow(RakutenRmsConfigError);
+    expect(() => loadRakutenRmsConfig()).toThrow('must not include credentials');
+  });
 });
 
 describe('getConfigSummary', () => {

@@ -105,10 +105,37 @@ export class RakutenRmsClient {
    * absolute-path resolution would otherwise drop the /es/1.0 base path.
    */
   private guardAndNormalizePath(path: string): string {
-    if (/^[a-z][a-z\d+.-]*:/i.test(path) || path.startsWith('//')) {
+    if (
+      /^[a-z][a-z\d+.-]*:/i.test(path) ||
+      path.startsWith('//') ||
+      path.includes('\\')
+    ) {
       throw new RakutenRmsPathError();
     }
-    return path.replace(/^\/+/, '');
+
+    const normalizedPath = path.replace(/^\/+/, '');
+    const segments = normalizedPath.split('/');
+
+    for (const segment of segments) {
+      let decodedSegment: string;
+      try {
+        decodedSegment = decodeURIComponent(segment);
+      } catch {
+        throw new RakutenRmsPathError();
+      }
+
+      if (
+        segment === '.' ||
+        segment === '..' ||
+        decodedSegment === '.' ||
+        decodedSegment === '..' ||
+        decodedSegment.includes('\\')
+      ) {
+        throw new RakutenRmsPathError();
+      }
+    }
+
+    return normalizedPath;
   }
 }
 

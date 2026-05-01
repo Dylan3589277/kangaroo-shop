@@ -194,6 +194,37 @@ describe('RakutenRmsClient — HTTP behaviour', () => {
     );
   });
 
+  it.each([
+    '\\\\attacker.example\\collect',
+    '/\\attacker.example/collect',
+    '/product/%5Cattacker',
+  ])('rejects backslash-based path escapes before touching config: %s', async (path) => {
+    clearEnv();
+    const client = new RakutenRmsClient(makeFetchMock());
+    await expect(client.get(path)).rejects.toThrow(RakutenRmsPathError);
+  });
+
+  it.each([
+    '../evil',
+    './search',
+    '/api/../../../evil',
+    '/product/../inventory',
+    '/product/%2e%2e/inventory',
+    '/product/%2E/inventory',
+  ])('rejects dot-segment path escapes before touching config: %s', async (path) => {
+    clearEnv();
+    const client = new RakutenRmsClient(makeFetchMock());
+    await expect(client.get(path)).rejects.toThrow(RakutenRmsPathError);
+  });
+
+  it('rejects malformed percent-encoded paths before touching config', async () => {
+    clearEnv();
+    const client = new RakutenRmsClient(makeFetchMock());
+    await expect(client.get('/product/%E0%A4%A')).rejects.toThrow(
+      RakutenRmsPathError
+    );
+  });
+
   it('returns ok:false for non-2xx responses', async () => {
     const fetchMock = makeFetchMock({ error: 'not found' }, 404);
     const client = new RakutenRmsClient(fetchMock);
