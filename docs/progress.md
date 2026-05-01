@@ -6,6 +6,70 @@
 
 ---
 
+## 2026-05-01 — API 请求体加固闭环完成并生产上线 ✅
+
+### 本阶段目标
+
+把 kangaroo-shop 现有 API 路由中直接 `await req.json()` / `await request.json()` 导致的空 body、非法 JSON、`null`、数组、非对象请求体异常问题逐批补齐，避免坏请求进入业务 catch 后变成 500，同时不改支付金额、库存、优惠券计数、订单状态机等核心业务逻辑。
+
+### 已完成批次
+
+- ✅ 非支付低风险接口：商品评论、wishlist、商品创建/更新、dashboard alerts、platform-listings 等接口已接入统一 JSON 对象解析。
+- ✅ 优惠券与后台订单接口：`/api/promotions`、`/api/orders/[orderId]/status`、`/api/orders/[orderId]/notify` 已接入请求体解析加固，并补路由测试。
+- ✅ 下单主链路：`POST /api/orders` 已接入 `parseRequestJsonObject()`；空 body、非法 JSON、`null`、数组、非对象 JSON、`items:[null]`、`items:["prod_1"]` 均按 400 处理；保留既有业务错误文案。
+- ✅ 支付创建链路：`POST /api/create-payment-intent` 与 `POST /api/create-paypal-order` 已接入 `parseRequestJsonObject()`；空 body/非法 JSON/null/数组/非对象请求体统一返回 400 `Invalid request body`；不改 Stripe/PayPal 金额创建逻辑。
+- ✅ PayPal capture：已完成归属、金额、币种二次校验；`ORDER_ALREADY_CAPTURED` 幂等路径也复用校验；空 body 与 `{}` 不再误判为用户取消支付。
+
+### 最新提交与部署
+
+- 最新提交：`5f05fa7 Harden payment creation request parsing`
+- 当前分支：`main`，已与 `origin/main` 同步
+- 生产主域：`https://kangaroo-shop-orpin.vercel.app`
+- Vercel 生产部署状态：Ready
+
+### 验证记录
+
+执行过的本地质量检查：
+
+```bash
+pnpm test
+pnpm lint
+pnpm exec tsc --noEmit --skipLibCheck
+pnpm build
+```
+
+结果：全部通过。lint/build 仅保留既有 `src/app/og/[id]/route.tsx` 的 `<img>` 提示，不阻断。
+
+额外复核：
+
+```bash
+rg "await\s+req\.json\(\)|await\s+request\.json\(" src/app/api
+```
+
+结果：未发现残余直接调用。
+
+线上冒烟：
+
+- `/zh`、`/ja`、`/en`、`/zh/products`、`/zh/cart`、`/zh/admin/login` 等关键路径正常。
+- `/api/create-payment-intent` 空 body 返回 400 `Invalid request body`。
+- `/api/create-paypal-order` 空 body 返回 400 `Invalid request body`。
+
+### 关键经验
+
+- 所有业务 JSON 请求入口优先使用 `parseRequestJsonObject()`，不要直接 `req.json()`。
+- 坏请求体属于 400，不应落入 500。
+- 对 Next.js 动态渲染中断异常必须重新抛出，不能被请求体 helper 吞掉。
+- 支付、订单、库存、优惠券等高风险链路必须先补测试再改，且只改当前目标层，避免顺手动核心逻辑。
+
+### 下一阶段候选
+
+- Stripe/PayPal 真实支付端到端测试：需要花哥确认沙盒/真实支付边界。
+- 管理后台体验与运营流程优化：继续优化现有商品导入、模板下载、多平台上架中心。
+- 客服系统 Phase2：做订单/物流只读查询，但必须保留脱敏、HMAC、审计日志和人工确认边界。
+- 历史死代码清理：如 `src/lib/orders.ts`，需要先做引用检查和回归测试。
+
+---
+
 ## 2026-04-18 — Day 5 邮件通知完成 + Bug 修复 + 部署 v5 ✅
 
 ### 新增文件

@@ -1,91 +1,56 @@
-# 袋鼠君独立站 — 项目状态摘要
+# 袋鼠君跨境电商站 — 项目状态摘要
 
-| 字段 | 内容 |
-|---|---|
-| **Project** | 袋鼠君独立站（kangaroo-shop） |
-| **Team** | 花哥（胡龙华）、花小妹（Hermes Agent）、花小弟（OpenClaw） |
-| **Lead** | 花哥 |
-| **Status** | 🚧 第二阶段进行中 |
-|| **Progress** | Day 3 ✅ 完成，Day 4 ✅ 完成，Day 5 ✅ 完成（邮件通知已部署，SMTP 待配置） ||
-|| **Updated** | 2026-04-18 |
-| **线上地址** | https://kangaroo-shop-tan.vercel.app |
-| **Ports** | 本地开发：localhost:3000 |
-| **Created** | 2026-03 |
-| **Stack** | Next.js 14 + TypeScript + Tailwind CSS + Stripe + PayPal + Vercel + Prisma + NextAuth |
-
----
-
-## 第二阶段进度
-
-| 阶段 | 状态 | 说明 |
-|---|---|---|
-| Day 1 | ✅ 完成 | Prisma Schema + MySQL 连接 + Seed 数据 |
-| Day 2a | ✅ 完成 | Orders API → Prisma（创建/查询/状态更新） |
-| Day 2b | ✅ 完成 | Products API → Prisma CRUD + Bug 修复 |
-| Day 3 | ✅ 完成（测试验收通过） | NextAuth 认证 + 管理后台（含 Login Bug 修复：login 页面移至 (auth) 路由组解决循环重定向） |
-| Day 4 | ✅ 完成（测试验收待做） | 管理后台页面（订单列表+详情+状态更新，商品列表+新增+编辑，pnpm build 通过） |
-| Day 5 | ✅ 完成（邮件通知已部署，SMTP 环境变量待配置，cron 提醒已设置） |
+Project：kangaroo-shop（袋鼠君跨境电商站，中国进货卖全球）
+Team：花哥（胡龙华）、花小妹（Hermes Agent）、花小弟（OpenClaw）、达摩院/Claude Code
+Lead：花哥
+Status：✅ 现有功能优化与 API 请求体加固阶段已完成并上线；下一阶段待花哥确认
+Progress：
+- ✅ boss-dashboard P0、三平台导入地基、全球跨境定位、IP/地区语言切换、品牌配色、多平台上架中心已生产上线
+- ✅ tawk.to 客服入口与三语言 FAQ 帮助页已在 kangaroo-shop 上线
+- ✅ 管理端 API 认证、订单隐私脱敏、支付金额服务端重算、PayPal capture 归属/金额/币种校验已完成并上线
+- ✅ 全站 API 路由直接 `req.json()` / `request.json()` 已清零，统一接入 `parseRequestJsonObject`，空 body/非法 JSON/null/数组/非对象请求体返回 400，避免生产 500
+- ✅ 最新提交 `5f05fa7 Harden payment creation request parsing` 已 push 到 `origin/main`，Vercel 生产部署 Ready，主域可访问
+Updated：2026-05-01 09:44 JST
+线上地址：https://kangaroo-shop-orpin.vercel.app
+Ports：本地开发通常为 localhost:3000；端口占用时 Next.js 会自动切到 3001
+Created：2026-03
+Stack：Next.js 14.2.35 + TypeScript + Tailwind CSS + Stripe + PayPal + Vercel + Prisma 5.22 + NextAuth + next-intl
 
 ---
 
-## 第一阶段完成 ✅（2026-04-17）
+## 当前验收状态
 
-- ✅ 商品展示页
-- ✅ 购物车
-- ✅ PayPal 完整支付链路
-- ✅ Stripe 完整支付链路
-- ✅ 订单确认页 / 成功页 / 取消页
-- ✅ 管理后台（**Day 3-4 开发中**）
-
----
-
-## 技术栈
-
-| 组件 | 当前 |
-|---|---|
-| 数据库 | MySQL（Vercel MySQL） + Prisma 5.22 |
-| 管理后台 | NextAuth 认证中（Day 3） |
-| 邮件通知 | nodemailer + SMTP（Day 5 接入，邮件模板为日文，SMTP 待配置） |
-| Webhook | Stripe Webhook（已写待生产验证） |
+- 测试：`pnpm test` 通过
+- 代码规范：`pnpm lint` 通过；仅保留既有 `src/app/og/[id]/route.tsx` 的 `<img>` 提示，不阻断
+- 类型检查：`pnpm exec tsc --noEmit --skipLibCheck` 通过
+- 生产构建：`pnpm build` 通过
+- API 请求体加固复核：`src/app/api` 下未发现直接 `await req.json()` 或 `await request.json()`
+- 线上冒烟：`/zh`、`/ja`、`/en`、商品/购物车/后台登录/健康 API 等关键路径正常
+- 支付创建路由非法 body 验证：`/api/create-payment-intent` 与 `/api/create-paypal-order` 空 body 均返回 400 `Invalid request body`
 
 ---
 
-## 环境变量（.env.local）
+## 最近关键提交
 
-```
-# Database
-DATABASE_URL=mysql://xxx（Vercel MySQL）
-
-# Stripe
-STRIPE_SECRET_KEY=sk_live_xxx
-NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY=pk_live_xxxxxxxxxx
-STRIPE_WEBHOOK_SECRET=whsec_xxx（待配置）
-
-# PayPal
-PAYPAL_CLIENT_ID=xxx
-PAYPAL_CLIENT_SECRET=xxx
-
-# NextAuth（Day 3 新增）
-NEXTAUTH_SECRET=xxx（待配置）
-NEXTAUTH_URL=http://localhost:3000（生产环境需改为正式域名）
-```
+- `5f05fa7 Harden payment creation request parsing`：加固 Stripe/PayPal 支付创建接口请求体解析，补测试，已 push 并生产部署
+- `c1070ec Harden order creation request parsing`：加固订单创建接口请求体解析，已 push 并生产部署
+- `e9faddb Harden order and promotion request parsing`：加固优惠券与后台订单状态/通知接口请求体解析，已 push 并生产部署
+- `20ccb1f Tighten PayPal capture request validation`：PayPal capture 空 body/空 JSON 请求体校验修正，已 push 并生产部署
+- `fd7fd2f Harden PayPal capture validation`：PayPal capture 归属/金额/币种校验，已 push
 
 ---
 
-## 数据库 Schema（Prisma）
+## 待确认的下一阶段
 
-- `Order` — 订单（含 paymentStatus/courier/shipping 字段）
-- `OrderItem` — 订单项（关联 productId）
-- `Product` — 商品（isActive/category/tags 等）
+- 可选 1：Stripe/PayPal 真实支付端到端测试（会触及真实支付/沙盒配置，需花哥确认边界）
+- 可选 2：继续做管理后台体验优化、商品导入/模板运营流程优化
+- 可选 3：客服系统 Phase2 订单/物流只读查询实施（涉及受控内部接口与审计日志，上线前需单独确认）
+- 可选 4：清理历史死代码 `src/lib/orders.ts` 与旧文档描述，但需先做引用检查和回归测试
 
 ---
 
-## 部署记录
+## 安全边界
 
-| 日期 | 版本 | 说明 |
-|---|---|---|
-| 2026-04-17 | v1 | 第一阶段完成，支付全通，部署到 Vercel |
-| 2026-04-17 | v2 | Day 2 完成，Prisma 接入，数据持久化 |
-| 2026-04-18 | v3 | Day 3 完成，NextAuth 管理后台 |
-| 2026-04-18 | v4 | Day 4 完成，管理后台订单/商品管理页面 |
-| 2026-04-18 | v5 | Day 5 完成，邮件通知功能（nodemailer），Bug 修复（价格单位/CSS class） |
+- 不直接调用乐天/Amazon 外部平台真实写接口，除非花哥单独审批并提供凭据
+- 不修改生产环境配置、数据库 schema 或批量数据，除非花哥明确同意
+- 支付、退款、订单状态、库存、优惠券计数等高风险链路必须先补测试，再实施，再复审
