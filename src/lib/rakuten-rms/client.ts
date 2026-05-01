@@ -70,10 +70,10 @@ export class RakutenRmsClient {
     }
 
     const headers: Record<string, string> = {
-      // Authorization is injected here and goes nowhere else.
-      Authorization: authorization,
-      'Content-Type': 'application/json; charset=utf-8',
       ...options.headers,
+      'Content-Type': 'application/json; charset=utf-8',
+      // Authorization is injected last so callers cannot override it.
+      Authorization: authorization,
     };
 
     const response = await this.fetchFn(url.toString(), {

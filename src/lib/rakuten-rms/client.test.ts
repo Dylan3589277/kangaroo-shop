@@ -98,6 +98,20 @@ describe('RakutenRmsClient — Authorization header', () => {
     expect(headers['Authorization'].startsWith('ESA ')).toBe(true);
   });
 
+  it('does not let caller-supplied headers override Authorization', async () => {
+    const fetchMock = makeFetchMock({});
+    const client = new RakutenRmsClient(fetchMock);
+    await client.get('/search', {
+      headers: { Authorization: 'Bearer attacker-supplied-token' },
+    });
+
+    const [, init] = fetchMock.mock.calls[0] as [string, RequestInit];
+    const headers = init.headers as Record<string, string>;
+    expect(headers['Authorization']).toBeDefined();
+    expect(headers['Authorization'].startsWith('ESA ')).toBe(true);
+    expect(headers['Authorization']).not.toBe('Bearer attacker-supplied-token');
+  });
+
   it('Authorization header is NOT returned in the response object', async () => {
     const fetchMock = makeFetchMock({ ok: true });
     const client = new RakutenRmsClient(fetchMock);
