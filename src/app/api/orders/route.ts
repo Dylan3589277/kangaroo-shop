@@ -6,6 +6,7 @@ import { authOptions } from '@/lib/auth';
 import { isAdminSession, toPublicOrder } from '@/lib/order-privacy';
 import { getShippingOptions } from '@/lib/shipping';
 import { serverError } from '@/lib/api-error';
+import { parseRequestJsonObject } from '@/lib/request-json';
 
 // 强制 Node.js Runtime
 export const runtime = 'nodejs';
@@ -30,7 +31,11 @@ async function generateOrderNumber(): Promise<string> {
 
 export async function POST(req: NextRequest) {
   try {
-    const body = await req.json();
+    const parsedBody = await parseRequestJsonObject(req);
+    if (!parsedBody.success) {
+      return parsedBody.response;
+    }
+
     const {
       paymentMethod,
       items,
@@ -39,11 +44,16 @@ export async function POST(req: NextRequest) {
       paypalOrderId,
       stripePaymentIntentId,
       couponCode,
-    } = body;
+    } = parsedBody.data;
 
-    if (!paymentMethod || !['stripe', 'paypal'].includes(paymentMethod)) {
+    if (typeof paymentMethod !== 'string' || !['stripe', 'paypal'].includes(paymentMethod)) {
       return NextResponse.json({ error: 'Invalid payment method' }, { status: 400 });
     }
+    const shippingAddressObject =
+      typeof shippingAddress === 'object' && shippingAddress !== null && !Array.isArray(shippingAddress)
+        ? (shippingAddress as Record<string, unknown>)
+        : undefined;
+    const valueOrNull = <T>(value: unknown) => (value as T | null | undefined) ?? null;
     if (!items || !Array.isArray(items) || items.length === 0) {
       return NextResponse.json({ error: 'Cart is empty' }, { status: 400 });
     }
@@ -58,7 +68,11 @@ export async function POST(req: NextRequest) {
     };
 
     const productIds: string[] = [];
-    for (const item of items as Record<string, unknown>[]) {
+    for (const item of items) {
+      if (typeof item !== 'object' || item === null || Array.isArray(item)) {
+        return NextResponse.json({ error: 'Product id is required' }, { status: 400 });
+      }
+
       const productId =
         (item.productId as string) ||
         ((item.product as Record<string, unknown>)?.id as string);
@@ -158,21 +172,21 @@ export async function POST(req: NextRequest) {
         subtotal: finalSubtotal,
         shippingFee: finalShippingFee,
         total: finalTotal,
-        couponCode: couponCode ?? null,
+        couponCode: valueOrNull<string>(couponCode),
         discountAmount,
         originalSubtotal: finalSubtotal,
         promotionId: promotionId ?? null,
         courier: (courier as string) ?? 'yamato',
-        paypalOrderId: paypalOrderId ?? null,
-        stripePaymentIntentId: stripePaymentIntentId ?? null,
-        shippingName: shippingAddress?.name ?? null,
-        shippingPostal: shippingAddress?.postalCode ?? null,
-        shippingPrefecture: shippingAddress?.prefecture ?? null,
-        shippingCity: shippingAddress?.city ?? null,
-        shippingAddress1: shippingAddress?.address1 ?? null,
-        shippingAddress2: shippingAddress?.address2 ?? null,
-        shippingPhone: shippingAddress?.phone ?? null,
-        shippingEmail: shippingAddress?.email ?? null,
+        paypalOrderId: valueOrNull<string>(paypalOrderId),
+        stripePaymentIntentId: valueOrNull<string>(stripePaymentIntentId),
+        shippingName: valueOrNull<string>(shippingAddressObject?.name),
+        shippingPostal: valueOrNull<string>(shippingAddressObject?.postalCode),
+        shippingPrefecture: valueOrNull<string>(shippingAddressObject?.prefecture),
+        shippingCity: valueOrNull<string>(shippingAddressObject?.city),
+        shippingAddress1: valueOrNull<string>(shippingAddressObject?.address1),
+        shippingAddress2: valueOrNull<string>(shippingAddressObject?.address2),
+        shippingPhone: valueOrNull<string>(shippingAddressObject?.phone),
+        shippingEmail: valueOrNull<string>(shippingAddressObject?.email),
         items: {
           create: resolvedItems,
         },
