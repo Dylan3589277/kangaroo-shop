@@ -54,6 +54,16 @@ export class RakutenRmsReadOnlyError extends Error {
   }
 }
 
+/** Thrown when a request path could leak credentials to an external host. */
+export class RakutenRmsPathError extends Error {
+  constructor(path: string) {
+    super(
+      `Rakuten RMS client only accepts relative API paths. Rejected path: ${path}`
+    );
+    this.name = 'RakutenRmsPathError';
+  }
+}
+
 /** Thrown when required environment variables are missing or readOnly guard blocks. */
 export class RakutenRmsConfigError extends Error {
   constructor(message: string) {

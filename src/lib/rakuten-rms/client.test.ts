@@ -1,6 +1,10 @@
 import { type Mock, afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { RakutenRmsClient, createRakutenRmsClient } from './client';
-import { RakutenRmsConfigError, RakutenRmsReadOnlyError } from './types';
+import {
+  RakutenRmsConfigError,
+  RakutenRmsPathError,
+  RakutenRmsReadOnlyError,
+} from './types';
 
 // ─── helpers ────────────────────────────────────────────────────────────────
 
@@ -161,6 +165,33 @@ describe('RakutenRmsClient — HTTP behaviour', () => {
     const [url] = fetchMock.mock.calls[0] as [string, RequestInit];
     expect(url).toContain('keyword=shoes');
     expect(url).toContain('hits=10');
+  });
+
+  it('keeps the /es/1.0 base path when request path starts with slash', async () => {
+    const fetchMock = makeFetchMock({ items: [] });
+    const client = new RakutenRmsClient(fetchMock);
+    await client.get('/product/2/search', { params: { hits: '10' } });
+
+    const [url] = fetchMock.mock.calls[0] as [string, RequestInit];
+    expect(url).toBe(
+      'https://api.rms.rakuten.co.jp/es/1.0/product/2/search?hits=10'
+    );
+  });
+
+  it('rejects absolute URLs before touching config', async () => {
+    clearEnv();
+    const client = new RakutenRmsClient(makeFetchMock());
+    await expect(client.get('https://attacker.example/collect')).rejects.toThrow(
+      RakutenRmsPathError
+    );
+  });
+
+  it('rejects protocol-relative URLs before touching config', async () => {
+    clearEnv();
+    const client = new RakutenRmsClient(makeFetchMock());
+    await expect(client.get('//attacker.example/collect')).rejects.toThrow(
+      RakutenRmsPathError
+    );
   });
 
   it('returns ok:false for non-2xx responses', async () => {

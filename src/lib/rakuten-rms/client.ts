@@ -11,6 +11,7 @@
 
 import { buildAuthorizationHeader, loadRakutenRmsConfig } from './config';
 import {
+  RakutenRmsPathError,
   RakutenRmsReadOnlyError,
   RakutenRmsRequestOptions,
   RakutenRmsResponse,
@@ -56,13 +57,14 @@ export class RakutenRmsClient {
     options: RakutenRmsRequestOptions = {}
   ): Promise<RakutenRmsResponse<T>> {
     this.guardMethod(method);
+    const relativePath = this.guardAndNormalizePath(path);
 
     const config = loadRakutenRmsConfig();
 
     // Build Authorization in memory — do not destructure or store it.
     const authorization = buildAuthorizationHeader();
 
-    const url = new URL(path, config.baseUrl + '/');
+    const url = new URL(relativePath, config.baseUrl + '/');
     if (options.params) {
       for (const [key, value] of Object.entries(options.params)) {
         url.searchParams.set(key, value);
@@ -95,6 +97,18 @@ export class RakutenRmsClient {
     if (upper !== ALLOWED_METHOD) {
       throw new RakutenRmsReadOnlyError(upper);
     }
+  }
+
+  /**
+   * Only allow relative API paths so ESA credentials never leave Rakuten's host.
+   * Leading slashes are normalized instead of passed to new URL(), because
+   * absolute-path resolution would otherwise drop the /es/1.0 base path.
+   */
+  private guardAndNormalizePath(path: string): string {
+    if (/^[a-z][a-z\d+.-]*:/i.test(path) || path.startsWith('//')) {
+      throw new RakutenRmsPathError(path);
+    }
+    return path.replace(/^\/+/, '');
   }
 }
 
