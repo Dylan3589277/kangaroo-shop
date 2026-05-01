@@ -76,12 +76,24 @@ describe('loadRakutenRmsConfig', () => {
     expect(config.baseUrl).toBe('https://api.rms.rakuten.co.jp/es/1.0');
   });
 
-  it('uses RAKUTEN_RMS_BASE_URL when set', () => {
+  it('uses RAKUTEN_RMS_BASE_URL when set to a Rakuten RMS host', () => {
     setValidEnv();
-    process.env.RAKUTEN_RMS_BASE_URL = 'https://staging.rms.example.com/v1/';
+    process.env.RAKUTEN_RMS_BASE_URL = 'https://api.rms.rakuten.co.jp/es/2.0/';
     const config = loadRakutenRmsConfig();
     // trailing slash should be stripped
-    expect(config.baseUrl).toBe('https://staging.rms.example.com/v1');
+    expect(config.baseUrl).toBe('https://api.rms.rakuten.co.jp/es/2.0');
+  });
+
+  it('rejects non-Rakuten RAKUTEN_RMS_BASE_URL hosts', () => {
+    setValidEnv();
+    process.env.RAKUTEN_RMS_BASE_URL = 'https://attacker.example.com/v1/';
+    expect(() => loadRakutenRmsConfig()).toThrow(RakutenRmsConfigError);
+  });
+
+  it('rejects non-https RAKUTEN_RMS_BASE_URL values', () => {
+    setValidEnv();
+    process.env.RAKUTEN_RMS_BASE_URL = 'http://api.rms.rakuten.co.jp/es/1.0/';
+    expect(() => loadRakutenRmsConfig()).toThrow(RakutenRmsConfigError);
   });
 });
 

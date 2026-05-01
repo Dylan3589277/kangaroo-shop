@@ -56,10 +56,8 @@ export class RakutenRmsReadOnlyError extends Error {
 
 /** Thrown when a request path could leak credentials to an external host. */
 export class RakutenRmsPathError extends Error {
-  constructor(path: string) {
-    super(
-      `Rakuten RMS client only accepts relative API paths. Rejected path: ${path}`
-    );
+  constructor() {
+    super('Rakuten RMS client only accepts relative API paths.');
     this.name = 'RakutenRmsPathError';
   }
 }

@@ -106,7 +106,7 @@ export class RakutenRmsClient {
    */
   private guardAndNormalizePath(path: string): string {
     if (/^[a-z][a-z\d+.-]*:/i.test(path) || path.startsWith('//')) {
-      throw new RakutenRmsPathError(path);
+      throw new RakutenRmsPathError();
     }
     return path.replace(/^\/+/, '');
   }

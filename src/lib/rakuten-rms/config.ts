@@ -23,8 +23,31 @@ const DEFAULT_BASE_URL = 'https://api.rms.rakuten.co.jp/es/1.0';
  * A very short string is fully masked.
  */
 function maskSecret(value: string): string {
-  if (value.length <= 6) return '***';
-  return `${value.slice(0, 2)}${'*'.repeat(value.length - 4)}${value.slice(-2)}`;
+  if (value.length <= 4) return '***';
+  return `****${value.slice(-4)}`;
+}
+
+function normalizeBaseUrl(rawBaseUrl?: string): string {
+  const baseUrl = rawBaseUrl?.replace(/\/$/, '') ?? DEFAULT_BASE_URL;
+
+  let parsed: URL;
+  try {
+    parsed = new URL(baseUrl);
+  } catch {
+    throw new RakutenRmsConfigError('RAKUTEN_RMS_BASE_URL is not a valid URL.');
+  }
+
+  if (parsed.protocol !== 'https:') {
+    throw new RakutenRmsConfigError('RAKUTEN_RMS_BASE_URL must use https.');
+  }
+
+  if (!parsed.hostname.endsWith('rms.rakuten.co.jp')) {
+    throw new RakutenRmsConfigError(
+      'RAKUTEN_RMS_BASE_URL must point to a Rakuten RMS host.'
+    );
+  }
+
+  return baseUrl;
 }
 
 /**
@@ -59,8 +82,7 @@ export function loadRakutenRmsConfig(): RakutenRmsConfig {
     );
   }
 
-  const baseUrl =
-    process.env.RAKUTEN_RMS_BASE_URL?.replace(/\/$/, '') ?? DEFAULT_BASE_URL;
+  const baseUrl = normalizeBaseUrl(process.env.RAKUTEN_RMS_BASE_URL);
 
   return { serviceSecret, licenseKey, baseUrl, readOnly };
 }
@@ -87,10 +109,10 @@ export function getConfigSummary(): RakutenRmsConfigSummary {
 export function getRakutenRmsStatus(): RakutenRmsStatus {
   try {
     return getConfigSummary();
-  } catch (err) {
+  } catch {
     return {
       configured: false,
-      reason: err instanceof Error ? err.message : 'Unknown configuration error',
+      reason: 'Rakuten RMS is not configured.',
     };
   }
 }
