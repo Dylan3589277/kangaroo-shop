@@ -22,7 +22,8 @@
 
 ### 最新提交与部署
 
-- 最新提交：`5f05fa7 Harden payment creation request parsing`
+- 最新功能提交：`5f05fa7 Harden payment creation request parsing`
+- 项目进度文档：已保存并推送到 `origin/main`
 - 当前分支：`main`，已与 `origin/main` 同步
 - 生产主域：`https://kangaroo-shop-orpin.vercel.app`
 - Vercel 生产部署状态：Ready
