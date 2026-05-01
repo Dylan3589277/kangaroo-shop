@@ -41,7 +41,10 @@ function normalizeBaseUrl(rawBaseUrl?: string): string {
     throw new RakutenRmsConfigError('RAKUTEN_RMS_BASE_URL must use https.');
   }
 
-  if (!parsed.hostname.endsWith('rms.rakuten.co.jp')) {
+  if (
+    parsed.hostname !== 'rms.rakuten.co.jp' &&
+    !parsed.hostname.endsWith('.rms.rakuten.co.jp')
+  ) {
     throw new RakutenRmsConfigError(
       'RAKUTEN_RMS_BASE_URL must point to a Rakuten RMS host.'
     );

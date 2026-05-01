@@ -90,6 +90,12 @@ describe('loadRakutenRmsConfig', () => {
     expect(() => loadRakutenRmsConfig()).toThrow(RakutenRmsConfigError);
   });
 
+  it('rejects hostnames that only share a suffix string', () => {
+    setValidEnv();
+    process.env.RAKUTEN_RMS_BASE_URL = 'https://evilrms.rakuten.co.jp/v1/';
+    expect(() => loadRakutenRmsConfig()).toThrow(RakutenRmsConfigError);
+  });
+
   it('rejects non-https RAKUTEN_RMS_BASE_URL values', () => {
     setValidEnv();
     process.env.RAKUTEN_RMS_BASE_URL = 'http://api.rms.rakuten.co.jp/es/1.0/';
@@ -141,7 +147,7 @@ describe('getRakutenRmsStatus', () => {
   it('returns configured:false with a reason when env is missing', () => {
     const status = getRakutenRmsStatus();
     expect(status.configured).toBe(false);
-    if (!status.configured) {
+    if (status.configured === false) {
       expect(typeof status.reason).toBe('string');
       expect(status.reason.length).toBeGreaterThan(0);
     }
