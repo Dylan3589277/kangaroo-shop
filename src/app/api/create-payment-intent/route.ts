@@ -3,13 +3,19 @@ import { getStripe } from '@/lib/stripe';
 import { prisma } from '@/lib/prisma';
 import { getPayableOrder, PaymentOrderError } from '@/lib/payment-order';
 import { serverError } from '@/lib/api-error';
+import { parseRequestJsonObject } from '@/lib/request-json';
 
 // 强制使用 Node.js Runtime（Edge Runtime 有网络限制）
 export const runtime = 'nodejs';
 
 export async function POST(req: NextRequest) {
   try {
-    const { locale, orderId } = await req.json();
+    const parsedBody = await parseRequestJsonObject(req);
+    if (!parsedBody.success) {
+      return parsedBody.response;
+    }
+
+    const { locale, orderId } = parsedBody.data as { locale?: string; orderId?: unknown };
     const order = await getPayableOrder(orderId);
 
     if (order.paymentMethod !== 'stripe') {

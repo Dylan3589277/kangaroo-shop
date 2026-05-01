@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { getPayableOrder, PaymentOrderError } from '@/lib/payment-order';
 import { serverError } from '@/lib/api-error';
+import { parseRequestJsonObject } from '@/lib/request-json';
 
 // 强制使用 Node.js Runtime（解决 Edge Runtime 无法认证 PayPal 的问题）
 export const runtime = 'nodejs';
@@ -17,7 +18,12 @@ function getPaypalBaseUrl(): string {
 
 export async function POST(req: NextRequest) {
   try {
-    const { orderId } = await req.json();
+    const parsedBody = await parseRequestJsonObject(req);
+    if (!parsedBody.success) {
+      return parsedBody.response;
+    }
+
+    const { orderId } = parsedBody.data;
     const order = await getPayableOrder(orderId);
 
     if (order.paymentMethod !== 'paypal') {
