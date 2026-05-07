@@ -90,7 +90,7 @@ export const OverviewPage: React.FC<OverviewPageProps> = ({ initialData }) => {
           <DashboardOutlined /> 全局健康总览
         </Title>
         <Text type="secondary">
-          实时监控袋鼠君日本电商核心经营指标，及时发现并处理异常情况
+          实时监控classe跨境电商核心经营指标，及时发现并处理异常情况
         </Text>
       </div>
 

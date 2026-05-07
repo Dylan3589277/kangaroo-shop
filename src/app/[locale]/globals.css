@@ -343,11 +343,52 @@ a:hover {
 }
 
 .navbar-logo {
-  font-family: var(--font-serif);
-  font-size: var(--text-xl);
-  font-weight: 700;
-  color: var(--color-primary);
+  display: inline-flex;
+  align-items: center;
   text-decoration: none;
+}
+
+.brand-logo {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  color: var(--color-primary);
+  line-height: 1;
+}
+
+.brand-logo-mark {
+  width: 42px;
+  height: 42px;
+  flex: 0 0 auto;
+  filter: drop-shadow(0 2px 4px rgba(47, 127, 142, 0.12));
+}
+
+.brand-logo-text {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.brand-logo-name {
+  font-family: var(--font-serif);
+  font-size: var(--text-2xl);
+  font-weight: 800;
+  color: var(--color-primary);
+  letter-spacing: -0.02em;
+  line-height: 0.95;
+}
+
+.brand-logo-slogan {
+  font-size: 0.62rem;
+  font-weight: 700;
+  color: var(--brand-accent-warm);
+  letter-spacing: 0.02em;
+  text-transform: none;
+  white-space: nowrap;
+}
+
+.footer-brand {
+  margin-bottom: var(--space-4);
 }
 
 .navbar-nav {
@@ -804,6 +845,15 @@ a:hover {
 
   .navbar-actions {
     gap: var(--space-2);
+  }
+
+  .brand-logo-mark {
+    width: 36px;
+    height: 36px;
+  }
+
+  .brand-logo-slogan {
+    display: none;
   }
 
   .language-switcher-current {

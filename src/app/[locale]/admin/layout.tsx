@@ -38,7 +38,7 @@ export default async function AdminLayout({
         flexDirection: 'column',
       }}>
         <div style={{ marginBottom: 'var(--space-6)', paddingBottom: 'var(--space-4)', borderBottom: '1px solid var(--color-border)' }}>
-          <h2 style={{ fontSize: 'var(--text-lg)', fontWeight: 600 }}>袋鼠君</h2>
+          <h2 style={{ fontSize: 'var(--text-lg)', fontWeight: 600 }}>classe</h2>
           <p style={{ fontSize: 'var(--text-sm)', color: 'var(--color-text-muted)' }}>管理后台</p>
         </div>
 

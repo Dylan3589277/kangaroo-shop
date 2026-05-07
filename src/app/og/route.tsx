@@ -50,15 +50,25 @@ export async function GET() {
             zIndex: 10,
           }}
         >
-          {/* Logo emoji */}
+          {/* Logo mark */}
           <div
             style={{
-              fontSize: '80px',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              width: '112px',
+              height: '112px',
+              borderRadius: '28px',
+              background: '#BFE8EF',
+              color: '#ffffff',
+              fontSize: '72px',
+              fontWeight: 800,
               marginBottom: '24px',
               lineHeight: 1,
+              boxShadow: '0 16px 32px rgba(47, 127, 142, 0.24)',
             }}
           >
-            🦘
+            c
           </div>
           {/* Brand name */}
           <div
@@ -66,25 +76,25 @@ export async function GET() {
               fontSize: '72px',
               fontWeight: 800,
               color: '#ffffff',
-              letterSpacing: '2px',
+              letterSpacing: '0',
               marginBottom: '16px',
               textAlign: 'center',
             }}
           >
-            Kangaroo Shop
+            classe
           </div>
           {/* Tagline */}
           <div
             style={{
               fontSize: '28px',
-              color: '#a5b4fc',
-              fontWeight: 400,
-              letterSpacing: '4px',
+              color: '#F4A261',
+              fontWeight: 700,
+              letterSpacing: '0',
               textTransform: 'uppercase',
               textAlign: 'center',
             }}
           >
-            China Sourcing for Global Markets
+            全球好物，一站直达
           </div>
         </div>
       </div>

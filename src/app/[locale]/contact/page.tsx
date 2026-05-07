@@ -13,9 +13,9 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
     en: 'Contact',
   };
   const descriptions: Record<string, string> = {
-    ja: '袋鼠君へのお問い合わせはこちら。商品についてのご質問、ご注文に関するお問い合わせを受け付けています。',
-    zh: '联系袋鼠君客服团队，获取商品咨询、订单问题等方面的帮助。',
-    en: 'Get in touch with Kangaroo Shop. Contact us for product inquiries, order support, and general questions.',
+    ja: 'classeへのお問い合わせはこちら。商品についてのご質問、ご注文に関するお問い合わせを受け付けています。',
+    zh: '联系classe客服团队，获取商品咨询、订单问题等方面的帮助。',
+    en: 'Get in touch with classe. Contact us for product inquiries, order support, and general questions.',
   };
   return buildIndexableMetadata({
     locale,

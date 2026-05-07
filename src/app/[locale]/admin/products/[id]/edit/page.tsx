@@ -8,7 +8,7 @@ type Props = { params: { id: string } };
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const product = await prisma.product.findUnique({ where: { id: params.id } });
-  return { title: product ? `${product.title} | 袋鼠君` : '商品を編集 | 袋鼠君' };
+  return { title: product ? `${product.title} | classe` : '商品を編集 | classe' };
 }
 
 export default async function EditProductPage({ params }: Props) {

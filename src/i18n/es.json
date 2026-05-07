@@ -1,6 +1,6 @@
 {
   "common": {
-    "appName": "Kangaroo Shop",
+    "appName": "classe",
     "loading": "Cargando...",
     "error": "Ocurrió un error",
     "retry": "Reintentar",
@@ -21,15 +21,15 @@
   },
   "home": {
     "hero": {
-      "title": "Abastecimiento desde China para mercados globales",
-      "subtitle": "Productos adquiridos e importados desde China para Japón, Europa, Norteamérica y más",
+      "title": "全球好物，一站直达",
+      "subtitle": "Hallazgos cotidianos seleccionados con buen diseño, precio justo y envío global",
       "cta": "Ver productos"
     },
     "featured": "Productos destacados",
     "categories": "Categorías",
     "shopNow": "Comprar ahora",
     "trust": {
-      "china": "Seleccionado desde China",
+      "china": "Selección por diseño",
       "global": "Envíos a todo el mundo",
       "secure": "Pago seguro con Stripe · PayPal"
     },
@@ -57,10 +57,10 @@
     "proceedToCheckout": "Ir al pago"
   },
   "footer": {
-    "copyright": "© 2026 Kangaroo Shop Todos los derechos reservados.",
+    "copyright": "© 2026 classe All Rights Reserved.",
     "privacy": "Política de privacidad",
     "terms": "Términos del servicio",
-    "tagline": "Productos de China para Japón, Europa, Norteamérica y mercados globales",
+    "tagline": "全球好物，一站直达",
     "quickLinks": "Enlaces rápidos",
     "help": "Ayuda / FAQ",
     "legal": "Legal"

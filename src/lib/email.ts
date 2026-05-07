@@ -145,7 +145,7 @@ export async function sendOrderConfirmation(order: OrderData): Promise<void> {
 <body>
   <div class="container">
     <div class="header">
-      <h1>🦘 袋鼠君 — 注文確認</h1>
+      <h1>classe — 注文確認</h1>
     </div>
     <div class="body">
       <p>${escapeHtml(order.customerName)} 様</p>
@@ -186,8 +186,8 @@ export async function sendOrderConfirmation(order: OrderData): Promise<void> {
       </p>
     </div>
     <div class="footer">
-      袋鼠君 — 中国調達の商品を日本・欧米・世界へ<br/>
-      このメールは袋鼠君公式オンラインストアより送信されました
+      classe — 全球好物，一站直达<br/>
+      このメールはclasse公式オンラインストアより送信されました
     </div>
   </div>
 </body>
@@ -196,7 +196,7 @@ export async function sendOrderConfirmation(order: OrderData): Promise<void> {
   await createTransporter().sendMail({
     from: process.env.SMTP_FROM,
     to: order.customerEmail,
-    subject: `【袋鼠君】ご注文完了 — ${sanitizeHeader(order.orderNumber)}`,
+    subject: `【classe】ご注文完了 — ${sanitizeHeader(order.orderNumber)}`,
     html,
   });
 }
@@ -245,7 +245,7 @@ export async function sendStatusChangeEmail(data: StatusChangeData): Promise<voi
 <body>
   <div class="container">
     <div class="header">
-      <h1>🦘 袋鼠君 — ステータス更新</h1>
+      <h1>classe — ステータス更新</h1>
     </div>
     <div class="body">
       <p>${escapeHtml(data.customerName)} 様</p>
@@ -272,7 +272,7 @@ export async function sendStatusChangeEmail(data: StatusChangeData): Promise<voi
       </p>
     </div>
     <div class="footer">
-      袋鼠君 — 中国調達の商品を日本・欧米・世界へ
+      classe — 全球好物，一站直达
     </div>
   </div>
 </body>
@@ -281,7 +281,7 @@ export async function sendStatusChangeEmail(data: StatusChangeData): Promise<voi
   await createTransporter().sendMail({
     from: process.env.SMTP_FROM,
     to: data.customerEmail,
-    subject: `【袋鼠君】ご注文 ${sanitizeHeader(data.orderNumber)} ステータス更新 — ${sanitizeHeader(newLabel)}`,
+    subject: `【classe】ご注文 ${sanitizeHeader(data.orderNumber)} ステータス更新 — ${sanitizeHeader(newLabel)}`,
     html,
   });
 }

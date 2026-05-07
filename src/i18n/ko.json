@@ -1,6 +1,6 @@
 {
   "common": {
-    "appName": "Kangaroo 샵",
+    "appName": "classe",
     "loading": "로딩 중...",
     "error": "문제가 발생했습니다",
     "retry": "재시도",
@@ -21,15 +21,15 @@
   },
   "home": {
     "hero": {
-      "title": "글로벌 시장을 위한 중국 소싱",
-      "subtitle": "중국에서 소싱·수입한 상품을 일본, 유럽, 북미 및 전 세계로 제공합니다",
+      "title": "全球好物，一站直达",
+      "subtitle": "일상에 어울리는 감각적인 상품을 합리적인 가치로 전 세계 고객에게 제공합니다",
       "cta": "상품 보기"
     },
     "featured": "추천 상품",
     "categories": "카테고리",
     "shopNow": "지금 구매",
     "trust": {
-      "china": "중국 공급망 엄선",
+      "china": "디자인 중심 셀렉션",
       "global": "전 세계 배송 지원",
       "secure": "Stripe · PayPal 안전 결제"
     },
@@ -57,10 +57,10 @@
     "proceedToCheckout": "결제 진행"
   },
   "footer": {
-    "copyright": "© 2024 Kangaroo 샵 All Rights Reserved.",
+    "copyright": "© 2026 classe All Rights Reserved.",
     "privacy": "개인정보 처리방침",
     "terms": "이용약관",
-    "tagline": "중국 소싱 상품을 일본·유럽·미국·전 세계로",
+    "tagline": "全球好物，一站直达",
     "quickLinks": "빠른 링크",
     "help": "도움말 / FAQ",
     "legal": "법적 고지"

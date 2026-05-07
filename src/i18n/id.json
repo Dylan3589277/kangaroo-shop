@@ -1,6 +1,6 @@
 {
   "common": {
-    "appName": "Kangaroo Shop",
+    "appName": "classe",
     "loading": "Memuat...",
     "error": "Terjadi kesalahan",
     "retry": "Coba lagi",
@@ -21,15 +21,15 @@
   },
   "home": {
     "hero": {
-      "title": "Sumber Produk dari China untuk Pasar Global",
-      "subtitle": "Produk yang bersumber dan diimpor dari China untuk Jepang, Eropa, Amerika Utara, dan lainnya",
+      "title": "全球好物，一站直达",
+      "subtitle": "Pilihan produk sehari-hari yang dikurasi dengan desain baik, harga bernilai, dan pengiriman global",
       "cta": "Lihat Produk"
     },
     "featured": "Produk Unggulan",
     "categories": "Kategori",
     "shopNow": "Beli sekarang",
     "trust": {
-      "china": "Dikurasi dari China",
+      "china": "Pilihan berbasis desain",
       "global": "Pengiriman global",
       "secure": "Pembayaran aman Stripe · PayPal"
     },
@@ -57,10 +57,10 @@
     "proceedToCheckout": "Lanjut ke Pembayaran"
   },
   "footer": {
-    "copyright": "© 2024 Kangaroo Shop Hak cipta dilindungi.",
+    "copyright": "© 2026 classe All Rights Reserved.",
     "privacy": "Kebijakan Privasi",
     "terms": "Syarat & Ketentuan",
-    "tagline": "Produk dari China untuk Jepang, Eropa, Amerika Utara, dan pasar global",
+    "tagline": "全球好物，一站直达",
     "quickLinks": "Tautan cepat",
     "help": "Bantuan / FAQ",
     "legal": "Legal"

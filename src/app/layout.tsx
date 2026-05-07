@@ -3,14 +3,15 @@ import type { Metadata, Viewport } from "next";
 export const metadata: Metadata = {
   metadataBase: new URL("https://kangaroo-shop-orpin.vercel.app"),
   title: {
-    default: "Kangaroo Shop | China Sourcing for Global Commerce",
-    template: "%s | Kangaroo Shop",
+    default: "classe | 全球好物，一站直达",
+    template: "%s | classe",
   },
   description:
-    "Kangaroo Shop sources and imports products from China for global customers, with Japan, Europe and North America as key markets.",
+    "classe brings global good finds to shoppers in one place.",
   keywords: [
-    "China sourcing",
-    "import products",
+    "global good finds",
+    "one-stop shopping",
+    "curated global products",
     "cross-border e-commerce",
     "global commerce",
     "Italian Brainrot",
@@ -18,11 +19,11 @@ export const metadata: Metadata = {
     "lifestyle goods",
     "Japan market",
     "Europe market",
-    "Kangaroo Shop",
+    "classe",
   ],
-  authors: [{ name: "Kangaroo Shop" }],
-  creator: "Kangaroo Shop",
-  publisher: "Kangaroo Shop",
+  authors: [{ name: "classe" }],
+  creator: "classe",
+  publisher: "classe",
   robots: {
     index: true,
     follow: true,
@@ -38,24 +39,24 @@ export const metadata: Metadata = {
     type: "website",
     locale: "en_US",
     alternateLocale: ["ja_JP", "zh_CN", "ko_KR", "de_DE", "fr_FR", "it_IT", "es_ES", "th_TH", "id_ID", "vi_VN"],
-    siteName: "Kangaroo Shop",
-    title: "Kangaroo Shop | China Sourcing for Global Commerce",
+    siteName: "classe",
+    title: "classe | 全球好物，一站直达",
     description:
-      "Products sourced and imported from China for global customers, focused on Japan, Europe and North America.",
+      "Design-conscious everyday finds with one-stop shopping, curated for global customers.",
     images: [
       {
         url: "/og",
         width: 1200,
         height: 630,
-        alt: "Kangaroo Shop - China Sourcing for Global Commerce",
+        alt: "classe - 全球好物，一站直达",
       },
     ],
   },
   twitter: {
     card: "summary_large_image",
-    title: "Kangaroo Shop | China Sourcing for Global Commerce",
+    title: "classe | 全球好物，一站直达",
     description:
-      "Products sourced and imported from China for global customers.",
+      "Design-conscious everyday finds with one-stop shopping for global customers.",
     images: ["/og"],
   },
   alternates: {

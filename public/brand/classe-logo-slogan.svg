@@ -1,0 +1,143 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1800" height="1000" viewBox="0 0 1800 1000">
+  <defs>
+    <linearGradient id="skySea" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#d9fbf3"/>
+      <stop offset="0.5" stop-color="#bfeee9"/>
+      <stop offset="1" stop-color="#e9fbf6"/>
+    </linearGradient>
+    <linearGradient id="sign" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#96dceb"/>
+      <stop offset="0.55" stop-color="#6fc8dc"/>
+      <stop offset="1" stop-color="#8bd9d1"/>
+    </linearGradient>
+    <linearGradient id="sand" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#fff2cf"/>
+      <stop offset="1" stop-color="#ffe6ac"/>
+    </linearGradient>
+    <filter id="softShadow" x="-20%" y="-20%" width="140%" height="150%">
+      <feDropShadow dx="0" dy="20" stdDeviation="22" flood-color="#248ea0" flood-opacity="0.22"/>
+    </filter>
+    <filter id="letterShadow" x="-20%" y="-20%" width="140%" height="140%">
+      <feDropShadow dx="0" dy="5" stdDeviation="3" flood-color="#268aa0" flood-opacity="0.35"/>
+    </filter>
+    <style>
+      .zh {
+        font-family: "PingFang SC", "Hiragino Sans GB", "STHeiti", "Songti SC", sans-serif;
+        font-weight: 800;
+        letter-spacing: 10px;
+      }
+      .en {
+        font-family: "Nunito", "Avenir Next", "Verdana", sans-serif;
+        font-weight: 800;
+        letter-spacing: 4px;
+      }
+      .brand {
+        font-family: "Avenir Next", "Nunito", "Verdana", sans-serif;
+        font-weight: 900;
+        letter-spacing: 8px;
+      }
+      .slogan {
+        font-family: "PingFang SC", "Hiragino Sans GB", "STHeiti", sans-serif;
+        font-weight: 650;
+        letter-spacing: 4px;
+      }
+    </style>
+  </defs>
+
+  <rect width="1800" height="1000" fill="url(#skySea)"/>
+
+  <g opacity="0.56">
+    <circle cx="1510" cy="150" r="78" fill="#fff7c8"/>
+    <circle cx="1485" cy="130" r="20" fill="#ffffff" opacity="0.7"/>
+  </g>
+
+  <path d="M0 705 C210 650 330 755 530 700 C720 648 845 748 1040 700 C1260 646 1410 760 1800 676 L1800 1000 L0 1000 Z" fill="#f7fffb" opacity="0.72"/>
+  <path d="M0 765 C210 710 350 814 575 762 C770 716 950 805 1140 760 C1375 704 1520 812 1800 746 L1800 1000 L0 1000 Z" fill="#c6f0eb" opacity="0.75"/>
+  <path d="M0 830 C210 790 390 858 610 827 C840 795 1000 860 1208 825 C1430 788 1600 865 1800 812 L1800 1000 L0 1000 Z" fill="url(#sand)"/>
+
+  <g opacity="0.42" stroke="#ffffff" stroke-width="7" fill="none" stroke-linecap="round">
+    <path d="M65 690 C170 660 245 735 350 700"/>
+    <path d="M1285 700 C1390 663 1495 742 1610 700"/>
+    <path d="M1040 884 C1165 850 1265 915 1390 878"/>
+  </g>
+
+  <g transform="translate(112,205)" opacity="0.94">
+    <path d="M100 360 C120 260 165 180 252 112 C340 45 405 28 504 32" fill="none" stroke="#67bd82" stroke-width="16" stroke-linecap="round"/>
+    <path d="M166 278 C128 250 95 232 57 235 C98 289 130 304 166 278 Z" fill="#86d69a"/>
+    <path d="M232 176 C191 148 155 135 112 144 C160 195 195 205 232 176 Z" fill="#7ccf91"/>
+    <path d="M315 97 C284 61 252 38 207 31 C237 95 270 119 315 97 Z" fill="#8edf9d"/>
+    <path d="M392 52 C435 28 475 20 522 35 C473 83 431 92 392 52 Z" fill="#72c987"/>
+    <circle cx="302" cy="104" r="12" fill="#ff8fb2"/>
+    <circle cx="186" cy="254" r="10" fill="#ff9fc0"/>
+  </g>
+
+  <g transform="translate(1688,230) scale(-1,1)" opacity="0.94">
+    <path d="M100 360 C120 260 165 180 252 112 C340 45 405 28 504 32" fill="none" stroke="#67bd82" stroke-width="16" stroke-linecap="round"/>
+    <path d="M166 278 C128 250 95 232 57 235 C98 289 130 304 166 278 Z" fill="#86d69a"/>
+    <path d="M232 176 C191 148 155 135 112 144 C160 195 195 205 232 176 Z" fill="#7ccf91"/>
+    <path d="M315 97 C284 61 252 38 207 31 C237 95 270 119 315 97 Z" fill="#8edf9d"/>
+    <path d="M392 52 C435 28 475 20 522 35 C473 83 431 92 392 52 Z" fill="#72c987"/>
+    <circle cx="302" cy="104" r="12" fill="#ff8fb2"/>
+    <circle cx="186" cy="254" r="10" fill="#ff9fc0"/>
+  </g>
+
+  <g transform="translate(384,208)" filter="url(#softShadow)">
+    <rect x="0" y="0" width="1032" height="548" rx="64" fill="#ffffff"/>
+    <rect x="24" y="24" width="984" height="500" rx="48" fill="url(#sign)"/>
+    <rect x="54" y="54" width="924" height="440" rx="35" fill="none" stroke="#ffffff" stroke-width="10" opacity="0.85"/>
+    <path d="M95 375 C260 426 410 407 520 370 C665 322 817 337 930 383" fill="none" stroke="#ffffff" stroke-width="7" opacity="0.45" stroke-linecap="round"/>
+  </g>
+
+  <g transform="translate(0,0)" filter="url(#letterShadow)">
+    <text x="900" y="452" class="brand" font-size="205" text-anchor="middle" fill="#ffffff" stroke="#ffffff" stroke-width="4">classe</text>
+    <text x="900" y="545" class="en" font-size="54" text-anchor="middle" fill="#ffffff">Kangaroo Cross-border Shop</text>
+  </g>
+
+  <path d="M622 590 C735 635 1030 642 1184 592" fill="none" stroke="#ff9a3d" stroke-width="22" stroke-linecap="round"/>
+  <path d="M640 588 C760 615 1004 620 1162 588" fill="none" stroke="#ffc36a" stroke-width="8" stroke-linecap="round" opacity="0.72"/>
+
+  <g transform="translate(1198,348) rotate(12)">
+    <path d="M45 16 C45 -4 18 -8 8 9 C-6 -8 -32 -3 -33 18 C-34 49 8 66 8 66 C8 66 45 48 45 16 Z" fill="#ff89aa" stroke="#ffffff" stroke-width="7"/>
+  </g>
+
+  <g transform="translate(558,332) rotate(-12)">
+    <path d="M24 9 C24 -3 8 -5 3 5 C-6 -5 -22 -3 -22 10 C-22 28 3 39 3 39 C3 39 24 27 24 9 Z" fill="#ff9ab8" stroke="#ffffff" stroke-width="5"/>
+  </g>
+
+  <g transform="translate(676,626)">
+    <rect x="0" y="0" width="448" height="72" rx="36" fill="#ffffff" opacity="0.9"/>
+    <text x="224" y="48" class="slogan" font-size="38" text-anchor="middle" fill="#32919b">全球好物，一站直达</text>
+  </g>
+
+  <g transform="translate(325,690)">
+    <path d="M95 25 C120 -18 180 10 169 61 C160 104 107 111 84 78 C64 49 70 11 95 25 Z" fill="#fff6d3" stroke="#ffffff" stroke-width="8"/>
+    <path d="M118 63 C151 69 170 100 158 133 C144 170 88 174 69 140 C50 106 78 57 118 63 Z" fill="#fff6d3" stroke="#ffffff" stroke-width="8"/>
+    <path d="M150 121 C190 118 215 142 216 171 C171 181 148 158 150 121 Z" fill="#fff6d3" stroke="#ffffff" stroke-width="8"/>
+    <path d="M69 126 C30 139 12 169 19 205 C63 196 87 167 69 126 Z" fill="#fff6d3" stroke="#ffffff" stroke-width="8"/>
+    <circle cx="128" cy="42" r="8" fill="#4c9aa0"/>
+    <path d="M94 43 C80 54 78 68 86 79" fill="none" stroke="#e38f56" stroke-width="6" stroke-linecap="round"/>
+    <path d="M128 23 C145 -8 170 -2 163 22" fill="none" stroke="#fff6d3" stroke-width="16" stroke-linecap="round"/>
+    <path d="M80 30 C62 0 38 9 52 32" fill="none" stroke="#fff6d3" stroke-width="16" stroke-linecap="round"/>
+  </g>
+
+  <g transform="translate(1218,678)" opacity="0.97">
+    <circle cx="82" cy="82" r="68" fill="#ffffff" opacity="0.85"/>
+    <path d="M82 20 C113 20 139 47 139 82 C139 117 113 144 82 144 C51 144 25 117 25 82 C25 47 51 20 82 20 Z" fill="none" stroke="#5ebcc8" stroke-width="8"/>
+    <path d="M23 83 L141 83 M82 21 C61 48 61 116 82 143 M82 21 C104 48 104 116 82 143" fill="none" stroke="#5ebcc8" stroke-width="6" stroke-linecap="round"/>
+    <rect x="150" y="44" width="92" height="74" rx="14" fill="#ffffff" stroke="#ffad58" stroke-width="8"/>
+    <path d="M167 65 L196 86 L225 65" fill="none" stroke="#ffad58" stroke-width="7" stroke-linecap="round" stroke-linejoin="round"/>
+  </g>
+
+  <g fill="#ffffff" stroke="#78bec9" stroke-width="5" stroke-linejoin="round" opacity="0.98">
+    <path d="M1326 172 C1363 140 1411 142 1447 169 C1398 168 1374 178 1354 204 C1348 186 1339 177 1326 172 Z"/>
+    <path d="M1461 189 C1509 166 1551 183 1578 221 C1531 208 1506 213 1477 232 C1479 214 1472 199 1461 189 Z"/>
+    <path d="M250 203 C294 173 340 184 367 220 C325 204 299 209 272 230 C273 217 264 207 250 203 Z"/>
+  </g>
+
+  <g opacity="0.82" fill="#ffffff">
+    <circle cx="185" cy="535" r="10"/>
+    <circle cx="1598" cy="532" r="13"/>
+    <circle cx="1470" cy="622" r="8"/>
+    <circle cx="252" cy="620" r="7"/>
+  </g>
+</svg>

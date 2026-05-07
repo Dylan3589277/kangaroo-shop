@@ -13,14 +13,14 @@ type Props = {
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { locale } = await params;
   const titles: Record<string, string> = {
-    ja: '袋鼠君 | 中国調達から世界市場へ',
-    zh: '袋鼠君 | 中国采购，卖往全球',
-    en: 'Kangaroo Shop | China Sourcing for Global Markets',
+    ja: 'classe | 全球好物，一站直达',
+    zh: 'classe | 全球好物，一站直达',
+    en: 'classe | 全球好物，一站直达',
   };
   const descriptions: Record<string, string> = {
-    ja: '中国で調達・輸入した商品を、日本・欧米を中心に世界へ届ける越境ECサイト。',
-    zh: '从中国采购/进口商品，面向日本、欧美等全球市场销售的跨境电商平台。',
-    en: 'A cross-border commerce platform sourcing and importing products from China for Japan, Europe, North America and global markets.',
+    ja: '世界の良品をワンストップで。暮らしに合うアイテムを世界へ届けます。',
+    zh: '全球好物，一站直达。为全球用户精选价格友好的日常好物。',
+    en: 'Global good finds in one convenient shop, curated for shoppers worldwide.',
   };
   return buildIndexableMetadata({
     locale,
@@ -38,7 +38,7 @@ const CATEGORIES = [
 ] as const;
 
 const TRUST_BADGES = [
-  { key: 'china', emoji: '🇨🇳' },
+  { key: 'china', emoji: '💎' },
   { key: 'global', emoji: '🌍' },
   { key: 'secure', emoji: '🔒' },
 ] as const;

@@ -23,9 +23,9 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
     en: 'Products',
   };
   const descriptions: Record<string, string> = {
-    ja: '中国で調達・輸入した商品の一覧。日本・欧米を中心に世界へ販売します。',
-    zh: '浏览袋鼠君从中国采购/进口、面向日本欧美与全球销售的商品。',
-    en: 'Browse products sourced and imported from China for Japan, Europe, North America and global customers.',
+    ja: 'デザインと価格のバランスがよいアイテムを一覧でご覧いただけます。',
+    zh: '浏览classe精选的有设计感、价格友好的日常好物。',
+    en: 'Browse design-conscious everyday finds with good value for global shoppers.',
   };
   return buildIndexableMetadata({
     locale,

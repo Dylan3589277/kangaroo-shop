@@ -13,9 +13,9 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
     en: 'About Us',
   };
   const descriptions: Record<string, string> = {
-    ja: '袋鼠君は中国で商品を調達・輸入し、日本・欧米を中心に世界へ販売する越境ECサイトです。',
-    zh: '袋鼠君是从中国采购/进口商品，并面向日本、欧美与全球市场销售的跨境电商平台。',
-    en: 'Kangaroo Shop sources and imports products from China, then sells them to Japan, Europe, North America and global markets.',
+    ja: 'classeは、デザインと価格のバランスがよい日用品を世界のお客様へ届ける越境ECサイトです。',
+    zh: 'classe是为全球用户精选有设计感、价格友好的日常好物的跨境电商平台。',
+    en: 'classe curates design-conscious everyday finds with good value for global customers.',
   };
   return buildIndexableMetadata({
     locale,
@@ -34,10 +34,10 @@ export default async function AboutPage({
   const labels = {
     title: locale === 'ja' ? '会社概要' : locale === 'zh' ? '关于我们' : 'About Us',
     desc: locale === 'ja'
-      ? '袋鼠君は、中国で商品を調達・輸入し、日本・欧米を中心とした世界の消費者へ届ける越境ECサイトです。日本の代理購入サービスではありません。'
+      ? 'classeは、デザインと価格のバランスがよい日用品を世界のお客様へ届ける越境ECサイトです。日本の代理購入サービスではありません。'
       : locale === 'zh'
-      ? '袋鼠君从中国采购/进口商品，并面向日本、欧美等全球市场销售。本站不是日本代拍站。'
-      : 'Kangaroo Shop sources and imports products from China for global customers, with Japan, Europe and North America as key markets. It is not a Japan proxy-shopping service.',
+      ? 'classe为全球用户精选有设计感、价格友好的日常好物。本站不是日本代拍站。'
+      : 'classe curates design-conscious everyday finds with good value for global customers. It is not a Japan proxy-shopping service.',
   };
   return (
     <main className="container" style={{ paddingTop: 'var(--space-12)', paddingBottom: 'var(--space-16)' }}>

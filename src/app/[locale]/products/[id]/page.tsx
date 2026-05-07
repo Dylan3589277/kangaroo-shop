@@ -40,7 +40,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const title = product.title;
   const description = product.description
     ? product.description.slice(0, 160)
-    : `Shop ${title} at Kangaroo Shop. Products sourced and imported from China for global markets.`;
+    : `Shop ${title} at classe. Global good finds for shoppers worldwide.`;
   const ogImage = `/og/${id}`;
 
   return buildIndexableMetadata({
@@ -50,13 +50,13 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
     description,
     extra: {
       openGraph: {
-        title: `${title} | Kangaroo Shop`,
+        title: `${title} | classe`,
         description,
         images: [{ url: ogImage, width: 1200, height: 630, alt: title }],
       },
       twitter: {
         card: 'summary_large_image',
-        title: `${title} | Kangaroo Shop`,
+        title: `${title} | classe`,
         description,
         images: [ogImage],
       },
@@ -166,7 +166,7 @@ export default async function ProductDetailPage({ params }: Props) {
       url: productUrl,
       seller: {
         '@type': 'Organization',
-        name: 'Kangaroo Shop',
+        name: 'classe',
       },
     },
     ...(product.rating
@@ -180,7 +180,7 @@ export default async function ProductDetailPage({ params }: Props) {
       : {}),
     brand: {
       '@type': 'Brand',
-      name: product.source ? sourceLabel[product.source] || product.source : 'Kangaroo Shop',
+      name: product.source ? sourceLabel[product.source] || product.source : 'classe',
     },
     sku: product.id,
   };

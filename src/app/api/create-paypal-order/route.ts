@@ -69,7 +69,7 @@ export async function POST(req: NextRequest) {
         intent: 'CAPTURE',
         purchase_units: [{
           custom_id: order.id,
-          description: `Kangaroo Shop order ${order.orderNumber}`,
+          description: `classe order ${order.orderNumber}`,
           amount: {
             currency_code: 'JPY',
             value: String(order.total),

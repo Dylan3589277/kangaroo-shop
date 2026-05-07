@@ -1,7 +1,7 @@
 import { Metadata } from 'next';
 import ProductForm from '../ProductForm';
 
-export const metadata: Metadata = { title: '新規商品 | 袋鼠君' };
+export const metadata: Metadata = { title: '新規商品 | classe' };
 
 export default function NewProductPage() {
   return (

@@ -23,7 +23,7 @@ export async function GET(
 ) {
   const product = await getProduct(params.id);
 
-  const title = product?.title || 'Kangaroo Shop';
+  const title = product?.title || 'classe';
   const price = product?.price ? `¥${(product.price as number).toLocaleString()}` : '';
   const imageUrl = product?.images?.[0] || null;
 
@@ -121,7 +121,7 @@ export async function GET(
               marginBottom: '16px',
             }}
           >
-            🦘 Kangaroo Shop
+            classe
           </div>
 
           {/* Title */}
@@ -157,11 +157,11 @@ export async function GET(
           <div
             style={{
               fontSize: '16px',
-              color: '#c7d2fe',
+              color: '#F4A261',
               fontWeight: 400,
             }}
           >
-            China Sourcing for Global Markets
+            全球好物，一站直达
           </div>
         </div>
       </div>

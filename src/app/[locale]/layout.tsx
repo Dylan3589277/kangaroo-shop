@@ -3,6 +3,7 @@ import { getMessages, getTranslations } from 'next-intl/server';
 import { notFound } from 'next/navigation';
 import { routing, Locale, Link } from '@/i18n/routing';
 import { CartProvider } from '@/contexts/CartContext';
+import { BrandLogo } from '@/components/brand/BrandLogo';
 import { NavbarCart } from '@/components/features/NavbarCart';
 import { LanguageSwitcher } from '@/components/features/LanguageSwitcher';
 import { TawkToWidget } from '@/components/support/TawkToWidget';
@@ -35,7 +36,7 @@ export default async function LocaleLayout({
             <header className="navbar">
               <div className="navbar-inner">
                 <Link href="/" className="navbar-logo">
-                  袋鼠君
+                  <BrandLogo />
                 </Link>
                 <nav>
                   <ul className="navbar-nav">
@@ -60,7 +61,9 @@ export default async function LocaleLayout({
             <footer className="footer">
               <div className="footer-content">
                 <div>
-                  <div className="footer-title">袋鼠君</div>
+                  <div className="footer-brand">
+                    <BrandLogo />
+                  </div>
                   <p style={{ fontSize: 'var(--text-sm)', color: 'var(--color-text-secondary)', marginBottom: 0 }}>
                     {footer('tagline')}
                   </p>
