@@ -1,9 +1,10 @@
 type BrandLogoProps = {
   className?: string;
   compact?: boolean;
+  slogan?: string;
 };
 
-export function BrandLogo({ className = '', compact = false }: BrandLogoProps) {
+export function BrandLogo({ className = '', compact = false, slogan }: BrandLogoProps) {
   return (
     <span className={`brand-logo ${compact ? 'brand-logo-compact' : ''} ${className}`.trim()}>
       <svg
@@ -76,7 +77,7 @@ export function BrandLogo({ className = '', compact = false }: BrandLogoProps) {
       {!compact && (
         <span className="brand-logo-text">
           <span className="brand-logo-name">classe</span>
-          <span className="brand-logo-slogan">全球好物，一站直达</span>
+          {slogan && <span className="brand-logo-slogan">{slogan}</span>}
         </span>
       )}
     </span>

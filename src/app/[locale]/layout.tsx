@@ -36,7 +36,7 @@ export default async function LocaleLayout({
             <header className="navbar">
               <div className="navbar-inner">
                 <Link href="/" className="navbar-logo">
-                  <BrandLogo />
+                  <BrandLogo slogan={footer('tagline')} />
                 </Link>
                 <nav>
                   <ul className="navbar-nav">
@@ -62,7 +62,7 @@ export default async function LocaleLayout({
               <div className="footer-content">
                 <div>
                   <div className="footer-brand">
-                    <BrandLogo />
+                    <BrandLogo slogan={footer('tagline')} />
                   </div>
                   <p style={{ fontSize: 'var(--text-sm)', color: 'var(--color-text-secondary)', marginBottom: 0 }}>
                     {footer('tagline')}

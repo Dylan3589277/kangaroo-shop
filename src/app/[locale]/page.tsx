@@ -13,9 +13,17 @@ type Props = {
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { locale } = await params;
   const titles: Record<string, string> = {
-    ja: 'classe | 全球好物，一站直达',
+    en: 'classe | Global good finds, delivered in one stop',
     zh: 'classe | 全球好物，一站直达',
-    en: 'classe | 全球好物，一站直达',
+    ja: 'classe | 世界の良品を、ワンストップでお届け',
+    ko: 'classe | 전 세계 좋은 상품을 한 번에 배송',
+    de: 'classe | Globale Lieblingsstücke, direkt geliefert',
+    fr: 'classe | Les bonnes trouvailles du monde, livrées en un seul endroit',
+    it: 'classe | Buoni prodotti dal mondo, consegnati in un unico shop',
+    es: 'classe | Buenos productos del mundo, entrega en una sola tienda',
+    th: 'classe | ของดีจากทั่วโลก ส่งตรงในที่เดียว',
+    id: 'classe | Produk bagus dari seluruh dunia, dikirim dari satu tempat',
+    vi: 'classe | Hàng tốt toàn cầu, giao trọn trong một điểm đến',
   };
   const descriptions: Record<string, string> = {
     ja: '世界の良品をワンストップで。暮らしに合うアイテムを世界へ届けます。',
