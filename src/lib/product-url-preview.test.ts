@@ -4,8 +4,10 @@ import {
   decodeProductHtml,
   detectProductUrlSource,
   htmlEncodingFromContentType,
+  hasUsefulProductPreview,
   parseProductPreviewHtml,
   parseYenPrice,
+  resolveKnownProductUrlTarget,
 } from './product-url-preview';
 
 describe('product-url-preview domain whitelist', () => {
@@ -20,6 +22,8 @@ describe('product-url-preview domain whitelist', () => {
   it('allows common Japanese marketplace short links so redirects can be resolved safely', () => {
     expect(detectProductUrlSource('https://amzn.asia/d/example')).toBe('amazon');
     expect(detectProductUrlSource('https://a.r10.to/hExample')).toBe('rakuten');
+    expect(detectProductUrlSource('https://r10.to/hExample')).toBe('rakuten');
+    expect(detectProductUrlSource('https://hb.afl.rakuten.co.jp/hgc/example')).toBe('rakuten');
     expect(assertAllowedProductUrl('https://amzn.asia/d/example#ref')).toEqual({
       source: 'amazon',
       normalizedUrl: 'https://amzn.asia/d/example',
@@ -28,6 +32,20 @@ describe('product-url-preview domain whitelist', () => {
       source: 'rakuten',
       normalizedUrl: 'https://a.r10.to/hExample?pc=https%3A%2F%2Fitem.rakuten.co.jp%2Fshop%2Fitem%2F',
     });
+  });
+
+  it('resolves Rakuten short-link pc targets only after validating the decoded URL', () => {
+    expect(resolveKnownProductUrlTarget('https://a.r10.to/hExample?pc=https%3A%2F%2Fitem.rakuten.co.jp%2Fshop%2Fitem%2F')).toBe(
+      'https://item.rakuten.co.jp/shop/item/'
+    );
+    expect(resolveKnownProductUrlTarget('https://a.r10.to/hExample?pc=https%3A%2F%2Fbooks.rakuten.co.jp%2Frb%2F123456%2F')).toBe(
+      'https://books.rakuten.co.jp/rb/123456/'
+    );
+  });
+
+  it('rejects unsafe Rakuten short-link pc targets', () => {
+    expect(() => resolveKnownProductUrlTarget('https://a.r10.to/hExample?pc=https%3A%2F%2F127.0.0.1%2Fadmin')).toThrow();
+    expect(() => resolveKnownProductUrlTarget('https://a.r10.to/hExample?pc=https%3A%2F%2Fevil.test%2Fitem')).toThrow();
   });
 
   it('rejects unsupported domains and non-http protocols', () => {
@@ -145,6 +163,16 @@ describe('parseProductPreviewHtml', () => {
       'https://image.rakuten.co.jp/shop/cabinet/item.jpg',
       'https://thumbnail.image.rakuten.co.jp/@0_mall/shop/cabinet/thumb.jpg',
     ]);
+  });
+
+  it('treats marketplace error pages with only an error title as unusable preview', () => {
+    const preview = parseProductPreviewHtml(
+      '<html><head><title>ページが見つかりません</title></head><body>not found</body></html>',
+      'https://www.amazon.co.jp/dp/B000000000'
+    );
+
+    expect(preview.title).toBe('ページが見つかりません');
+    expect(hasUsefulProductPreview(preview)).toBe(false);
   });
 });
 

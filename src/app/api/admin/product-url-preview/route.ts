@@ -6,6 +6,7 @@ import {
   decodeProductHtml,
   hasUsefulProductPreview,
   parseProductPreviewHtml,
+  resolveKnownProductUrlTarget,
 } from '@/lib/product-url-preview';
 import { generateProductAiCopy } from '@/lib/product-ai-copy';
 import {
@@ -39,7 +40,7 @@ export async function POST(req: NextRequest) {
 
     let normalizedUrl: string;
     try {
-      normalizedUrl = assertAllowedProductUrl(url.trim()).normalizedUrl;
+      normalizedUrl = resolveKnownProductUrlTarget(assertAllowedProductUrl(url.trim()).normalizedUrl);
     } catch {
       return NextResponse.json(
         { error: '只支持日本 Amazon 与日本 Rakuten 的商品链接' },
@@ -47,8 +48,8 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    const html = await fetchAllowedHtml(normalizedUrl);
-    const preview = parseProductPreviewHtml(html, normalizedUrl);
+    const { html, finalUrl } = await fetchAllowedHtml(normalizedUrl);
+    const preview = parseProductPreviewHtml(html, finalUrl);
 
     if (!hasUsefulProductPreview(preview)) {
       return NextResponse.json(
@@ -100,7 +101,7 @@ class ProductPreviewFetchError extends Error {
   }
 }
 
-async function fetchAllowedHtml(initialUrl: string): Promise<string> {
+async function fetchAllowedHtml(initialUrl: string): Promise<{ html: string; finalUrl: string }> {
   let currentUrl = initialUrl;
 
   for (let redirectCount = 0; redirectCount <= MAX_REDIRECTS; redirectCount += 1) {
@@ -141,7 +142,7 @@ async function fetchAllowedHtml(initialUrl: string): Promise<string> {
     if (!html.trim()) {
       throw new ProductPreviewFetchError('商品ページのHTMLが空です', 422);
     }
-    return html;
+    return { html, finalUrl: currentUrl };
   }
 
   throw new ProductPreviewFetchError('リダイレクト回数が多すぎます', 400);

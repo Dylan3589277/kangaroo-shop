@@ -21,7 +21,7 @@ type JsonValue =
   | { [key: string]: JsonValue };
 
 const AMAZON_HOSTS = new Set(['amazon.co.jp', 'www.amazon.co.jp', 'amzn.asia']);
-const RAKUTEN_SHORT_HOSTS = new Set(['a.r10.to']);
+const RAKUTEN_SHORT_HOSTS = new Set(['a.r10.to', 'r10.to', 'hb.afl.rakuten.co.jp']);
 
 export function detectProductUrlSource(rawUrl: string): ProductUrlSource | null {
   let parsed: URL;
@@ -54,6 +54,21 @@ export function assertAllowedProductUrl(rawUrl: string): { source: ProductUrlSou
   const parsed = new URL(rawUrl);
   parsed.hash = '';
   return { source, normalizedUrl: parsed.toString() };
+}
+
+export function resolveKnownProductUrlTarget(rawUrl: string): string {
+  const { source, normalizedUrl } = assertAllowedProductUrl(rawUrl);
+  const parsed = new URL(normalizedUrl);
+  const hostname = parsed.hostname.toLowerCase();
+
+  if (source === 'rakuten' && RAKUTEN_SHORT_HOSTS.has(hostname)) {
+    const pcTarget = parsed.searchParams.get('pc');
+    if (pcTarget) {
+      return assertAllowedProductUrl(pcTarget).normalizedUrl;
+    }
+  }
+
+  return normalizedUrl;
 }
 
 export function parseProductPreviewHtml(html: string, rawUrl: string): ProductUrlPreview {
@@ -123,7 +138,18 @@ export function parseProductPreviewHtml(html: string, rawUrl: string): ProductUr
 }
 
 export function hasUsefulProductPreview(preview: ProductUrlPreview): boolean {
+  if (isMarketplaceErrorTitle(preview.title)) return false;
   return Boolean(preview.title || preview.brand || preview.price || preview.images.length || preview.description);
+}
+
+function isMarketplaceErrorTitle(title: string | undefined): boolean {
+  if (!title) return false;
+  const normalized = title.trim().toLowerCase();
+  return [
+    'ページが見つかりません',
+    'page not found',
+    '404 not found',
+  ].some(pattern => normalized.includes(pattern));
 }
 
 function extractMetaTags(html: string): Record<string, string> {
