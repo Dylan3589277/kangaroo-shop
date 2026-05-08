@@ -25,6 +25,55 @@ const DEFAULT_FETCH_ATTEMPTS = 1;
 const RAKUTEN_FETCH_ATTEMPTS = 2;
 const MAX_REDIRECTS = 3;
 
+type ProductPreviewErrorCategory =
+  | 'unsupported_url'
+  | 'upstream_http'
+  | 'timeout'
+  | 'network'
+  | 'content_type'
+  | 'empty_html'
+  | 'html_size'
+  | 'redirect'
+  | 'parse_empty'
+  | 'server';
+
+type ProductPreviewErrorCode =
+  | 'UNSUPPORTED_URL'
+  | 'UPSTREAM_HTTP_ERROR'
+  | 'FETCH_TIMEOUT'
+  | 'NETWORK_ERROR'
+  | 'NON_HTML'
+  | 'EMPTY_HTML'
+  | 'HTML_TOO_LARGE'
+  | 'REDIRECT_ERROR'
+  | 'PARSE_EMPTY'
+  | 'UNKNOWN_SERVER_ERROR';
+
+type EmptyPreviewClassification =
+  | 'anti_bot_or_captcha'
+  | 'platform_error_or_missing_product'
+  | 'decode_failure'
+  | 'structure_changed_or_unmatched';
+
+type ProductPreviewDiagnostics = {
+  source?: string;
+  finalUrl?: string;
+  status?: number;
+  contentType?: string;
+  htmlBytes?: number;
+  htmlTitle?: string;
+  classification?: EmptyPreviewClassification;
+  redirectCount?: number;
+};
+
+type ProductPreviewErrorBody = {
+  error: string;
+  code: ProductPreviewErrorCode;
+  category: ProductPreviewErrorCategory;
+  reason: string;
+  diagnostics?: ProductPreviewDiagnostics;
+};
+
 export async function POST(req: NextRequest) {
   try {
     const { response } = await requireAdminSession();
@@ -43,21 +92,41 @@ export async function POST(req: NextRequest) {
       normalizedUrl = resolveKnownProductUrlTarget(assertAllowedProductUrl(url.trim()).normalizedUrl);
     } catch {
       return NextResponse.json(
-        { error: '只支持日本 Amazon 与日本 Rakuten 的商品链接' },
+        previewErrorBody({
+          error: '只支持日本 Amazon 与日本 Rakuten 的商品链接',
+          code: 'UNSUPPORTED_URL',
+          category: 'unsupported_url',
+          reason: 'URL 不在允许的平台或协议范围内，只接受日本 Amazon / Rakuten 的 HTTPS 商品链接。',
+        }),
         { status: 400 }
       );
     }
 
-    const { html, finalUrl } = await fetchAllowedHtml(normalizedUrl);
+    const { html, finalUrl, source, contentType, htmlBytes } = await fetchAllowedHtml(normalizedUrl);
     const preview = parseProductPreviewHtml(html, finalUrl);
+    const emptyPreviewClassification = classifyEmptyPreviewHtml(html);
 
-    if (!hasUsefulProductPreview(preview)) {
+    if (!hasUsefulProductPreview(preview) || isSuspiciousTitleOnlyPreview(preview, emptyPreviewClassification.classification)) {
+      const diagnostics = sanitizeDiagnostics({
+        source,
+        finalUrl,
+        contentType,
+        htmlBytes,
+        htmlTitle: emptyPreviewClassification.htmlTitle,
+        classification: emptyPreviewClassification.classification,
+      });
       console.warn('product-url-preview unusable preview', {
-        finalUrl: safeLogProductUrl(finalUrl),
+        ...diagnostics,
         previewSummary: summarizePreviewKeys(preview),
       });
       return NextResponse.json(
-        { error: '未能从该页面读取到商品信息。页面可能开启了反爬或不是商品详情页。' },
+        previewErrorBody({
+          error: '未能从该页面读取到商品信息',
+          code: 'PARSE_EMPTY',
+          category: 'parse_empty',
+          reason: emptyPreviewClassification.reason,
+          diagnostics,
+        }),
         { status: 422 }
       );
     }
@@ -92,20 +161,78 @@ export async function POST(req: NextRequest) {
     });
   } catch (err) {
     if (err instanceof ProductPreviewFetchError) {
-      return NextResponse.json({ error: err.message }, { status: err.status });
+      return NextResponse.json(err.toBody(), { status: err.status });
     }
 
-    return serverError(err);
+    return serverError(err, previewErrorBody({
+      error: '商品ページの取得中にサーバーエラーが発生しました',
+      code: 'UNKNOWN_SERVER_ERROR',
+      category: 'server',
+      reason: '商品 URL 预览接口出现未分类服务器错误，请查看服务端日志中的异常堆栈。',
+    }));
   }
 }
 
 class ProductPreviewFetchError extends Error {
-  constructor(message: string, readonly status: number) {
-    super(message);
+  readonly code: ProductPreviewErrorCode;
+  readonly category: ProductPreviewErrorCategory;
+  readonly reason: string;
+  readonly diagnostics?: ProductPreviewDiagnostics;
+
+  constructor(input: {
+    message: string;
+    status: number;
+    code: ProductPreviewErrorCode;
+    category: ProductPreviewErrorCategory;
+    reason: string;
+    diagnostics?: ProductPreviewDiagnostics;
+  }) {
+    super(input.message);
+    this.status = input.status;
+    this.code = input.code;
+    this.category = input.category;
+    this.reason = input.reason;
+    this.diagnostics = sanitizeDiagnostics(input.diagnostics);
+  }
+
+  readonly status: number;
+
+  toBody(): ProductPreviewErrorBody {
+    return previewErrorBody({
+      error: this.message,
+      code: this.code,
+      category: this.category,
+      reason: this.reason,
+      diagnostics: this.diagnostics,
+    });
   }
 }
 
-function safeLogProductUrl(rawUrl: string): string {
+function previewErrorBody(input: ProductPreviewErrorBody): ProductPreviewErrorBody {
+  return {
+    error: input.error,
+    code: input.code,
+    category: input.category,
+    reason: input.reason,
+    ...(input.diagnostics ? { diagnostics: sanitizeDiagnostics(input.diagnostics) } : {}),
+  };
+}
+
+function sanitizeDiagnostics(diagnostics: ProductPreviewDiagnostics | undefined): ProductPreviewDiagnostics | undefined {
+  if (!diagnostics) return undefined;
+  return {
+    ...(diagnostics.source ? { source: diagnostics.source } : {}),
+    ...(diagnostics.finalUrl ? { finalUrl: sanitizeProductUrlForDiagnostics(diagnostics.finalUrl) } : {}),
+    ...(typeof diagnostics.status === 'number' ? { status: diagnostics.status } : {}),
+    ...(diagnostics.contentType ? { contentType: truncate(diagnostics.contentType, 120) } : {}),
+    ...(typeof diagnostics.htmlBytes === 'number' ? { htmlBytes: diagnostics.htmlBytes } : {}),
+    ...(diagnostics.htmlTitle ? { htmlTitle: truncate(diagnostics.htmlTitle, 160) } : {}),
+    ...(diagnostics.classification ? { classification: diagnostics.classification } : {}),
+    ...(typeof diagnostics.redirectCount === 'number' ? { redirectCount: diagnostics.redirectCount } : {}),
+  };
+}
+
+function sanitizeProductUrlForDiagnostics(rawUrl: string): string {
   try {
     const parsed = new URL(rawUrl);
     parsed.username = '';
@@ -131,7 +258,22 @@ function summarizePreviewKeys(preview: ReturnType<typeof parseProductPreviewHtml
   };
 }
 
-async function fetchAllowedHtml(initialUrl: string): Promise<{ html: string; finalUrl: string }> {
+function isSuspiciousTitleOnlyPreview(
+  preview: ReturnType<typeof parseProductPreviewHtml>,
+  classification: EmptyPreviewClassification
+): boolean {
+  if (!preview.title) return false;
+  if (preview.brand || typeof preview.price === 'number' || preview.images.length || preview.description) return false;
+  return classification === 'anti_bot_or_captcha' || classification === 'platform_error_or_missing_product';
+}
+
+async function fetchAllowedHtml(initialUrl: string): Promise<{
+  html: string;
+  finalUrl: string;
+  source: string;
+  contentType: string;
+  htmlBytes: number;
+}> {
   let currentUrl = initialUrl;
 
   for (let redirectCount = 0; redirectCount <= MAX_REDIRECTS; redirectCount += 1) {
@@ -144,38 +286,96 @@ async function fetchAllowedHtml(initialUrl: string): Promise<{ html: string; fin
     if (isRedirect(response.status)) {
       const location = response.headers.get('location');
       if (!location) {
-        throw new ProductPreviewFetchError('商品ページのリダイレクト先を確認できませんでした', 502);
+        throw new ProductPreviewFetchError({
+          message: '商品ページのリダイレクト先を確認できませんでした',
+          status: 502,
+          code: 'REDIRECT_ERROR',
+          category: 'redirect',
+          reason: '上游返回重定向状态，但没有提供 Location 头。',
+          diagnostics: { source, finalUrl: currentUrl, status: response.status, redirectCount },
+        });
       }
 
-      currentUrl = new URL(location, currentUrl).toString();
+      try {
+        currentUrl = new URL(location, currentUrl).toString();
+      } catch {
+        throw new ProductPreviewFetchError({
+          message: '商品ページのリダイレクト先URLが不正です',
+          status: 502,
+          code: 'REDIRECT_ERROR',
+          category: 'redirect',
+          reason: '上游返回的重定向地址不是有效 URL。',
+          diagnostics: { source, finalUrl: currentUrl, status: response.status, redirectCount },
+        });
+      }
       try {
         currentUrl = resolveKnownProductUrlTarget(assertAllowedProductUrl(currentUrl).normalizedUrl);
       } catch {
-        throw new ProductPreviewFetchError('許可されていないドメインへのリダイレクトをブロックしました', 400);
+        throw new ProductPreviewFetchError({
+          message: '許可されていないドメインへのリダイレクトをブロックしました',
+          status: 400,
+          code: 'REDIRECT_ERROR',
+          category: 'redirect',
+          reason: '商品页重定向到了非允许域名，已阻止继续访问。',
+          diagnostics: { source, finalUrl: currentUrl, status: response.status, redirectCount },
+        });
       }
       continue;
     }
 
     if (!response.ok) {
-      throw new ProductPreviewFetchError(
-        `商品ページを取得できませんでした (${response.status})`,
-        response.status >= 400 && response.status < 500 ? 422 : 502
-      );
+      throw new ProductPreviewFetchError({
+        message: `商品ページを取得できませんでした (${response.status})`,
+        status: response.status >= 400 && response.status < 500 ? 422 : 502,
+        code: 'UPSTREAM_HTTP_ERROR',
+        category: 'upstream_http',
+        reason: response.status >= 400 && response.status < 500
+          ? '上游商品页返回 4xx，可能是商品不存在、链接失效或访问被拒绝。'
+          : '上游商品页返回 5xx，平台服务暂时不可用或拒绝代理访问。',
+        diagnostics: { source, finalUrl: currentUrl, status: response.status, redirectCount },
+      });
     }
 
     const contentType = response.headers.get('content-type') ?? '';
     if (contentType && !contentType.toLowerCase().includes('text/html')) {
-      throw new ProductPreviewFetchError('商品ページがHTMLではありません', 422);
+      throw new ProductPreviewFetchError({
+        message: '商品ページがHTMLではありません',
+        status: 422,
+        code: 'NON_HTML',
+        category: 'content_type',
+        reason: '上游返回内容不是 HTML，无法按商品页面解析。',
+        diagnostics: { source, finalUrl: currentUrl, status: response.status, contentType, redirectCount },
+      });
     }
 
-    const html = await readLimitedText(response, MAX_HTML_BYTES, contentType);
+    const { html, bytes } = await readLimitedText(response, MAX_HTML_BYTES, contentType, {
+      source,
+      finalUrl: currentUrl,
+      status: response.status,
+      contentType,
+      redirectCount,
+    });
     if (!html.trim()) {
-      throw new ProductPreviewFetchError('商品ページのHTMLが空です', 422);
+      throw new ProductPreviewFetchError({
+        message: '商品ページのHTMLが空です',
+        status: 422,
+        code: 'EMPTY_HTML',
+        category: 'empty_html',
+        reason: '上游返回了空 HTML，无法解析商品信息。',
+        diagnostics: { source, finalUrl: currentUrl, status: response.status, contentType, htmlBytes: bytes, redirectCount },
+      });
     }
-    return { html, finalUrl: currentUrl };
+    return { html, finalUrl: currentUrl, source, contentType, htmlBytes: bytes };
   }
 
-  throw new ProductPreviewFetchError('リダイレクト回数が多すぎます', 400);
+  throw new ProductPreviewFetchError({
+    message: 'リダイレクト回数が多すぎます',
+    status: 400,
+    code: 'REDIRECT_ERROR',
+    category: 'redirect',
+    reason: '商品页重定向次数超过允许上限。',
+    diagnostics: { finalUrl: currentUrl, redirectCount: MAX_REDIRECTS + 1 },
+  });
 }
 
 async function fetchWithRetry(url: string, timeoutMs: number, maxAttempts: number): Promise<Response> {
@@ -207,8 +407,22 @@ async function fetchWithRetry(url: string, timeoutMs: number, maxAttempts: numbe
       return response;
     } catch (error) {
       lastError = error instanceof Error && error.name === 'AbortError'
-        ? new ProductPreviewFetchError('商品ページの取得がタイムアウトしました。しばらくしてから再試行してください。', 504)
-        : new ProductPreviewFetchError('商品ページの取得に失敗しました。しばらくしてから再試行してください。', 502);
+        ? new ProductPreviewFetchError({
+          message: '商品ページの取得がタイムアウトしました。しばらくしてから再試行してください。',
+          status: 504,
+          code: 'FETCH_TIMEOUT',
+          category: 'timeout',
+          reason: '商品页请求超过等待时间，可能是上游响应慢或连接被平台拖住。',
+          diagnostics: { finalUrl: url },
+        })
+        : new ProductPreviewFetchError({
+          message: '商品ページの取得に失敗しました。しばらくしてから再試行してください。',
+          status: 502,
+          code: 'NETWORK_ERROR',
+          category: 'network',
+          reason: '商品页请求发生网络错误，未能拿到上游 HTTP 响应。',
+          diagnostics: { finalUrl: url },
+        });
 
       if (attempt < maxAttempts) {
         await waitBeforeRetry(attempt);
@@ -219,7 +433,14 @@ async function fetchWithRetry(url: string, timeoutMs: number, maxAttempts: numbe
     }
   }
 
-  throw lastError ?? new ProductPreviewFetchError('商品ページの取得に失敗しました', 502);
+  throw lastError ?? new ProductPreviewFetchError({
+    message: '商品ページの取得に失敗しました',
+    status: 502,
+    code: 'NETWORK_ERROR',
+    category: 'network',
+    reason: '商品页请求失败，未能拿到上游 HTTP 响应。',
+    diagnostics: { finalUrl: url },
+  });
 }
 
 function isRedirect(status: number): boolean {
@@ -230,14 +451,19 @@ function waitBeforeRetry(attempt: number): Promise<void> {
   return new Promise(resolve => setTimeout(resolve, attempt * 300));
 }
 
-async function readLimitedText(response: Response, maxBytes: number, contentType: string): Promise<string> {
+async function readLimitedText(
+  response: Response,
+  maxBytes: number,
+  contentType: string,
+  diagnostics: ProductPreviewDiagnostics
+): Promise<{ html: string; bytes: number }> {
   const reader = response.body?.getReader();
   if (!reader) {
     const buffer = new Uint8Array(await response.arrayBuffer());
     if (buffer.byteLength > maxBytes) {
-      throw new ProductPreviewFetchError(`商品ページのHTMLが大きすぎます (${formatBytes(maxBytes)}超)`, 422);
+      throw htmlTooLargeError(maxBytes, { ...diagnostics, htmlBytes: buffer.byteLength });
     }
-    return decodeProductHtml(buffer, contentType);
+    return { html: decodeProductHtml(buffer, contentType), bytes: buffer.byteLength };
   }
 
   const chunks: Uint8Array[] = [];
@@ -248,16 +474,136 @@ async function readLimitedText(response: Response, maxBytes: number, contentType
     if (!value) continue;
     total += value.byteLength;
     if (total > maxBytes) {
-      throw new ProductPreviewFetchError(`商品ページのHTMLが大きすぎます (${formatBytes(maxBytes)}超)`, 422);
+      throw htmlTooLargeError(maxBytes, { ...diagnostics, htmlBytes: total });
     }
     chunks.push(value);
   }
 
-  return decodeProductHtml(Buffer.concat(chunks), contentType);
+  return { html: decodeProductHtml(Buffer.concat(chunks), contentType), bytes: total };
 }
 
 function formatBytes(bytes: number): string {
   if (bytes >= 1_000_000) return `${Math.floor(bytes / 1_000_000)}MB`;
   if (bytes >= 1_000) return `${Math.floor(bytes / 1_000)}KB`;
   return `${bytes}B`;
+}
+
+function htmlTooLargeError(maxBytes: number, diagnostics: ProductPreviewDiagnostics): ProductPreviewFetchError {
+  return new ProductPreviewFetchError({
+    message: `商品ページのHTMLが大きすぎます (${formatBytes(maxBytes)}超)`,
+    status: 422,
+    code: 'HTML_TOO_LARGE',
+    category: 'html_size',
+    reason: '上游 HTML 超过预览接口允许的最大读取量，已停止下载以避免记录或处理整页内容。',
+    diagnostics,
+  });
+}
+
+function classifyEmptyPreviewHtml(html: string): {
+  classification: EmptyPreviewClassification;
+  reason: string;
+  htmlTitle?: string;
+} {
+  const htmlTitle = extractHtmlTitleForDiagnostics(html);
+  const metaDescription = extractMetaDescriptionForDiagnostics(html);
+  const text = truncate(stripScriptsStyles(html).replace(/<[^>]+>/g, ' '), 20_000).toLowerCase();
+  const titleAndMeta = `${htmlTitle ?? ''} ${metaDescription ?? ''}`.toLowerCase();
+  const haystack = `${titleAndMeta} ${text}`;
+  const replacementCount = (html.match(/\uFFFD/g) ?? []).length;
+
+  if (
+    replacementCount >= 20
+    || haystack.includes('ã')
+    || haystack.includes('�')
+  ) {
+    return {
+      classification: 'decode_failure',
+      reason: '页面文本疑似解码失败或乱码，解析器无法可靠识别商品字段。',
+      htmlTitle,
+    };
+  }
+
+  if (matchesAny(haystack, [
+    'captcha',
+    'robot check',
+    'automated access',
+    'enter the characters',
+    '認証',
+    'アクセス制限',
+    'アクセスが集中',
+    'セキュリティ',
+    'bot',
+    'ロボット',
+    '申し訳ありません',
+  ])) {
+    return {
+      classification: 'anti_bot_or_captcha',
+      reason: '页面特征疑似反爬、验证码或访问限制，没有暴露可解析的商品字段。',
+      htmlTitle,
+    };
+  }
+
+  if (matchesAny(haystack, [
+    '404',
+    'page not found',
+    'ページが見つかりません',
+    '商品が見つかりません',
+    '商品は見つかりません',
+    '該当する商品はありません',
+    '現在ご利用いただけません',
+    'お探しの商品',
+    'not found',
+    'error',
+    'エラー',
+  ])) {
+    return {
+      classification: 'platform_error_or_missing_product',
+      reason: '页面特征疑似平台错误页、商品不存在或商品链接已失效。',
+      htmlTitle,
+    };
+  }
+
+  return {
+    classification: 'structure_changed_or_unmatched',
+    reason: '页面是 HTML，但现有选择器没有匹配到标题、价格、图片或描述，可能是页面结构变更。',
+    htmlTitle,
+  };
+}
+
+function extractHtmlTitleForDiagnostics(html: string): string | undefined {
+  const match = html.match(/<title[^>]*>([\s\S]*?)<\/title>/i);
+  return cleanDiagnosticText(match?.[1]);
+}
+
+function extractMetaDescriptionForDiagnostics(html: string): string | undefined {
+  const match = html.match(/<meta\b[^>]*(?:name|property)=["'](?:description|og:description)["'][^>]*>/i);
+  const content = match?.[0].match(/\bcontent\s*=\s*("([^"]*)"|'([^']*)'|([^\s"'=<>`]+))/i);
+  return cleanDiagnosticText(content?.[2] ?? content?.[3] ?? content?.[4]);
+}
+
+function cleanDiagnosticText(value: string | undefined): string | undefined {
+  if (!value) return undefined;
+  const cleaned = value
+    .replace(/&nbsp;/gi, ' ')
+    .replace(/&amp;/gi, '&')
+    .replace(/&quot;/gi, '"')
+    .replace(/&#39;|&apos;/gi, "'")
+    .replace(/&lt;/gi, '<')
+    .replace(/&gt;/gi, '>')
+    .replace(/<[^>]+>/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
+  return cleaned ? truncate(cleaned, 160) : undefined;
+}
+
+function stripScriptsStyles(html: string): string {
+  return html.replace(/<script[\s\S]*?<\/script>/gi, ' ').replace(/<style[\s\S]*?<\/style>/gi, ' ');
+}
+
+function matchesAny(value: string, needles: string[]): boolean {
+  return needles.some(needle => value.includes(needle.toLowerCase()));
+}
+
+function truncate(value: string, maxLength: number): string {
+  return value.length > maxLength ? `${value.slice(0, maxLength).trim()}...` : value;
 }

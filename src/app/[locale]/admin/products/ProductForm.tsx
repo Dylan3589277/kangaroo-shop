@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
+import { formatProductUrlPreviewError } from '@/lib/product-url-preview-error';
 
 type Product = {
   id?: string;
@@ -55,6 +56,10 @@ type ProductUrlPreviewResponse = {
   };
   imageDownloads?: Array<{ originalUrl: string; url: string; storage: string; reused: boolean }>;
   imageStorage?: { storage?: string; note?: string; error?: string };
+  code?: string;
+  category?: string;
+  reason?: string;
+  error?: string;
 };
 
 const CATEGORIES = ['brainrot', 'anime', 'baby', 'lifestyle'];
@@ -291,10 +296,10 @@ export default function ProductForm({ product, isNew, locale }: Props) {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ url: sourceUrl.trim(), localizeImages: true }),
       });
-      const data = await res.json().catch(() => ({})) as ProductUrlPreviewResponse & { error?: string };
+      const data = await res.json().catch(() => ({})) as ProductUrlPreviewResponse;
 
       if (!res.ok) {
-        throw new Error(typeof data.error === 'string' ? data.error : labels.autoFailed);
+        throw new Error(formatProductUrlPreviewError(data, labels.autoFailed));
       }
 
       setPendingPreview(data.preview ?? null);

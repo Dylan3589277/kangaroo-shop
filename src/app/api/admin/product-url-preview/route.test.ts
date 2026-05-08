@@ -140,6 +140,11 @@ describe('POST /api/admin/product-url-preview', () => {
     }));
 
     expect(response.status).toBe(400);
+    await expect(response.json()).resolves.toMatchObject({
+      code: 'UNSUPPORTED_URL',
+      category: 'unsupported_url',
+      reason: expect.any(String),
+    });
     expect(fetchMock).not.toHaveBeenCalled();
   });
 
@@ -154,9 +159,161 @@ describe('POST /api/admin/product-url-preview', () => {
 
     expect(response.status).toBe(422);
     expect(body.error).toContain('商品信息');
+    expect(body).toMatchObject({
+      code: 'PARSE_EMPTY',
+      category: 'parse_empty',
+      reason: expect.stringContaining('平台错误页'),
+      diagnostics: {
+        source: 'amazon',
+        finalUrl: 'https://www.amazon.co.jp/dp/B000000000',
+        contentType: 'text/html; charset=utf-8',
+        htmlBytes: expect.any(Number),
+        htmlTitle: 'ページが見つかりません',
+        classification: 'platform_error_or_missing_product',
+      },
+    });
     expect(fetchMock.mock.calls.map(call => call[0])).toEqual([
       'https://amzn.asia/d/example',
       'https://www.amazon.co.jp/dp/B000000000',
     ]);
+  });
+
+  it('classifies anti-bot empty previews and redacts final URL query params', async () => {
+    const fetchMock = vi.fn().mockResolvedValue(htmlResponse(`
+      <html>
+        <head><title>Robot Check</title></head>
+        <body>Enter the characters you see below to continue automated access check.</body>
+      </html>
+    `));
+    vi.stubGlobal('fetch', fetchMock);
+
+    const response = await POST(jsonRequest({ url: 'https://www.amazon.co.jp/dp/B000000000?tag=secret' }));
+    const body = await response.json();
+
+    expect(response.status).toBe(422);
+    expect(body).toMatchObject({
+      code: 'PARSE_EMPTY',
+      category: 'parse_empty',
+      diagnostics: {
+        finalUrl: 'https://www.amazon.co.jp/dp/B000000000',
+        htmlTitle: 'Robot Check',
+        classification: 'anti_bot_or_captcha',
+      },
+    });
+    expect(JSON.stringify(body)).not.toContain('tag=secret');
+  });
+
+  it('returns structured diagnostics for upstream HTTP failures', async () => {
+    const fetchMock = vi.fn().mockResolvedValue(new Response('blocked', { status: 503 }));
+    vi.stubGlobal('fetch', fetchMock);
+
+    const response = await POST(jsonRequest({ url: 'https://www.amazon.co.jp/dp/B000000000' }));
+    const body = await response.json();
+
+    expect(response.status).toBe(502);
+    expect(body).toMatchObject({
+      error: '商品ページを取得できませんでした (503)',
+      code: 'UPSTREAM_HTTP_ERROR',
+      category: 'upstream_http',
+      reason: expect.stringContaining('5xx'),
+      diagnostics: {
+        source: 'amazon',
+        finalUrl: 'https://www.amazon.co.jp/dp/B000000000',
+        status: 503,
+      },
+    });
+  });
+
+  it('returns structured diagnostics for network failures', async () => {
+    const fetchMock = vi.fn().mockRejectedValue(new TypeError('fetch failed with private details'));
+    vi.stubGlobal('fetch', fetchMock);
+
+    const response = await POST(jsonRequest({ url: 'https://www.amazon.co.jp/dp/B000000000?tag=secret' }));
+    const body = await response.json();
+
+    expect(response.status).toBe(502);
+    expect(body).toMatchObject({
+      code: 'NETWORK_ERROR',
+      category: 'network',
+      reason: expect.stringContaining('网络错误'),
+      diagnostics: {
+        finalUrl: 'https://www.amazon.co.jp/dp/B000000000',
+      },
+    });
+    expect(JSON.stringify(body)).not.toContain('private details');
+    expect(JSON.stringify(body)).not.toContain('tag=secret');
+  });
+
+  it('returns structured diagnostics for non-HTML responses', async () => {
+    const fetchMock = vi.fn().mockResolvedValue(new Response('{"ok":true}', {
+      status: 200,
+      headers: { 'content-type': 'application/json; charset=utf-8' },
+    }));
+    vi.stubGlobal('fetch', fetchMock);
+
+    const response = await POST(jsonRequest({ url: 'https://www.amazon.co.jp/dp/B000000000' }));
+    const body = await response.json();
+
+    expect(response.status).toBe(422);
+    expect(body).toMatchObject({
+      code: 'NON_HTML',
+      category: 'content_type',
+      diagnostics: {
+        contentType: 'application/json; charset=utf-8',
+      },
+    });
+  });
+
+  it('returns structured diagnostics for empty HTML responses', async () => {
+    const fetchMock = vi.fn().mockResolvedValue(htmlResponse('   '));
+    vi.stubGlobal('fetch', fetchMock);
+
+    const response = await POST(jsonRequest({ url: 'https://www.amazon.co.jp/dp/B000000000' }));
+    const body = await response.json();
+
+    expect(response.status).toBe(422);
+    expect(body).toMatchObject({
+      code: 'EMPTY_HTML',
+      category: 'empty_html',
+      diagnostics: {
+        htmlBytes: 3,
+      },
+    });
+  });
+
+  it('returns structured diagnostics for oversized HTML responses', async () => {
+    const fetchMock = vi.fn().mockResolvedValue(htmlResponse('x'.repeat(6_000_001)));
+    vi.stubGlobal('fetch', fetchMock);
+
+    const response = await POST(jsonRequest({ url: 'https://www.amazon.co.jp/dp/B000000000' }));
+    const body = await response.json();
+
+    expect(response.status).toBe(422);
+    expect(body).toMatchObject({
+      code: 'HTML_TOO_LARGE',
+      category: 'html_size',
+      diagnostics: {
+        htmlBytes: 6_000_001,
+      },
+    });
+  });
+
+  it('returns structured diagnostics for invalid redirects', async () => {
+    const fetchMock = vi.fn().mockResolvedValue(redirectResponse('https://example.com/not-allowed'));
+    vi.stubGlobal('fetch', fetchMock);
+
+    const response = await POST(jsonRequest({ url: 'https://amzn.asia/d/example' }));
+    const body = await response.json();
+
+    expect(response.status).toBe(400);
+    expect(body).toMatchObject({
+      code: 'REDIRECT_ERROR',
+      category: 'redirect',
+      diagnostics: {
+        source: 'amazon',
+        finalUrl: 'https://example.com/not-allowed',
+        status: 302,
+      },
+    });
   });
 });
