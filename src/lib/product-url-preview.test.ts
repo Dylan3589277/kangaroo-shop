@@ -102,10 +102,50 @@ describe('parseProductPreviewHtml', () => {
       description: 'JSON-LD description',
     });
     expect(preview.images).toEqual([
+      'https://m.media-amazon.com/images/I/hires.jpg',
       'https://m.media-amazon.com/images/I/abc.jpg',
       'https://m.media-amazon.com/images/I/json.jpg',
-      'https://m.media-amazon.com/images/I/hires.jpg',
     ]);
+  });
+
+  it('prefers Amazon product description, cleaned store brand and high-resolution product images', () => {
+    const html = `
+      <html>
+        <head>
+          <meta property="og:title" content="Amazon Priority Test">
+          <meta name="description" content="SEO keyword text that should not win">
+          <meta property="og:image" content="https://m.media-amazon.com/images/I/og-low._AC_SL300_.jpg">
+        </head>
+        <body>
+          <a id="bylineInfo">LIV HEARTのストアを表示</a>
+          <div id="productDescription"><p>商品そのものの説明です。</p></div>
+          <div id="feature-bullets"><ul><li>箇条書き説明</li></ul></div>
+          <img id="landingImage"
+            data-old-hires="https://m.media-amazon.com/images/I/old-hires._AC_SL1500_.jpg"
+            data-a-dynamic-image="{&quot;https://m.media-amazon.com/images/I/dynamic-hires._AC_SL1500_.jpg&quot;:[1500,1500]}">
+          <script>
+            window.ImageBlockATF = {
+              colorImages: {
+                initial: [
+                  { hiRes: "https://m.media-amazon.com/images/I/color-hires._AC_SL1500_.jpg", large: "https://m.media-amazon.com/images/I/color-low._AC_SL500_.jpg" }
+                ]
+              }
+            };
+            window.ads = ["https://m.media-amazon.com/images/I/page-scan-low._AC_SL160_.jpg"];
+          </script>
+        </body>
+      </html>
+    `;
+
+    const preview = parseProductPreviewHtml(html, 'https://www.amazon.co.jp/dp/B000000000');
+    expect(preview.brand).toBe('LIV HEART');
+    expect(preview.description).toBe('商品そのものの説明です。');
+    expect(preview.images.slice(0, 3)).toEqual([
+      'https://m.media-amazon.com/images/I/color-hires.jpg',
+      'https://m.media-amazon.com/images/I/old-hires.jpg',
+      'https://m.media-amazon.com/images/I/dynamic-hires.jpg',
+    ]);
+    expect(preview.images.indexOf('https://m.media-amazon.com/images/I/page-scan-low.jpg')).toBeGreaterThan(2);
   });
 
   it('filters non-image Amazon URLs captured from image-like page data', () => {
@@ -163,6 +203,41 @@ describe('parseProductPreviewHtml', () => {
       'https://image.rakuten.co.jp/shop/cabinet/item.jpg',
       'https://thumbnail.image.rakuten.co.jp/@0_mall/shop/cabinet/thumb.jpg',
     ]);
+  });
+
+  it('extracts Rakuten price from itemprop or ratPrice and keeps product images ahead of shop decoration', () => {
+    const html = `
+      <html>
+        <head>
+          <meta property="og:title" content="楽天価格画像テスト">
+          <meta property="og:image" content="https://shop.r10s.jp/shop/cabinet/product-main.jpg">
+          <meta itemprop="price" content="2180">
+          <meta itemprop="image" content="https://tshop.r10s.jp/shop/cabinet/product-sub.jpg">
+        </head>
+        <body>
+          <script>var ratPrice=2180;</script>
+          <style>
+            .banner { background-image: url(https://image.rakuten.co.jp/shop/campaign/banner.jpg); }
+            .kanban { background-image: url(https://image.rakuten.co.jp/shop/kanban/header.jpg); }
+          </style>
+          <img src="https://image.rakuten.co.jp/shop/cabinet/detail.jpg);">
+        </body>
+      </html>
+    `;
+
+    const preview = parseProductPreviewHtml(html, 'https://item.rakuten.co.jp/shop/item/');
+    expect(preview.price).toBe(2180);
+    expect(preview.images).toEqual([
+      'https://shop.r10s.jp/shop/cabinet/product-main.jpg',
+      'https://tshop.r10s.jp/shop/cabinet/product-sub.jpg',
+      'https://image.rakuten.co.jp/shop/cabinet/detail.jpg',
+    ]);
+
+    const ratPriceOnly = parseProductPreviewHtml(
+      '<html><head><meta property="og:title" content="ratPrice only"></head><body><script>ratPrice="2180";</script></body></html>',
+      'https://item.rakuten.co.jp/shop/item/'
+    );
+    expect(ratPriceOnly.price).toBe(2180);
   });
 
   it('treats marketplace error pages with only an error title as unusable preview', () => {

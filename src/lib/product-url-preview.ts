@@ -96,16 +96,29 @@ export function parseProductPreviewHtml(html: string, rawUrl: string): ProductUr
     || cleanBrand(extractById(html, 'bylineInfo'))
     || cleanBrand(extractByClass(html, 'brand'));
 
-  const description =
-    cleanDescription(jsonLdDescription)
-    || cleanDescription(meta['og:description'])
-    || cleanDescription(meta.description)
-    || cleanDescription(extractById(html, 'productDescription'))
-    || cleanDescription(extractFeatureBullets(html));
+  const productDescription = cleanDescription(extractById(html, 'productDescription'));
+  const featureBullets = cleanDescription(extractFeatureBullets(html));
+  const description = source === 'amazon'
+    ? (
+      cleanDescription(jsonLdDescription)
+      || productDescription
+      || featureBullets
+      || cleanDescription(meta['og:description'])
+      || cleanDescription(meta.description)
+    )
+    : (
+      cleanDescription(jsonLdDescription)
+      || cleanDescription(meta['og:description'])
+      || cleanDescription(meta.description)
+      || productDescription
+      || featureBullets
+    );
 
   const price =
     jsonLdPrice
     ?? parseYenPrice(meta['product:price:amount'])
+    ?? parseYenPrice(meta.price)
+    ?? parseYenPrice(extractRatPrice(html))
     ?? parseYenPrice(extractById(html, 'priceblock_ourprice'))
     ?? parseYenPrice(extractById(html, 'priceblock_dealprice'))
     ?? parseYenPrice(extractByClass(html, 'a-price-whole'))
@@ -117,11 +130,16 @@ export function parseProductPreviewHtml(html: string, rawUrl: string): ProductUr
     ?? parseYenPrice(extractByClass(html, 'priceBlockStrikePriceString'))
     ?? parseYenPrice(extractByClass(html, 'a-text-price'));
 
-  const images = uniqueUrls([
+  const images = uniqueUrls(source === 'amazon' ? [
+    ...extractAmazonImageUrls(html),
+    ...jsonLdImages,
     meta['og:image'],
     meta['twitter:image'],
+  ] : [
+    meta['og:image'],
+    meta.image,
+    meta['twitter:image'],
     ...jsonLdImages,
-    ...extractAmazonImageUrls(html),
     ...extractRakutenImageUrls(html),
   ]);
 
@@ -267,20 +285,46 @@ function extractFeatureBullets(html: string): string | undefined {
   return bullets.slice(0, 6).join('\n');
 }
 
+function extractRatPrice(html: string): string | undefined {
+  const match = html.match(/\bratPrice\s*=\s*["']?([0-9０-９,，.]+)["']?/i);
+  return match?.[1];
+}
+
 function extractAmazonImageUrls(html: string): string[] {
   const urls: string[] = [];
-  for (const match of Array.from(html.matchAll(/["'](https:\/\/m\.media-amazon\.com\/images\/I\/[^"']+)["']/g))) {
-    urls.push(normalizeAmazonImageUrl(decodeEscapedUrl(match[1])));
+
+  for (const match of Array.from(html.matchAll(/(?:["']hiRes["']|\bhiRes)\s*:\s*["']([^"']+)["']/g))) {
+    urls.push(decodeEscapedUrl(match[1]));
   }
 
   for (const match of Array.from(html.matchAll(/data-old-hires=["']([^"']+)["']/gi))) {
     urls.push(decodeEscapedUrl(match[1]));
+  }
+
+  for (const match of Array.from(html.matchAll(/data-a-dynamic-image=["']([^"']+)["']/gi))) {
+    urls.push(...extractAmazonDynamicImageUrls(match[1]));
+  }
+
+  for (const match of Array.from(html.matchAll(/["'](https:\/\/m\.media-amazon\.com\/images\/I\/[^"']+)["']/g))) {
+    urls.push(normalizeAmazonImageUrl(decodeEscapedUrl(match[1])));
+  }
+  return urls;
+}
+
+function extractAmazonDynamicImageUrls(value: string): string[] {
+  const decoded = decodeHtmlEntities(decodeEscapedUrl(value));
+  const urls: string[] = [];
+  for (const match of Array.from(decoded.matchAll(/"(https:\/\/m\.media-amazon\.com\/images\/I\/[^"]+)"/g))) {
+    urls.push(match[1]);
   }
   return urls;
 }
 
 function extractRakutenImageUrls(html: string): string[] {
   const urls: string[] = [];
+  for (const match of Array.from(html.matchAll(/https?:\\?\/\\?\/(?:shop|tshop)\.r10s\.jp\\?\/[^"'<>\s]+/gi))) {
+    urls.push(decodeEscapedUrl(match[0]));
+  }
   for (const match of Array.from(html.matchAll(/https?:\\?\/\\?\/image\.rakuten\.co\.jp\\?\/[^"'<>\s]+/gi))) {
     urls.push(decodeEscapedUrl(match[0]));
   }
@@ -321,7 +365,7 @@ function uniqueUrls(values: Array<string | undefined>): string[] {
 
 function cleanUrl(value: string | undefined): string | undefined {
   if (!value) return undefined;
-  const decoded = decodeEscapedUrl(decodeHtmlEntities(value.trim()));
+  const decoded = trimUrlJunk(decodeEscapedUrl(decodeHtmlEntities(value.trim())));
   try {
     const url = new URL(decoded);
     if (!['http:', 'https:'].includes(url.protocol)) return undefined;
@@ -334,11 +378,22 @@ function cleanUrl(value: string | undefined): string | undefined {
   }
 }
 
+function trimUrlJunk(value: string): string {
+  return value.replace(/[),;]+$/g, '');
+}
+
 function isLikelyProductImageUrl(value: string): boolean {
   try {
     const url = new URL(value);
     const hostname = url.hostname.toLowerCase();
     const pathname = url.pathname.toLowerCase();
+
+    if (
+      (hostname === 'image.rakuten.co.jp' || hostname.endsWith('.r10s.jp'))
+      && /\/(?:kanban|campaign|banner|bnr|event|sale)\//.test(pathname)
+    ) {
+      return false;
+    }
 
     if (/\.(?:avif|gif|jpe?g|png|webp)$/.test(pathname)) return true;
     if (/\.(?:css|js|json|map|mjs|svg|html?)$/.test(pathname)) return false;
@@ -347,6 +402,8 @@ function isLikelyProductImageUrl(value: string): boolean {
       hostname === 'm.media-amazon.com' && pathname.includes('/images/')
       || hostname === 'image.rakuten.co.jp'
       || hostname === 'thumbnail.image.rakuten.co.jp'
+      || hostname === 'shop.r10s.jp'
+      || hostname === 'tshop.r10s.jp'
     );
   } catch {
     return false;
@@ -403,6 +460,7 @@ function cleanBrand(value: string | undefined): string | undefined {
     .replace(/^Brand\s*[:：]\s*/i, '')
     .replace(/^ブランド\s*[:：]\s*/i, '')
     .replace(/^Visit the\s+(.+?)\s+Store$/i, '$1')
+    .replace(/^(.+?)のストアを表示$/, '$1')
     .replace(/^(.+?)のストア$/, '$1')
     .trim() || undefined;
 }
