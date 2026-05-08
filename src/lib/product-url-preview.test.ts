@@ -269,6 +269,43 @@ describe('parseProductPreviewHtml', () => {
     expect(ratPriceOnly.price).toBe(2180);
   });
 
+  it('decodes EUC-JP Rakuten HTML and extracts common product fields', () => {
+    const titleBytes = Buffer.from('b3dac5b7bea6c9ca', 'hex');
+    const htmlBytes = Buffer.concat([
+      Buffer.from(`
+        <html>
+          <head>
+            <meta property="og:title" content="`, 'ascii'),
+      titleBytes,
+      Buffer.from(`">
+            <meta property="og:image" content="https://shop.r10s.jp/shop/cabinet/product-main.jpg">
+          </head>
+          <body>
+            <script>var ratPrice = "12,800";</script>
+            <img src="https://tshop.r10s.jp/shop/cabinet/product-sub.jpg">
+            <img src="https://image.rakuten.co.jp/shop/cabinet/detail.jpg">
+          </body>
+        </html>
+      `, 'ascii'),
+    ]);
+    const html = decodeProductHtml(htmlBytes, 'text/html; charset=EUC-JP');
+
+    const preview = parseProductPreviewHtml(html, 'https://item.rakuten.co.jp/shop/item/');
+
+    expect(preview).toMatchObject({
+      source: 'rakuten',
+      sourceUrl: 'https://item.rakuten.co.jp/shop/item/',
+      title: '楽天商品',
+      titleJa: '楽天商品',
+      price: 12800,
+    });
+    expect(preview.images).toEqual([
+      'https://shop.r10s.jp/shop/cabinet/product-main.jpg',
+      'https://tshop.r10s.jp/shop/cabinet/product-sub.jpg',
+      'https://image.rakuten.co.jp/shop/cabinet/detail.jpg',
+    ]);
+  });
+
   it('treats marketplace error pages with only an error title as unusable preview', () => {
     const preview = parseProductPreviewHtml(
       '<html><head><title>ページが見つかりません</title></head><body>not found</body></html>',

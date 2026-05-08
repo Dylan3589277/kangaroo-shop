@@ -8,8 +8,16 @@ describe('formatProductUrlPreviewError', () => {
       code: 'PARSE_EMPTY',
       category: 'parse_empty',
       reason: '页面特征疑似反爬、验证码或访问限制。',
+      diagnostics: {
+        source: 'amazon',
+        finalUrl: 'https://www.amazon.co.jp/dp/B000000000',
+        htmlTitle: 'Robot Check',
+        classification: 'anti_bot_or_captcha',
+        attemptCount: 3,
+        upstreamStatuses: [503, 503, 200],
+      },
     }, '商品信息读取失败')).toBe(
-      '未能从该页面读取到商品信息 [PARSE_EMPTY / parse_empty / 页面特征疑似反爬、验证码或访问限制。]'
+      '未能从该页面读取到商品信息 [PARSE_EMPTY / parse_empty / 页面特征疑似反爬、验证码或访问限制。 / diagnostics: source=amazon, finalUrl=https://www.amazon.co.jp/dp/B000000000, htmlTitle=Robot Check, classification=anti_bot_or_captcha, attemptCount=3, upstreamStatuses=503,503,200]'
     );
   });
 

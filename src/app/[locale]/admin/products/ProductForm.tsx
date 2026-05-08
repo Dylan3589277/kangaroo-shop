@@ -59,6 +59,18 @@ type ProductUrlPreviewResponse = {
   code?: string;
   category?: string;
   reason?: string;
+  diagnostics?: {
+    source?: string;
+    finalUrl?: string;
+    status?: number;
+    contentType?: string;
+    htmlBytes?: number;
+    htmlTitle?: string;
+    classification?: string;
+    redirectCount?: number;
+    attemptCount?: number;
+    upstreamStatuses?: number[];
+  };
   error?: string;
 };
 

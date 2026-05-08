@@ -21,7 +21,7 @@ export const runtime = 'nodejs';
 const MAX_HTML_BYTES = 6_000_000;
 const DEFAULT_FETCH_TIMEOUT_MS = 15_000;
 const RAKUTEN_FETCH_TIMEOUT_MS = 20_000;
-const DEFAULT_FETCH_ATTEMPTS = 1;
+const DEFAULT_FETCH_ATTEMPTS = 3;
 const RAKUTEN_FETCH_ATTEMPTS = 2;
 const MAX_REDIRECTS = 3;
 
@@ -64,6 +64,8 @@ type ProductPreviewDiagnostics = {
   htmlTitle?: string;
   classification?: EmptyPreviewClassification;
   redirectCount?: number;
+  attemptCount?: number;
+  upstreamStatuses?: number[];
 };
 
 type ProductPreviewErrorBody = {
@@ -229,6 +231,8 @@ function sanitizeDiagnostics(diagnostics: ProductPreviewDiagnostics | undefined)
     ...(diagnostics.htmlTitle ? { htmlTitle: truncate(diagnostics.htmlTitle, 160) } : {}),
     ...(diagnostics.classification ? { classification: diagnostics.classification } : {}),
     ...(typeof diagnostics.redirectCount === 'number' ? { redirectCount: diagnostics.redirectCount } : {}),
+    ...(typeof diagnostics.attemptCount === 'number' ? { attemptCount: diagnostics.attemptCount } : {}),
+    ...(diagnostics.upstreamStatuses?.length ? { upstreamStatuses: diagnostics.upstreamStatuses.slice(0, 5) } : {}),
   };
 }
 
@@ -281,7 +285,8 @@ async function fetchAllowedHtml(initialUrl: string): Promise<{
     const timeoutMs = source === 'rakuten' ? RAKUTEN_FETCH_TIMEOUT_MS : DEFAULT_FETCH_TIMEOUT_MS;
     const maxAttempts = source === 'rakuten' ? RAKUTEN_FETCH_ATTEMPTS : DEFAULT_FETCH_ATTEMPTS;
 
-    const response = await fetchWithRetry(currentUrl, timeoutMs, maxAttempts);
+    const response = await fetchWithRetry(currentUrl, source, timeoutMs, maxAttempts);
+    const attempts = readFetchAttempts(response);
 
     if (isRedirect(response.status)) {
       const location = response.headers.get('location');
@@ -292,7 +297,7 @@ async function fetchAllowedHtml(initialUrl: string): Promise<{
           code: 'REDIRECT_ERROR',
           category: 'redirect',
           reason: '上游返回重定向状态，但没有提供 Location 头。',
-          diagnostics: { source, finalUrl: currentUrl, status: response.status, redirectCount },
+          diagnostics: { source, finalUrl: currentUrl, status: response.status, redirectCount, ...attempts },
         });
       }
 
@@ -305,7 +310,7 @@ async function fetchAllowedHtml(initialUrl: string): Promise<{
           code: 'REDIRECT_ERROR',
           category: 'redirect',
           reason: '上游返回的重定向地址不是有效 URL。',
-          diagnostics: { source, finalUrl: currentUrl, status: response.status, redirectCount },
+          diagnostics: { source, finalUrl: currentUrl, status: response.status, redirectCount, ...attempts },
         });
       }
       try {
@@ -317,22 +322,25 @@ async function fetchAllowedHtml(initialUrl: string): Promise<{
           code: 'REDIRECT_ERROR',
           category: 'redirect',
           reason: '商品页重定向到了非允许域名，已阻止继续访问。',
-          diagnostics: { source, finalUrl: currentUrl, status: response.status, redirectCount },
+          diagnostics: { source, finalUrl: currentUrl, status: response.status, redirectCount, ...attempts },
         });
       }
       continue;
     }
 
     if (!response.ok) {
+      const isUpstream5xx = response.status >= 500;
       throw new ProductPreviewFetchError({
-        message: `商品ページを取得できませんでした (${response.status})`,
+        message: isUpstream5xx
+          ? `商品ページを取得できませんでした (${response.status}, upstream 5xx)`
+          : `商品ページを取得できませんでした (${response.status})`,
         status: response.status >= 400 && response.status < 500 ? 422 : 502,
         code: 'UPSTREAM_HTTP_ERROR',
         category: 'upstream_http',
         reason: response.status >= 400 && response.status < 500
           ? '上游商品页返回 4xx，可能是商品不存在、链接失效或访问被拒绝。'
-          : '上游商品页返回 5xx，平台服务暂时不可用或拒绝代理访问。',
-        diagnostics: { source, finalUrl: currentUrl, status: response.status, redirectCount },
+          : '上游商品页连续返回 5xx；接口已按临时异常重试，仍无法恢复，可能是平台服务暂时不可用或拒绝代理访问。',
+        diagnostics: { source, finalUrl: currentUrl, status: response.status, redirectCount, ...attempts },
       });
     }
 
@@ -344,7 +352,7 @@ async function fetchAllowedHtml(initialUrl: string): Promise<{
         code: 'NON_HTML',
         category: 'content_type',
         reason: '上游返回内容不是 HTML，无法按商品页面解析。',
-        diagnostics: { source, finalUrl: currentUrl, status: response.status, contentType, redirectCount },
+        diagnostics: { source, finalUrl: currentUrl, status: response.status, contentType, redirectCount, ...attempts },
       });
     }
 
@@ -354,6 +362,7 @@ async function fetchAllowedHtml(initialUrl: string): Promise<{
       status: response.status,
       contentType,
       redirectCount,
+      ...attempts,
     });
     if (!html.trim()) {
       throw new ProductPreviewFetchError({
@@ -362,7 +371,7 @@ async function fetchAllowedHtml(initialUrl: string): Promise<{
         code: 'EMPTY_HTML',
         category: 'empty_html',
         reason: '上游返回了空 HTML，无法解析商品信息。',
-        diagnostics: { source, finalUrl: currentUrl, status: response.status, contentType, htmlBytes: bytes, redirectCount },
+        diagnostics: { source, finalUrl: currentUrl, status: response.status, contentType, htmlBytes: bytes, redirectCount, ...attempts },
       });
     }
     return { html, finalUrl: currentUrl, source, contentType, htmlBytes: bytes };
@@ -378,8 +387,14 @@ async function fetchAllowedHtml(initialUrl: string): Promise<{
   });
 }
 
-async function fetchWithRetry(url: string, timeoutMs: number, maxAttempts: number): Promise<Response> {
+async function fetchWithRetry(
+  url: string,
+  source: string,
+  timeoutMs: number,
+  maxAttempts: number
+): Promise<Response> {
   let lastError: ProductPreviewFetchError | undefined;
+  const upstreamStatuses: number[] = [];
 
   for (let attempt = 1; attempt <= maxAttempts; attempt += 1) {
     const controller = new AbortController();
@@ -390,15 +405,12 @@ async function fetchWithRetry(url: string, timeoutMs: number, maxAttempts: numbe
         cache: 'no-store',
         redirect: 'manual',
         signal: controller.signal,
-        headers: {
-          accept: 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
-          'accept-language': 'ja-JP,ja;q=0.9,en;q=0.6',
-          'user-agent':
-            'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0 Safari/537.36',
-        },
+        headers: productPageFetchHeaders(source, attempt),
       });
+      upstreamStatuses.push(response.status);
+      attachFetchAttempts(response, attempt, upstreamStatuses);
 
-      if (attempt < maxAttempts && response.status >= 500) {
+      if (attempt < maxAttempts && isRetryableUpstreamStatus(response.status)) {
         await response.body?.cancel();
         await waitBeforeRetry(attempt);
         continue;
@@ -413,7 +425,7 @@ async function fetchWithRetry(url: string, timeoutMs: number, maxAttempts: numbe
           code: 'FETCH_TIMEOUT',
           category: 'timeout',
           reason: '商品页请求超过等待时间，可能是上游响应慢或连接被平台拖住。',
-          diagnostics: { finalUrl: url },
+          diagnostics: { source, finalUrl: url, attemptCount: attempt, upstreamStatuses },
         })
         : new ProductPreviewFetchError({
           message: '商品ページの取得に失敗しました。しばらくしてから再試行してください。',
@@ -421,7 +433,7 @@ async function fetchWithRetry(url: string, timeoutMs: number, maxAttempts: numbe
           code: 'NETWORK_ERROR',
           category: 'network',
           reason: '商品页请求发生网络错误，未能拿到上游 HTTP 响应。',
-          diagnostics: { finalUrl: url },
+          diagnostics: { source, finalUrl: url, attemptCount: attempt, upstreamStatuses },
         });
 
       if (attempt < maxAttempts) {
@@ -439,8 +451,49 @@ async function fetchWithRetry(url: string, timeoutMs: number, maxAttempts: numbe
     code: 'NETWORK_ERROR',
     category: 'network',
     reason: '商品页请求失败，未能拿到上游 HTTP 响应。',
-    diagnostics: { finalUrl: url },
+    diagnostics: { source, finalUrl: url, attemptCount: maxAttempts, upstreamStatuses },
   });
+}
+
+function isRetryableUpstreamStatus(status: number): boolean {
+  return status === 408 || status === 429 || status >= 500;
+}
+
+function productPageFetchHeaders(source: string, attempt: number): HeadersInit {
+  const desktopHeaders = {
+    accept: 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8',
+    'accept-language': 'ja-JP,ja;q=0.9,en-US;q=0.7,en;q=0.6',
+    'cache-control': 'no-cache',
+    pragma: 'no-cache',
+    'sec-fetch-dest': 'document',
+    'sec-fetch-mode': 'navigate',
+    'sec-fetch-site': 'none',
+    'sec-fetch-user': '?1',
+    'upgrade-insecure-requests': '1',
+    'user-agent':
+      'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0 Safari/537.36',
+  };
+
+  if (source === 'amazon' && attempt > 1) {
+    return {
+      ...desktopHeaders,
+      'user-agent':
+        'Mozilla/5.0 (iPhone; CPU iPhone OS 17_4 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.4 Mobile/15E148 Safari/604.1',
+      'sec-fetch-site': 'same-origin',
+    };
+  }
+
+  return desktopHeaders;
+}
+
+const fetchAttemptMeta = new WeakMap<Response, Pick<ProductPreviewDiagnostics, 'attemptCount' | 'upstreamStatuses'>>();
+
+function attachFetchAttempts(response: Response, attemptCount: number, upstreamStatuses: number[]): void {
+  fetchAttemptMeta.set(response, { attemptCount, upstreamStatuses: [...upstreamStatuses] });
+}
+
+function readFetchAttempts(response: Response): Pick<ProductPreviewDiagnostics, 'attemptCount' | 'upstreamStatuses'> {
+  return fetchAttemptMeta.get(response) ?? {};
 }
 
 function isRedirect(status: number): boolean {

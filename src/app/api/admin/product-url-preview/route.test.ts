@@ -204,7 +204,10 @@ describe('POST /api/admin/product-url-preview', () => {
   });
 
   it('returns structured diagnostics for upstream HTTP failures', async () => {
-    const fetchMock = vi.fn().mockResolvedValue(new Response('blocked', { status: 503 }));
+    const fetchMock = vi.fn()
+      .mockResolvedValueOnce(new Response('blocked', { status: 503 }))
+      .mockResolvedValueOnce(new Response('blocked', { status: 502 }))
+      .mockResolvedValueOnce(new Response('blocked', { status: 503 }));
     vi.stubGlobal('fetch', fetchMock);
 
     const response = await POST(jsonRequest({ url: 'https://www.amazon.co.jp/dp/B000000000' }));
@@ -212,15 +215,44 @@ describe('POST /api/admin/product-url-preview', () => {
 
     expect(response.status).toBe(502);
     expect(body).toMatchObject({
-      error: '商品ページを取得できませんでした (503)',
+      error: '商品ページを取得できませんでした (503, upstream 5xx)',
       code: 'UPSTREAM_HTTP_ERROR',
       category: 'upstream_http',
-      reason: expect.stringContaining('5xx'),
+      reason: expect.stringContaining('连续返回 5xx'),
       diagnostics: {
         source: 'amazon',
         finalUrl: 'https://www.amazon.co.jp/dp/B000000000',
         status: 503,
+        attemptCount: 3,
+        upstreamStatuses: [503, 502, 503],
       },
+    });
+    expect(fetchMock).toHaveBeenCalledTimes(3);
+  });
+
+  it('recovers Amazon preview fetches when an upstream 5xx succeeds on retry', async () => {
+    const amazonHtml = `
+      <html>
+        <head>
+          <meta property="og:title" content="Amazon retry success">
+          <meta property="og:image" content="https://m.media-amazon.com/images/I/retry._AC_SL1500_.jpg">
+        </head>
+      </html>
+    `;
+    const fetchMock = vi.fn()
+      .mockResolvedValueOnce(new Response('temporarily unavailable', { status: 503 }))
+      .mockResolvedValueOnce(htmlResponse(amazonHtml));
+    vi.stubGlobal('fetch', fetchMock);
+
+    const response = await POST(jsonRequest({ url: 'https://www.amazon.co.jp/dp/B000000000' }));
+    const body = await response.json();
+
+    expect(response.status).toBe(200);
+    expect(body.preview.title).toBe('Amazon retry success');
+    expect(body.preview.images).toEqual(['https://m.media-amazon.com/images/I/retry.jpg']);
+    expect(fetchMock).toHaveBeenCalledTimes(2);
+    expect(fetchMock.mock.calls[1][1]?.headers).toMatchObject({
+      'sec-fetch-site': 'same-origin',
     });
   });
 
@@ -237,7 +269,9 @@ describe('POST /api/admin/product-url-preview', () => {
       category: 'network',
       reason: expect.stringContaining('网络错误'),
       diagnostics: {
+        source: 'amazon',
         finalUrl: 'https://www.amazon.co.jp/dp/B000000000',
+        attemptCount: 3,
       },
     });
     expect(JSON.stringify(body)).not.toContain('private details');
