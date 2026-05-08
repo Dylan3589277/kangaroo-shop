@@ -1,7 +1,9 @@
 import { describe, expect, it } from 'vitest';
 import {
   assertAllowedProductUrl,
+  decodeProductHtml,
   detectProductUrlSource,
+  htmlEncodingFromContentType,
   parseProductPreviewHtml,
   parseYenPrice,
 } from './product-url-preview';
@@ -75,6 +77,32 @@ describe('parseProductPreviewHtml', () => {
     ]);
   });
 
+  it('filters non-image Amazon URLs captured from image-like page data', () => {
+    const html = `
+      <html>
+        <head>
+          <meta property="og:title" content="Amazon Image Filter Test">
+          <meta property="og:image" content="https://m.media-amazon.com/images/I/main._AC_SL1500_.jpg">
+        </head>
+        <body>
+          <script>
+            window.assets = [
+              "https://m.media-amazon.com/images/I/not-image.css",
+              "https://m.media-amazon.com/images/I/not-image.js",
+              "https://m.media-amazon.com/images/I/valid._AC_SL1000_.webp"
+            ];
+          </script>
+        </body>
+      </html>
+    `;
+
+    const preview = parseProductPreviewHtml(html, 'https://www.amazon.co.jp/dp/B000000000');
+    expect(preview.images).toEqual([
+      'https://m.media-amazon.com/images/I/main.jpg',
+      'https://m.media-amazon.com/images/I/valid.webp',
+    ]);
+  });
+
   it('extracts Rakuten product data from meta tags and price classes', () => {
     const html = `
       <html>
@@ -104,5 +132,18 @@ describe('parseProductPreviewHtml', () => {
       'https://image.rakuten.co.jp/shop/cabinet/item.jpg',
       'https://thumbnail.image.rakuten.co.jp/@0_mall/shop/cabinet/thumb.jpg',
     ]);
+  });
+});
+
+describe('decodeProductHtml', () => {
+  it('detects Japanese HTML charsets from content type headers', () => {
+    expect(htmlEncodingFromContentType('text/html;charset=EUC-JP')).toBe('euc-jp');
+    expect(htmlEncodingFromContentType('text/html; charset=Shift_JIS')).toBe('shift_jis');
+    expect(htmlEncodingFromContentType('text/html; charset=UTF-8')).toBe('utf-8');
+  });
+
+  it('decodes EUC-JP and Shift_JIS bytes when the response declares those charsets', () => {
+    expect(decodeProductHtml(Buffer.from('b3dac5b7bea6c9ca', 'hex'), 'text/html;charset=EUC-JP')).toBe('楽天商品');
+    expect(decodeProductHtml(Buffer.from('8a7993568fa49569', 'hex'), 'text/html;charset=Shift_JIS')).toBe('楽天商品');
   });
 });

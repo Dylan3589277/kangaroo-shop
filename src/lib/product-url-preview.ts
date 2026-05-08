@@ -279,7 +279,7 @@ function uniqueUrls(values: Array<string | undefined>): string[] {
   const urls: string[] = [];
   for (const value of values) {
     const cleaned = cleanUrl(value);
-    if (!cleaned || seen.has(cleaned)) continue;
+    if (!cleaned || !isLikelyProductImageUrl(cleaned) || seen.has(cleaned)) continue;
     seen.add(cleaned);
     urls.push(cleaned);
   }
@@ -298,6 +298,59 @@ function cleanUrl(value: string | undefined): string | undefined {
       : normalized;
   } catch {
     return undefined;
+  }
+}
+
+function isLikelyProductImageUrl(value: string): boolean {
+  try {
+    const url = new URL(value);
+    const hostname = url.hostname.toLowerCase();
+    const pathname = url.pathname.toLowerCase();
+
+    if (/\.(?:avif|gif|jpe?g|png|webp)$/.test(pathname)) return true;
+    if (/\.(?:css|js|json|map|mjs|svg|html?)$/.test(pathname)) return false;
+
+    return (
+      hostname === 'm.media-amazon.com' && pathname.includes('/images/')
+      || hostname === 'image.rakuten.co.jp'
+      || hostname === 'thumbnail.image.rakuten.co.jp'
+    );
+  } catch {
+    return false;
+  }
+}
+
+export function decodeProductHtml(bytes: Uint8Array, contentType: string): string {
+  const encoding = htmlEncodingFromContentType(contentType);
+
+  try {
+    return new TextDecoder(encoding).decode(bytes);
+  } catch {
+    return new TextDecoder('utf-8').decode(bytes);
+  }
+}
+
+export function htmlEncodingFromContentType(contentType: string): string {
+  const match = contentType.match(/charset\s*=\s*"?([^";\s]+)"?/i);
+  const charset = match?.[1]?.trim().toLowerCase().replace(/_/g, '-');
+
+  switch (charset) {
+    case 'euc-jp':
+    case 'eucjp':
+    case 'x-euc-jp':
+      return 'euc-jp';
+    case 'shift-jis':
+    case 'shift_jis':
+    case 'shiftjis':
+    case 'sjis':
+    case 'windows-31j':
+    case 'ms932':
+    case 'x-sjis':
+      return 'shift_jis';
+    case 'utf8':
+    case 'utf-8':
+    default:
+      return 'utf-8';
   }
 }
 
