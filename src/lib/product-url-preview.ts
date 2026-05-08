@@ -20,7 +20,8 @@ type JsonValue =
   | JsonValue[]
   | { [key: string]: JsonValue };
 
-const AMAZON_HOSTS = new Set(['amazon.co.jp', 'www.amazon.co.jp']);
+const AMAZON_HOSTS = new Set(['amazon.co.jp', 'www.amazon.co.jp', 'amzn.asia']);
+const RAKUTEN_SHORT_HOSTS = new Set(['a.r10.to']);
 
 export function detectProductUrlSource(rawUrl: string): ProductUrlSource | null {
   let parsed: URL;
@@ -34,7 +35,13 @@ export function detectProductUrlSource(rawUrl: string): ProductUrlSource | null 
 
   const hostname = parsed.hostname.toLowerCase();
   if (AMAZON_HOSTS.has(hostname)) return 'amazon';
-  if (hostname === 'rakuten.co.jp' || hostname.endsWith('.rakuten.co.jp')) return 'rakuten';
+  if (
+    hostname === 'rakuten.co.jp' ||
+    hostname.endsWith('.rakuten.co.jp') ||
+    RAKUTEN_SHORT_HOSTS.has(hostname)
+  ) {
+    return 'rakuten';
+  }
   return null;
 }
 

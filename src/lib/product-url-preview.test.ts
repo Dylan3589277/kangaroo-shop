@@ -17,6 +17,19 @@ describe('product-url-preview domain whitelist', () => {
     expect(detectProductUrlSource('https://rakuten.co.jp/')).toBe('rakuten');
   });
 
+  it('allows common Japanese marketplace short links so redirects can be resolved safely', () => {
+    expect(detectProductUrlSource('https://amzn.asia/d/example')).toBe('amazon');
+    expect(detectProductUrlSource('https://a.r10.to/hExample')).toBe('rakuten');
+    expect(assertAllowedProductUrl('https://amzn.asia/d/example#ref')).toEqual({
+      source: 'amazon',
+      normalizedUrl: 'https://amzn.asia/d/example',
+    });
+    expect(assertAllowedProductUrl('https://a.r10.to/hExample?pc=https%3A%2F%2Fitem.rakuten.co.jp%2Fshop%2Fitem%2F')).toEqual({
+      source: 'rakuten',
+      normalizedUrl: 'https://a.r10.to/hExample?pc=https%3A%2F%2Fitem.rakuten.co.jp%2Fshop%2Fitem%2F',
+    });
+  });
+
   it('rejects unsupported domains and non-http protocols', () => {
     expect(detectProductUrlSource('https://amazon.com/dp/B000000000')).toBeNull();
     expect(detectProductUrlSource('https://www.rakuten.com/')).toBeNull();
