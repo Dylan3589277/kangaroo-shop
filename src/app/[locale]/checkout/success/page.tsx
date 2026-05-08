@@ -53,7 +53,7 @@ function SuccessContent({ locale }: { locale: string }) {
       shippingNote: '通常3〜7営業日以内に発送いたします。',
       continueShopping: '買い物を続ける', support: 'お問い合わせ',
       businessDays: '営業日', loading: '読み込み中...',
-      notFound: '注文情報は正常に 받지ました。',
+      notFound: '注文情報が見つかりません。',
     },
     zh: {
       title: '感谢您的订购！',
@@ -119,8 +119,8 @@ function SuccessContent({ locale }: { locale: string }) {
               <div style={{ color: 'var(--color-text-muted)', fontSize: 'var(--text-sm)', marginBottom: 'var(--space-2)' }}>
                 {locale === 'ja' ? '商品' : locale === 'zh' ? '商品' : 'Items'}
               </div>
-              {order.items.map(item => (
-                <div key={item.productId} style={{ display: 'flex', justifyContent: 'space-between', padding: 'var(--space-1) 0' }}>
+              {order.items.map((item, index) => (
+                <div key={item.id ?? item.productId ?? index} style={{ display: 'flex', justifyContent: 'space-between', padding: 'var(--space-1) 0' }}>
                   <span style={{ color: 'var(--color-text-secondary)' }}>{item.productTitle} × {item.quantity}</span>
                   <span>{formatPrice(item.price * item.quantity)}</span>
                 </div>

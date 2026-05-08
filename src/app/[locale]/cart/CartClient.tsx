@@ -454,7 +454,7 @@ export default function CartClient({
                   value={discountCode}
                   onChange={e => setDiscountCode(e.target.value)}
                   onKeyDown={e => e.key === 'Enter' && handleApplyDiscount()}
-                  placeholder={locale === 'ja' ? '折扣碼' : locale === 'zh' ? '折扣码' : 'Coupon code'}
+                  placeholder={locale === 'ja' ? 'クーポンコード' : locale === 'zh' ? '折扣码' : 'Coupon code'}
                   style={{
                     flex: 1, padding: '6px 10px', borderRadius: 'var(--radius-sm)',
                     border: '1px solid var(--color-border)', fontSize: 'var(--text-sm)',

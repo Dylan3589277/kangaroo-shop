@@ -4,7 +4,7 @@ import { useState, useEffect, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import Image from 'next/image';
-import { formatPrice } from '@/lib/products';
+import { formatPrice, PRODUCT_IMAGE_PLACEHOLDER } from '@/lib/products';
 
 // Prisma Order 类型（与 Prisma schema 对齐）
 interface Order {
@@ -178,10 +178,10 @@ function ConfirmContent({ locale }: { locale: string }) {
           <h2 style={{ fontSize: 'var(--text-lg)', marginBottom: 'var(--space-3)', paddingBottom: 'var(--space-2)', borderBottom: '1px solid var(--color-border)' }}>
             {t.items}
           </h2>
-          {order.items.map(item => (
-            <div key={item.productId} style={{ display: 'flex', gap: 'var(--space-4)', padding: 'var(--space-3) 0', borderBottom: '1px solid var(--color-border)' }}>
+          {order.items.map((item, index) => (
+            <div key={item.id ?? item.productId ?? index} style={{ display: 'flex', gap: 'var(--space-4)', padding: 'var(--space-3) 0', borderBottom: '1px solid var(--color-border)' }}>
               <Image
-                src={item.productImage ?? '/placeholder.png'}
+                src={item.productImage ?? PRODUCT_IMAGE_PLACEHOLDER}
                 alt={item.productTitle}
                 width={64}
                 height={64}

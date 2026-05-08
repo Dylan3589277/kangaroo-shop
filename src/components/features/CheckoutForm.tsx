@@ -9,9 +9,8 @@ import {
 } from '@stripe/react-stripe-js';
 import { loadStripe } from '@stripe/stripe-js';
 
-const stripePromise = loadStripe(
-  process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY || 'pk_test_placeholder'
-);
+const stripePublishableKey = process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY;
+const stripePromise = stripePublishableKey ? loadStripe(stripePublishableKey) : null;
 
 interface CheckoutFormProps {
   amount: number;
@@ -91,12 +90,25 @@ function PaymentForm({
 }
 
 export function CheckoutForm({ amount, locale, orderId, onSuccess, onError }: CheckoutFormProps) {
+  const stripeConfigErrorLabels = {
+    ja: 'Stripeの公開キーが設定されていません',
+    zh: 'Stripe 公开密钥未配置',
+    en: 'Stripe publishable key is not configured',
+  };
+  const stripeConfigError =
+    stripeConfigErrorLabels[locale as keyof typeof stripeConfigErrorLabels] || stripeConfigErrorLabels.en;
   const [clientSecret, setClientSecret] = useState<string | null>(null);
-  const [fetchError, setFetchError] = useState<string | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
+  const [fetchError, setFetchError] = useState<string | null>(stripePromise ? null : stripeConfigError);
+  const [isLoading, setIsLoading] = useState(Boolean(stripePromise));
 
   // 进入 Stripe 步骤时，立即从后端拿 clientSecret（金额由后端按 orderId 查询订单 total）
   useEffect(() => {
+    if (!stripePromise) {
+      setFetchError(stripeConfigError);
+      onError?.(stripeConfigError);
+      return;
+    }
+
     fetch('/api/create-payment-intent', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
