@@ -12,56 +12,66 @@ export function BrandLogo({ className = '', compact = false }: BrandLogoProps) {
         role="img"
         aria-label="classe"
       >
-        <rect x="4" y="6" width="40" height="34" rx="10" fill="var(--brand-sky)" />
+        <rect x="5" y="6" width="38" height="36" rx="11" fill="var(--brand-sky)" />
         <path
-          d="M17 16c3.8-5.2 10.7-4.7 13.9-.5 2.5 3.3 2.4 8.2.2 11.4l5.1 4.2-3.3 3.7-5.1-4.1c-2.7 1.7-6.1 2.1-9.1.8-5.1-2.1-7.1-8.5-3.9-13.4"
+          d="M35 17.6c-2.4-4.2-7.2-6.6-12.2-5.7-6.2 1.1-10.5 6.8-9.8 13.1.7 6.5 6.7 11.2 13.2 10.2 3.8-.6 6.8-2.8 8.6-5.8"
+          fill="none"
+          stroke="var(--brand-white)"
+          strokeWidth="5.2"
+          strokeLinecap="round"
+        />
+        <path
+          d="M34.6 17.8c-2.2-3.5-6.5-5.5-10.9-4.7-5.5 1-9.3 6-8.6 11.6.7 5.8 6 9.9 11.7 9 3.2-.5 5.9-2.4 7.6-4.9"
+          fill="none"
+          stroke="var(--brand-primary)"
+          strokeWidth="2.3"
+          strokeLinecap="round"
+        />
+        <rect
+          x="21.2"
+          y="18.9"
+          width="9.8"
+          height="9.8"
+          rx="2.4"
           fill="var(--brand-white)"
         />
         <path
-          d="M25.7 21.9c2.5-.2 5.1 1.5 5.8 4.2.7 2.8-.8 5.6-3.5 6.7-2.5 1-5.9.5-8.5-1.2 2.4-.6 3.9-2 4.6-4.3.5-1.8.4-3.5 1.6-5.4Z"
-          fill="var(--brand-sky)"
-        />
-        <path
-          d="M15.7 15.7c-.9-3.1-2.3-5.5-4.4-7.1 3.2-.4 6.5 1.2 8.4 4.2"
-          fill="none"
-          stroke="var(--brand-white)"
-          strokeWidth="3.2"
-          strokeLinecap="round"
-        />
-        <path
-          d="M29 15.2c1.4-2.6 3.8-4.3 6.8-4.8-1 2.5-1.7 5-1.8 7.5"
-          fill="none"
-          stroke="var(--brand-white)"
-          strokeWidth="3.2"
-          strokeLinecap="round"
-        />
-        <path
-          d="M18.4 20.7c2.6-2.6 6.9-2.6 9.5 0"
+          d="M21.7 22.2h8.8M26.1 19.2v9.1"
           fill="none"
           stroke="var(--brand-primary)"
-          strokeWidth="1.9"
+          strokeWidth="1.2"
           strokeLinecap="round"
         />
         <path
-          d="M34.4 25.8c1-1.1 2.8-1.1 3.6.2.8-1.3 2.6-1.3 3.6-.2 1.2 1.4.2 3.7-3.6 5.8-3.8-2.1-4.8-4.4-3.6-5.8Z"
-          fill="var(--brand-heart)"
-        />
-        <path
-          d="M12 37c7.4 2.8 17.6 2.8 25.8 0"
+          d="M13.2 31.6c6.5-1.2 13.7-4.4 19.9-9.9"
           fill="none"
           stroke="var(--brand-sunline)"
-          strokeWidth="2.4"
+          strokeWidth="2.2"
           strokeLinecap="round"
         />
         <path
-          d="M8.8 33.8c2.6-1 4.6-2.7 5.9-5.2"
+          d="M31.2 20.1l3.8-.3-.3 3.8"
+          fill="none"
+          stroke="var(--brand-sunline)"
+          strokeWidth="2.2"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+        />
+        <path
+          d="M17.3 17.2c4.8-1.9 10.1-1.9 14.6.1M16 30.2c4.1 1.8 9.5 1.8 14.3.1"
+          fill="none"
+          stroke="var(--brand-white)"
+          strokeWidth="1.25"
+          strokeLinecap="round"
+          opacity="0.72"
+        />
+        <path
+          d="M37.4 27.6c.8 2.1.4 4.7-1.1 6.6"
           fill="none"
           stroke="var(--brand-leaf)"
-          strokeWidth="1.8"
+          strokeWidth="2"
           strokeLinecap="round"
         />
-        <circle cx="10.2" cy="31.7" r="1.9" fill="var(--brand-leaf)" />
-        <circle cx="13.1" cy="29.3" r="1.5" fill="var(--brand-leaf)" />
       </svg>
       {!compact && (
         <span className="brand-logo-text">
