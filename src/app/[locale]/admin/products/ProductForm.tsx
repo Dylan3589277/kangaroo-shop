@@ -31,6 +31,32 @@ type Props = {
   locale: string;
 };
 
+type ProductUrlPreview = {
+  source?: string;
+  sourceUrl?: string;
+  title?: string;
+  titleEn?: string;
+  titleJa?: string;
+  brand?: string;
+  price?: number;
+  originalPrice?: number;
+  images?: string[];
+  description?: string;
+};
+
+type ProductUrlPreviewResponse = {
+  preview?: ProductUrlPreview;
+  ai?: {
+    status?: 'generated' | 'skipped' | 'failed';
+    titleEn?: string;
+    title?: string;
+    description?: string;
+    message?: string;
+  };
+  imageDownloads?: Array<{ originalUrl: string; url: string; storage: string; reused: boolean }>;
+  imageStorage?: { storage?: string; note?: string; error?: string };
+};
+
 const CATEGORIES = ['brainrot', 'anime', 'baby', 'lifestyle'];
 const SOURCES = ['own', 'rakuten', 'zozotown', 'amazon', 'mercari'];
 
@@ -57,6 +83,11 @@ export default function ProductForm({ product, isNew, locale }: Props) {
   const [isActive, setIsActive] = useState(product?.isActive ?? true);
 
   const [loading, setLoading] = useState(false);
+  const [previewLoading, setPreviewLoading] = useState(false);
+  const [aiLoading, setAiLoading] = useState(false);
+  const [previewMessage, setPreviewMessage] = useState('');
+  const [pendingPreview, setPendingPreview] = useState<ProductUrlPreview | null>(null);
+  const [previewMeta, setPreviewMeta] = useState<ProductUrlPreviewResponse | null>(null);
   const [error, setError] = useState('');
 
   const t = {
@@ -82,6 +113,20 @@ export default function ProductForm({ product, isNew, locale }: Props) {
       success: '保存しました',
       error: '保存に失敗しました',
       required: '必須',
+      autoRead: '自動取得',
+      autoReading: '取得中...',
+      autoSuccess: '取得結果を確認してください',
+      autoMissingUrl: 'ソースURLを入力してください',
+      autoFailed: '商品情報の取得に失敗しました',
+      previewTitle: '取得結果プレビュー',
+      confirmFill: '確認して回填',
+      confirmOverwrite: '上書き回填',
+      clearPreview: 'プレビューをクリア',
+      generateAi: 'AI文案生成',
+      aiGenerating: 'AI生成中...',
+      noValue: '未取得',
+      aiSkipped: 'AI生成はスキップされました',
+      localImageNote: '画像はローカル保存候補として取得しました',
     },
     zh: {
       title: '商品名称',
@@ -105,6 +150,20 @@ export default function ProductForm({ product, isNew, locale }: Props) {
       success: '已保存',
       error: '保存失败',
       required: '必填',
+      autoRead: '自动读取',
+      autoReading: '读取中...',
+      autoSuccess: '请确认读取结果',
+      autoMissingUrl: '请先输入来源URL',
+      autoFailed: '商品信息读取失败',
+      previewTitle: '读取结果预览',
+      confirmFill: '确认回填',
+      confirmOverwrite: '覆盖回填',
+      clearPreview: '清除预览',
+      generateAi: 'AI 生成文案',
+      aiGenerating: 'AI 生成中...',
+      noValue: '未读取到',
+      aiSkipped: 'AI 生成已跳过',
+      localImageNote: '图片已作为本地保存候选读取',
     },
     en: {
       title: 'Title',
@@ -128,6 +187,20 @@ export default function ProductForm({ product, isNew, locale }: Props) {
       success: 'Saved',
       error: 'Save failed',
       required: 'Required',
+      autoRead: 'Auto read',
+      autoReading: 'Reading...',
+      autoSuccess: 'Review the preview before filling',
+      autoMissingUrl: 'Enter a source URL first',
+      autoFailed: 'Failed to read product details',
+      previewTitle: 'Read Preview',
+      confirmFill: 'Confirm fill',
+      confirmOverwrite: 'Overwrite fill',
+      clearPreview: 'Clear preview',
+      generateAi: 'Generate AI copy',
+      aiGenerating: 'Generating...',
+      noValue: 'Not found',
+      aiSkipped: 'AI generation skipped',
+      localImageNote: 'Images were prepared as local-save candidates',
     },
   };
 
@@ -197,6 +270,98 @@ export default function ProductForm({ product, isNew, locale }: Props) {
     } finally {
       setLoading(false);
     }
+  }
+
+  async function handleAutoRead() {
+    setError('');
+    setPreviewMessage('');
+    setPendingPreview(null);
+    setPreviewMeta(null);
+
+    if (!sourceUrl.trim()) {
+      setError(labels.autoMissingUrl);
+      return;
+    }
+
+    setPreviewLoading(true);
+
+    try {
+      const res = await fetch('/api/admin/product-url-preview', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ url: sourceUrl.trim(), localizeImages: true }),
+      });
+      const data = await res.json().catch(() => ({})) as ProductUrlPreviewResponse & { error?: string };
+
+      if (!res.ok) {
+        throw new Error(typeof data.error === 'string' ? data.error : labels.autoFailed);
+      }
+
+      setPendingPreview(data.preview ?? null);
+      setPreviewMeta(data);
+      setPreviewMessage(labels.autoSuccess);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : labels.autoFailed);
+    } finally {
+      setPreviewLoading(false);
+    }
+  }
+
+  async function handleGenerateAiCopy() {
+    if (!pendingPreview) return;
+
+    setError('');
+    setAiLoading(true);
+
+    try {
+      const res = await fetch('/api/admin/product-ai-copy', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ preview: pendingPreview }),
+      });
+      const data = await res.json().catch(() => ({})) as Pick<ProductUrlPreviewResponse, 'ai'> & { error?: string };
+
+      if (res.status === 503 && data.ai?.status === 'skipped') {
+        setPreviewMeta(previous => ({ ...(previous ?? {}), ai: data.ai }));
+        return;
+      }
+
+      if (!res.ok) {
+        throw new Error(typeof data.error === 'string' ? data.error : labels.autoFailed);
+      }
+
+      setPendingPreview(mergeAiPreview(pendingPreview, data.ai));
+      setPreviewMeta(previous => ({ ...(previous ?? {}), ai: data.ai }));
+    } catch (err) {
+      setError(err instanceof Error ? err.message : labels.autoFailed);
+    } finally {
+      setAiLoading(false);
+    }
+  }
+
+  function applyPreview(preview: ProductUrlPreview | undefined, overwrite = false) {
+    if (!preview) return;
+
+    if ((overwrite || !title) && preview.title) setTitle(preview.title);
+    if ((overwrite || !titleEn) && preview.titleEn) setTitleEn(preview.titleEn);
+    if ((overwrite || !titleJa) && preview.titleJa) setTitleJa(preview.titleJa);
+    if ((overwrite || !brand) && preview.brand) setBrand(preview.brand);
+    if ((overwrite || !price) && preview.price) setPrice(String(preview.price));
+    if ((overwrite || !originalPrice) && preview.originalPrice) setOriginalPrice(String(preview.originalPrice));
+    if ((overwrite || !description) && preview.description) setDescription(preview.description);
+    if ((overwrite || source === 'own') && preview.source && SOURCES.includes(preview.source)) setSource(preview.source);
+    if (preview.sourceUrl) setSourceUrl(preview.sourceUrl);
+
+    if (preview.images?.length) {
+      setImages(overwrite
+        ? preview.images.join('\n')
+        : uniqueLines([...images.split('\n'), ...preview.images]).join('\n')
+      );
+    }
+
+    setPendingPreview(null);
+    setPreviewMeta(null);
+    setPreviewMessage('');
   }
 
   return (
@@ -291,14 +456,122 @@ export default function ProductForm({ product, isNew, locale }: Props) {
 
       {/* Source URL */}
       <FormField label={labels.sourceUrl}>
-        <input
-          type="url"
-          value={sourceUrl}
-          onChange={e => setSourceUrl(e.target.value)}
-          style={inputStyle}
-          placeholder="https://..."
-        />
+        <div style={{ display: 'flex', gap: 'var(--space-2)' }}>
+          <input
+            type="url"
+            value={sourceUrl}
+            onChange={e => setSourceUrl(e.target.value)}
+            style={inputStyle}
+            placeholder="https://..."
+          />
+          <button
+            type="button"
+            onClick={handleAutoRead}
+            disabled={previewLoading || loading}
+            style={{
+              flex: '0 0 auto',
+              padding: 'var(--space-2) var(--space-4)',
+              background: 'var(--color-surface)',
+              color: 'var(--color-text)',
+              border: '1px solid var(--color-border)',
+              borderRadius: 'var(--radius-md)',
+              fontSize: 'var(--text-sm)',
+              fontWeight: 600,
+              cursor: previewLoading || loading ? 'not-allowed' : 'pointer',
+              opacity: previewLoading || loading ? 0.6 : 1,
+              whiteSpace: 'nowrap',
+            }}
+          >
+            {previewLoading ? labels.autoReading : labels.autoRead}
+          </button>
+        </div>
       </FormField>
+
+      {pendingPreview && (
+        <div style={previewBoxStyle}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', gap: 'var(--space-3)', alignItems: 'center' }}>
+            <h3 style={{ margin: 0, fontSize: 'var(--text-base)', fontWeight: 700 }}>{labels.previewTitle}</h3>
+            <button
+              type="button"
+              onClick={() => {
+                setPendingPreview(null);
+                setPreviewMeta(null);
+                setPreviewMessage('');
+              }}
+              style={secondaryButtonStyle}
+            >
+              {labels.clearPreview}
+            </button>
+          </div>
+
+          <div style={previewGridStyle}>
+            <PreviewField label={labels.title} value={pendingPreview.title} emptyLabel={labels.noValue} />
+            <PreviewField label={labels.titleEn} value={pendingPreview.titleEn} emptyLabel={labels.noValue} />
+            <PreviewField label={locale === 'zh' ? '日文名' : locale === 'en' ? 'Japanese Title' : '日本語名'} value={pendingPreview.titleJa} emptyLabel={labels.noValue} />
+            <PreviewField label={locale === 'zh' ? '品牌' : locale === 'en' ? 'Brand' : 'ブランド'} value={pendingPreview.brand} emptyLabel={labels.noValue} />
+            <PreviewField label={labels.price} value={pendingPreview.price ? `${pendingPreview.price}` : undefined} emptyLabel={labels.noValue} />
+            <PreviewField label={labels.originalPrice} value={pendingPreview.originalPrice ? `${pendingPreview.originalPrice}` : undefined} emptyLabel={labels.noValue} />
+            <PreviewField label={labels.description} value={pendingPreview.description} emptyLabel={labels.noValue} wide />
+          </div>
+
+          {pendingPreview.images?.length ? (
+            <div>
+              <div style={{ fontSize: 'var(--text-xs)', fontWeight: 700, marginBottom: 'var(--space-2)' }}>
+                {labels.images}
+              </div>
+              <div style={imagePreviewGridStyle}>
+                {pendingPreview.images.slice(0, 8).map(image => (
+                  <div key={image} style={imagePreviewItemStyle}>
+                    <div
+                      aria-hidden="true"
+                      style={{
+                        width: '100%',
+                        height: '96px',
+                        borderRadius: 'var(--radius-sm)',
+                        backgroundImage: `url("${cssUrlEscape(image)}")`,
+                        backgroundSize: 'cover',
+                        backgroundPosition: 'center',
+                        backgroundColor: '#f8fafc',
+                      }}
+                    />
+                    <div style={imageUrlStyle}>{image}</div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          ) : null}
+
+          {previewMeta?.ai?.status && previewMeta.ai.status !== 'generated' ? (
+            <div style={previewNoticeStyle}>
+              {labels.aiSkipped}{previewMeta.ai.message ? `: ${previewMeta.ai.message}` : ''}
+            </div>
+          ) : null}
+
+          {previewMeta?.imageStorage ? (
+            <div style={previewNoticeStyle}>
+              {labels.localImageNote} ({previewMeta.imageStorage.storage || 'local-public-dev'})
+              {previewMeta.imageStorage.error ? `: ${previewMeta.imageStorage.error}` : ''}
+            </div>
+          ) : null}
+
+          <div style={{ display: 'flex', gap: 'var(--space-2)', flexWrap: 'wrap' }}>
+            <button
+              type="button"
+              onClick={handleGenerateAiCopy}
+              disabled={aiLoading}
+              style={{ ...secondaryButtonStyle, cursor: aiLoading ? 'not-allowed' : 'pointer', opacity: aiLoading ? 0.6 : 1 }}
+            >
+              {aiLoading ? labels.aiGenerating : labels.generateAi}
+            </button>
+            <button type="button" onClick={() => applyPreview(pendingPreview)} style={primarySmallButtonStyle}>
+              {labels.confirmFill}
+            </button>
+            <button type="button" onClick={() => applyPreview(pendingPreview, true)} style={secondaryButtonStyle}>
+              {labels.confirmOverwrite}
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* Images */}
       <FormField label={labels.images}>
@@ -380,6 +653,12 @@ export default function ProductForm({ product, isNew, locale }: Props) {
         </div>
       )}
 
+      {previewMessage && (
+        <div style={{ padding: 'var(--space-3)', borderRadius: 'var(--radius-md)', background: '#ecfdf5', color: '#047857', fontSize: 'var(--text-sm)' }}>
+          {previewMessage}
+        </div>
+      )}
+
       <div style={{ display: 'flex', gap: 'var(--space-3)', paddingTop: 'var(--space-4)', borderTop: '1px solid var(--color-border)' }}>
         <button
           type="submit"
@@ -418,6 +697,58 @@ export default function ProductForm({ product, isNew, locale }: Props) {
   );
 }
 
+function uniqueLines(values: string[]): string[] {
+  const seen = new Set<string>();
+  const lines: string[] = [];
+  values.map(value => value.trim()).filter(Boolean).forEach(value => {
+    if (seen.has(value)) return;
+    seen.add(value);
+    lines.push(value);
+  });
+  return lines;
+}
+
+function mergeAiPreview(
+  preview: ProductUrlPreview | undefined,
+  ai: ProductUrlPreviewResponse['ai'] | undefined
+): ProductUrlPreview | null {
+  if (!preview) return null;
+  if (!ai || ai.status !== 'generated') return preview;
+  return {
+    ...preview,
+    ...(ai.title ? { title: ai.title } : {}),
+    ...(ai.titleEn ? { titleEn: ai.titleEn } : {}),
+    ...(ai.description ? { description: ai.description } : {}),
+  };
+}
+
+function cssUrlEscape(value: string): string {
+  return value.replace(/["\\\n\r]/g, '');
+}
+
+function PreviewField({
+  label,
+  value,
+  emptyLabel,
+  wide = false,
+}: {
+  label: string;
+  value?: string;
+  emptyLabel: string;
+  wide?: boolean;
+}) {
+  return (
+    <div style={{ gridColumn: wide ? '1 / -1' : undefined }}>
+      <div style={{ fontSize: 'var(--text-xs)', fontWeight: 700, marginBottom: '4px', color: 'var(--color-text-muted)' }}>
+        {label}
+      </div>
+      <div style={{ fontSize: 'var(--text-sm)', whiteSpace: 'pre-wrap', overflowWrap: 'anywhere' }}>
+        {value || <span style={{ color: 'var(--color-text-muted)' }}>{emptyLabel}</span>}
+      </div>
+    </div>
+  );
+}
+
 function FormField({ label, hint, children }: { label: string; hint?: string; children: React.ReactNode }) {
   return (
     <div>
@@ -438,4 +769,70 @@ const inputStyle: React.CSSProperties = {
   fontSize: 'var(--text-sm)',
   background: 'var(--color-surface)',
   color: 'var(--color-text)',
+};
+
+const previewBoxStyle: React.CSSProperties = {
+  display: 'flex',
+  flexDirection: 'column',
+  gap: 'var(--space-4)',
+  padding: 'var(--space-4)',
+  border: '1px solid var(--color-border)',
+  borderRadius: 'var(--radius-md)',
+  background: 'var(--color-surface)',
+};
+
+const previewGridStyle: React.CSSProperties = {
+  display: 'grid',
+  gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))',
+  gap: 'var(--space-3)',
+};
+
+const imagePreviewGridStyle: React.CSSProperties = {
+  display: 'grid',
+  gridTemplateColumns: 'repeat(auto-fill, minmax(128px, 1fr))',
+  gap: 'var(--space-3)',
+};
+
+const imagePreviewItemStyle: React.CSSProperties = {
+  minWidth: 0,
+  padding: 'var(--space-2)',
+  border: '1px solid var(--color-border)',
+  borderRadius: 'var(--radius-sm)',
+};
+
+const imageUrlStyle: React.CSSProperties = {
+  marginTop: 'var(--space-2)',
+  fontSize: '11px',
+  color: 'var(--color-text-muted)',
+  overflowWrap: 'anywhere',
+};
+
+const previewNoticeStyle: React.CSSProperties = {
+  padding: 'var(--space-2) var(--space-3)',
+  borderRadius: 'var(--radius-sm)',
+  background: '#f8fafc',
+  color: 'var(--color-text-muted)',
+  fontSize: 'var(--text-xs)',
+};
+
+const primarySmallButtonStyle: React.CSSProperties = {
+  padding: 'var(--space-2) var(--space-4)',
+  background: 'var(--color-primary)',
+  color: '#fff',
+  border: 'none',
+  borderRadius: 'var(--radius-md)',
+  fontSize: 'var(--text-sm)',
+  fontWeight: 600,
+  cursor: 'pointer',
+};
+
+const secondaryButtonStyle: React.CSSProperties = {
+  padding: 'var(--space-2) var(--space-3)',
+  background: 'var(--color-surface)',
+  color: 'var(--color-text)',
+  border: '1px solid var(--color-border)',
+  borderRadius: 'var(--radius-md)',
+  fontSize: 'var(--text-sm)',
+  fontWeight: 600,
+  cursor: 'pointer',
 };
