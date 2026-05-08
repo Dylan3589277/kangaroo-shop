@@ -43,6 +43,31 @@ describe('product-url-preview domain whitelist', () => {
     );
   });
 
+  it('normalizes Amazon product pages with search tracking paths to canonical dp URLs', () => {
+    expect(assertAllowedProductUrl(
+      'https://www.amazon.co.jp/Pocket-%E7%B2%BE%E5%AF%86%E3%83%95%E3%82%A3%E3%83%83%E3%83%88/dp/B0GZJF3NF2/ref=sr_1_7?keywords=DJI&qid=1778239986&sr=8-7#customerReviews'
+    )).toEqual({
+      source: 'amazon',
+      normalizedUrl: 'https://www.amazon.co.jp/dp/B0GZJF3NF2',
+    });
+    expect(assertAllowedProductUrl('https://amazon.co.jp/gp/product/b0gzjf3nf2?psc=1&tag=tracking')).toEqual({
+      source: 'amazon',
+      normalizedUrl: 'https://www.amazon.co.jp/dp/B0GZJF3NF2',
+    });
+  });
+
+  it('normalizes Rakuten item pages with tracking query params to canonical product URLs', () => {
+    expect(assertAllowedProductUrl(
+      'https://item.rakuten.co.jp/classe17/socks003/?s-id=top_normal_browsehist&xuseflg_ichiba01=10000037&scid=af_pc_etc'
+    )).toEqual({
+      source: 'rakuten',
+      normalizedUrl: 'https://item.rakuten.co.jp/classe17/socks003/',
+    });
+    expect(resolveKnownProductUrlTarget(
+      'https://item.rakuten.co.jp/classe17/socks003?s-id=top_normal_browsehist&xuseflg_ichiba01=10000037'
+    )).toBe('https://item.rakuten.co.jp/classe17/socks003/');
+  });
+
   it('rejects unsafe Rakuten short-link pc targets', () => {
     expect(() => resolveKnownProductUrlTarget('https://a.r10.to/hExample?pc=https%3A%2F%2F127.0.0.1%2Fadmin')).toThrow();
     expect(() => resolveKnownProductUrlTarget('https://a.r10.to/hExample?pc=https%3A%2F%2Fevil.test%2Fitem')).toThrow();
@@ -94,7 +119,7 @@ describe('parseProductPreviewHtml', () => {
     const preview = parseProductPreviewHtml(html, 'https://www.amazon.co.jp/dp/B000000000?tag=test#hash');
     expect(preview).toMatchObject({
       source: 'amazon',
-      sourceUrl: 'https://www.amazon.co.jp/dp/B000000000?tag=test',
+      sourceUrl: 'https://www.amazon.co.jp/dp/B000000000',
       title: 'テスト商品',
       titleJa: 'テスト商品',
       brand: 'テストブランド',
@@ -190,9 +215,13 @@ describe('parseProductPreviewHtml', () => {
       </html>
     `;
 
-    const preview = parseProductPreviewHtml(html, 'https://item.rakuten.co.jp/shop/item/');
+    const preview = parseProductPreviewHtml(
+      html,
+      'https://item.rakuten.co.jp/shop/item/?s-id=top_normal_browsehist&xuseflg_ichiba01=10000037'
+    );
     expect(preview).toMatchObject({
       source: 'rakuten',
+      sourceUrl: 'https://item.rakuten.co.jp/shop/item/',
       title: '楽天テスト商品',
       titleJa: '楽天テスト商品',
       brand: '楽天ブランド',

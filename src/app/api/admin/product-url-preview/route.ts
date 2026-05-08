@@ -52,6 +52,10 @@ export async function POST(req: NextRequest) {
     const preview = parseProductPreviewHtml(html, finalUrl);
 
     if (!hasUsefulProductPreview(preview)) {
+      console.warn('product-url-preview unusable preview', {
+        finalUrl: safeLogProductUrl(finalUrl),
+        previewSummary: summarizePreviewKeys(preview),
+      });
       return NextResponse.json(
         { error: '未能从该页面读取到商品信息。页面可能开启了反爬或不是商品详情页。' },
         { status: 422 }
@@ -101,6 +105,32 @@ class ProductPreviewFetchError extends Error {
   }
 }
 
+function safeLogProductUrl(rawUrl: string): string {
+  try {
+    const parsed = new URL(rawUrl);
+    parsed.username = '';
+    parsed.password = '';
+    parsed.search = '';
+    parsed.hash = '';
+    return parsed.toString();
+  } catch {
+    return 'invalid-url';
+  }
+}
+
+function summarizePreviewKeys(preview: ReturnType<typeof parseProductPreviewHtml>) {
+  return {
+    source: preview.source,
+    hasTitle: Boolean(preview.title),
+    hasTitleJa: Boolean(preview.titleJa),
+    hasBrand: Boolean(preview.brand),
+    hasPrice: typeof preview.price === 'number',
+    hasOriginalPrice: typeof preview.originalPrice === 'number',
+    imageCount: preview.images.length,
+    hasDescription: Boolean(preview.description),
+  };
+}
+
 async function fetchAllowedHtml(initialUrl: string): Promise<{ html: string; finalUrl: string }> {
   let currentUrl = initialUrl;
 
@@ -119,7 +149,7 @@ async function fetchAllowedHtml(initialUrl: string): Promise<{ html: string; fin
 
       currentUrl = new URL(location, currentUrl).toString();
       try {
-        assertAllowedProductUrl(currentUrl);
+        currentUrl = resolveKnownProductUrlTarget(assertAllowedProductUrl(currentUrl).normalizedUrl);
       } catch {
         throw new ProductPreviewFetchError('許可されていないドメインへのリダイレクトをブロックしました', 400);
       }

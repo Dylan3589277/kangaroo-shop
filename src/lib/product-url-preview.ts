@@ -53,6 +53,8 @@ export function assertAllowedProductUrl(rawUrl: string): { source: ProductUrlSou
 
   const parsed = new URL(rawUrl);
   parsed.hash = '';
+  normalizeAmazonProductUrl(parsed, source);
+  normalizeRakutenItemUrl(parsed, source);
   return { source, normalizedUrl: parsed.toString() };
 }
 
@@ -69,6 +71,27 @@ export function resolveKnownProductUrlTarget(rawUrl: string): string {
   }
 
   return normalizedUrl;
+}
+
+function normalizeAmazonProductUrl(parsed: URL, source: ProductUrlSource): void {
+  if (source !== 'amazon') return;
+
+  const asinMatch = parsed.pathname.match(/(?:^|\/)dp\/([A-Z0-9]{10})(?:\/|$)/i)
+    || parsed.pathname.match(/(?:^|\/)gp\/product\/([A-Z0-9]{10})(?:\/|$)/i);
+  if (!asinMatch) return;
+
+  parsed.hostname = 'www.amazon.co.jp';
+  parsed.pathname = `/dp/${asinMatch[1].toUpperCase()}`;
+  parsed.search = '';
+}
+
+function normalizeRakutenItemUrl(parsed: URL, source: ProductUrlSource): void {
+  if (source !== 'rakuten' || parsed.hostname.toLowerCase() !== 'item.rakuten.co.jp') return;
+
+  parsed.search = '';
+  if (!parsed.pathname.endsWith('/')) {
+    parsed.pathname = `${parsed.pathname}/`;
+  }
 }
 
 export function parseProductPreviewHtml(html: string, rawUrl: string): ProductUrlPreview {

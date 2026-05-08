@@ -83,6 +83,54 @@ describe('POST /api/admin/product-url-preview', () => {
     expect(body.preview.title).toBe('楽天テスト商品');
   });
 
+  it('canonicalizes Rakuten item URLs with tracking params before fetching', async () => {
+    const rakutenHtml = `
+      <html>
+        <head>
+          <meta property="og:title" content="靴下テスト商品">
+          <meta property="og:image" content="https://image.rakuten.co.jp/classe17/cabinet/socks003.jpg">
+        </head>
+        <body><span class="price2">1,280円</span></body>
+      </html>
+    `;
+    const fetchMock = vi.fn().mockResolvedValue(htmlResponse(rakutenHtml));
+    vi.stubGlobal('fetch', fetchMock);
+
+    const response = await POST(jsonRequest({
+      url: 'https://item.rakuten.co.jp/classe17/socks003/?s-id=top_normal_browsehist&xuseflg_ichiba01=10000037',
+    }));
+    const body = await response.json();
+
+    expect(response.status).toBe(200);
+    expect(fetchMock.mock.calls[0][0]).toBe('https://item.rakuten.co.jp/classe17/socks003/');
+    expect(body.preview.sourceUrl).toBe('https://item.rakuten.co.jp/classe17/socks003/');
+    expect(body.preview.title).toBe('靴下テスト商品');
+  });
+
+  it('canonicalizes Amazon product URLs with tracking params before fetching', async () => {
+    const amazonHtml = `
+      <html>
+        <head>
+          <meta property="og:title" content="Amazonテスト商品">
+          <meta property="og:image" content="https://m.media-amazon.com/images/I/main._AC_SL1500_.jpg">
+        </head>
+        <body><span class="a-price-whole">3,780</span></body>
+      </html>
+    `;
+    const fetchMock = vi.fn().mockResolvedValue(htmlResponse(amazonHtml));
+    vi.stubGlobal('fetch', fetchMock);
+
+    const response = await POST(jsonRequest({
+      url: 'https://www.amazon.co.jp/Pocket-%E7%B2%BE%E5%AF%86/dp/B0GZJF3NF2/ref=sr_1_7?keywords=DJI&qid=1778239986&sr=8-7',
+    }));
+    const body = await response.json();
+
+    expect(response.status).toBe(200);
+    expect(fetchMock.mock.calls[0][0]).toBe('https://www.amazon.co.jp/dp/B0GZJF3NF2');
+    expect(body.preview.sourceUrl).toBe('https://www.amazon.co.jp/dp/B0GZJF3NF2');
+    expect(body.preview.title).toBe('Amazonテスト商品');
+  });
+
   it('rejects unsafe Rakuten pc targets before fetch', async () => {
     const fetchMock = vi.fn();
     vi.stubGlobal('fetch', fetchMock);
