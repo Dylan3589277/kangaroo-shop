@@ -306,6 +306,66 @@ describe('parseProductPreviewHtml', () => {
     ]);
   });
 
+  it('extracts Rakuten product data from embedded page state when classic selectors are absent', () => {
+    const html = `
+      <html>
+        <head></head>
+        <body>
+          <script>
+            window.__RAKUTEN_ITEM_PAGE__ = {
+              "itemName":"新構造の楽天商品",
+              "salesPrice": "4,980",
+              "itemCaption":"新しい楽天ページの商品説明です。",
+              "images":[
+                {"imageUrl":"https:\\/\\/shop.r10s.jp\\/newshop\\/cabinet\\/main._ex.jpg"},
+                "https:\\/\\/image.rakuten.co.jp\\/newshop\\/cabinet\\/detail.jpg"
+              ]
+            };
+          </script>
+        </body>
+      </html>
+    `;
+
+    const preview = parseProductPreviewHtml(html, 'https://item.rakuten.co.jp/newshop/new-item/');
+
+    expect(preview).toMatchObject({
+      source: 'rakuten',
+      sourceUrl: 'https://item.rakuten.co.jp/newshop/new-item/',
+      title: '新構造の楽天商品',
+      titleJa: '新構造の楽天商品',
+      price: 4980,
+      description: '新しい楽天ページの商品説明です。',
+    });
+    expect(preview.images).toEqual([
+      'https://shop.r10s.jp/newshop/cabinet/main._ex.jpg',
+      'https://image.rakuten.co.jp/newshop/cabinet/detail.jpg',
+    ]);
+    expect(hasUsefulProductPreview(preview)).toBe(true);
+  });
+
+  it('extracts Amazon JP images from escaped script URLs when meta images are absent', () => {
+    const html = `
+      <html>
+        <head><meta property="og:title" content="Amazon escaped image test"></head>
+        <body>
+          <script>
+            window.__AMAZON_IMAGE_STATE__ = {
+              "mainUrl":"https:\\/\\/m.media-amazon.com\\/images\\/I\\/escaped-main._AC_SL1500_.jpg",
+              "thumb":"https:\\/\\/m.media-amazon.com\\/images\\/I\\/escaped-thumb._AC_US100_.webp"
+            };
+          </script>
+        </body>
+      </html>
+    `;
+
+    const preview = parseProductPreviewHtml(html, 'https://www.amazon.co.jp/dp/B000000000');
+
+    expect(preview.images).toEqual([
+      'https://m.media-amazon.com/images/I/escaped-main.jpg',
+      'https://m.media-amazon.com/images/I/escaped-thumb.webp',
+    ]);
+  });
+
   it('treats marketplace error pages with only an error title as unusable preview', () => {
     const preview = parseProductPreviewHtml(
       '<html><head><title>ページが見つかりません</title></head><body>not found</body></html>',

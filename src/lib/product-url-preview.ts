@@ -104,6 +104,7 @@ export function parseProductPreviewHtml(html: string, rawUrl: string): ProductUr
   const jsonLdDescription = firstString(jsonLdProducts.map(product => stringField(product, 'description')));
   const jsonLdPrice = firstNumber(jsonLdProducts.map(product => priceFromJsonLd(product)));
   const jsonLdImages = jsonLdProducts.flatMap(product => imagesFromJsonLd(product));
+  const rakutenStateHtml = source === 'rakuten' ? extractLikelyRakutenStateHtml(html) : '';
 
   const title =
     cleanText(jsonLdTitle)
@@ -111,6 +112,7 @@ export function parseProductPreviewHtml(html: string, rawUrl: string): ProductUr
     || meta['twitter:title']
     || extractById(html, 'productTitle')
     || extractByClass(html, 'item_name')
+    || (source === 'rakuten' ? extractLooseJsonValueByKeys(rakutenStateHtml, ['itemName', 'item_name', 'productName']) : undefined)
     || extractTitleTag(html);
 
   const brand =
@@ -133,6 +135,7 @@ export function parseProductPreviewHtml(html: string, rawUrl: string): ProductUr
       cleanDescription(jsonLdDescription)
       || cleanDescription(meta['og:description'])
       || cleanDescription(meta.description)
+      || cleanDescription(extractLooseJsonValueByKeys(rakutenStateHtml, ['itemCaption', 'catchcopy', 'caption', 'description']))
       || productDescription
       || featureBullets
     );
@@ -142,6 +145,7 @@ export function parseProductPreviewHtml(html: string, rawUrl: string): ProductUr
     ?? parseYenPrice(meta['product:price:amount'])
     ?? parseYenPrice(meta.price)
     ?? parseYenPrice(extractRatPrice(html))
+    ?? (source === 'rakuten' ? parseYenPrice(extractLooseJsonValueByKeys(rakutenStateHtml, ['salesPrice', 'itemPrice', 'taxIncludedPrice', 'priceAmount'])) : undefined)
     ?? parseYenPrice(extractById(html, 'priceblock_ourprice'))
     ?? parseYenPrice(extractById(html, 'priceblock_dealprice'))
     ?? parseYenPrice(extractByClass(html, 'a-price-whole'))
@@ -313,6 +317,40 @@ function extractRatPrice(html: string): string | undefined {
   return match?.[1];
 }
 
+function extractLikelyRakutenStateHtml(html: string): string {
+  const scripts = Array.from(html.matchAll(/<script\b[^>]*>([\s\S]*?)<\/script>/gi))
+    .map(match => decodeHtmlEntities(match[1]).trim())
+    .filter(Boolean)
+    .filter(isLikelyRakutenProductStateScript);
+
+  return scripts.join('\n');
+}
+
+function isLikelyRakutenProductStateScript(script: string): boolean {
+  if (!/(?:rakuten|r10s|itemName|item_name|productName|itemCaption|salesPrice|itemPrice|taxIncludedPrice|priceAmount|imageUrl)/i.test(script)) {
+    return false;
+  }
+
+  return /["'](?:itemName|item_name|productName|itemCaption|catchcopy|salesPrice|itemPrice|taxIncludedPrice|priceAmount|imageUrl)["']\s*:/i.test(script);
+}
+
+function extractLooseJsonValueByKeys(source: string, keys: string[]): string | undefined {
+  if (!source) return undefined;
+
+  for (const key of keys) {
+    const escaped = escapeRegExp(key);
+    const quotedMatch = source.match(new RegExp(`["']${escaped}["']\\s*:\\s*(["'])([\\s\\S]*?)\\1`, 'i'));
+    if (quotedMatch) {
+      const cleaned = cleanText(decodeEscapedUrl(quotedMatch[2]));
+      if (cleaned) return cleaned;
+    }
+
+    const numberMatch = source.match(new RegExp(`["']${escaped}["']\\s*:\\s*([0-9０-９][0-9０-９,，.]*)`, 'i'));
+    if (numberMatch) return numberMatch[1];
+  }
+  return undefined;
+}
+
 function extractAmazonImageUrls(html: string): string[] {
   const urls: string[] = [];
 
@@ -328,7 +366,7 @@ function extractAmazonImageUrls(html: string): string[] {
     urls.push(...extractAmazonDynamicImageUrls(match[1]));
   }
 
-  for (const match of Array.from(html.matchAll(/["'](https:\/\/m\.media-amazon\.com\/images\/I\/[^"']+)["']/g))) {
+  for (const match of Array.from(html.matchAll(/["'](https:\\?\/\\?\/m\.media-amazon\.com\\?\/images\\?\/I\\?\/[^"']+)["']/g))) {
     urls.push(normalizeAmazonImageUrl(decodeEscapedUrl(match[1])));
   }
   return urls;
