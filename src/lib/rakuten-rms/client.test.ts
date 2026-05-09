@@ -167,14 +167,14 @@ describe('RakutenRmsClient — HTTP behaviour', () => {
     expect(url).toContain('hits=10');
   });
 
-  it('keeps the /es/1.0 base path when request path starts with slash', async () => {
+  it('keeps the /es/2.0 base path when request path starts with slash', async () => {
     const fetchMock = makeFetchMock({ items: [] });
     const client = new RakutenRmsClient(fetchMock);
-    await client.get('/product/2/search', { params: { hits: '10' } });
+    await client.get('/items/search', { params: { hits: '10' } });
 
     const [url] = fetchMock.mock.calls[0] as [string, RequestInit];
     expect(url).toBe(
-      'https://api.rms.rakuten.co.jp/es/1.0/product/2/search?hits=10'
+      'https://api.rms.rakuten.co.jp/es/2.0/items/search?hits=10'
     );
   });
 
@@ -231,6 +231,25 @@ describe('RakutenRmsClient — HTTP behaviour', () => {
     const result = await client.get('/missing');
     expect(result.ok).toBe(false);
     expect(result.status).toBe(404);
+  });
+
+  it('converts HTML error pages into safe structured data', async () => {
+    const fetchMock = vi.fn().mockResolvedValue({
+      ok: false,
+      status: 404,
+      headers: new Headers({ 'content-type': 'text/html; charset=utf-8' }),
+      text: async () => '<!DOCTYPE html><html><body>not found</body></html>',
+    }) as unknown as Mock & typeof fetch;
+    const client = new RakutenRmsClient(fetchMock);
+    const result = await client.get('/wrong-path');
+
+    expect(result.ok).toBe(false);
+    expect(result.status).toBe(404);
+    expect(result.data).toMatchObject({
+      error: 'Rakuten RMS returned a non-JSON response.',
+      contentType: 'text/html; charset=utf-8',
+      bodySnippet: expect.stringContaining('<!DOCTYPE html>'),
+    });
   });
 
   it('passes signal through to fetch', async () => {

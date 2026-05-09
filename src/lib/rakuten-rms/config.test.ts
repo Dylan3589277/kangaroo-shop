@@ -73,7 +73,7 @@ describe('loadRakutenRmsConfig', () => {
   it('uses default baseUrl when RAKUTEN_RMS_BASE_URL is not set', () => {
     setValidEnv();
     const config = loadRakutenRmsConfig();
-    expect(config.baseUrl).toBe('https://api.rms.rakuten.co.jp/es/1.0');
+    expect(config.baseUrl).toBe('https://api.rms.rakuten.co.jp/es/2.0');
   });
 
   it('uses RAKUTEN_RMS_BASE_URL when set to a Rakuten RMS host', () => {

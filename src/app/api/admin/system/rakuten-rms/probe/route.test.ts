@@ -57,7 +57,7 @@ describe('GET /api/admin/system/rakuten-rms/probe', () => {
 
   it('uses only server-side configured probe path and returns no raw API body or secrets', async () => {
     setValidEnv();
-    process.env.RAKUTEN_RMS_PROBE_PATH = '/product/2/search';
+    process.env.RAKUTEN_RMS_PROBE_PATH = '/items/search';
     const fetchMock = vi.fn().mockResolvedValue({
       ok: true,
       status: 200,
@@ -79,7 +79,7 @@ describe('GET /api/admin/system/rakuten-rms/probe', () => {
     expect(json).not.toContain('should-not-be-returned');
 
     const [url, init] = fetchMock.mock.calls[0] as [string, RequestInit];
-    expect(url).toBe('https://api.rms.rakuten.co.jp/es/1.0/product/2/search');
+    expect(url).toBe('https://api.rms.rakuten.co.jp/es/2.0/items/search');
     expect(init.method).toBe('GET');
   });
 

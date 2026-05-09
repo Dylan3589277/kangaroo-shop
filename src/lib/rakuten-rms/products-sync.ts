@@ -13,8 +13,9 @@ export type SyncRakutenProductsResult = {
   syncedAt: string;
 };
 
-const DEFAULT_PRODUCTS_PATH = '/product/2/search';
+const DEFAULT_PRODUCTS_PATH = '/items/search';
 const DEFAULT_MAX_PAGES = 20;
+const DEFAULT_PAGE_SIZE = 100;
 
 const CSV_HEADERS = [
   '商品管理番号',
@@ -51,17 +52,21 @@ export async function syncRakutenProductsFromRms(
   const syncedAtDate = options.now ?? new Date();
 
   const rows: ParsedProductRow[] = [];
+  const pageSize = normalizePageSize(process.env.RAKUTEN_RMS_SYNC_PAGE_SIZE);
   let page = 1;
   for (; page <= maxPages; page++) {
-    const response = await client.get<unknown>(path, { params: { page: String(page) } });
+    const offset = (page - 1) * pageSize;
+    const response = await client.get<unknown>(path, {
+      params: { offset: String(offset), hits: String(pageSize) },
+    });
     if (!response.ok) {
-      throw new Error(`Rakuten RMS products request failed with status ${response.status}`);
+      throw new Error(buildRakutenRmsRequestError(response.status, response.data));
     }
 
     const pageRows = normalizeRakutenRmsProducts(response.data);
     rows.push(...pageRows.map((row, index) => ({ ...row, rowIndex: rows.length + index })));
 
-    if (!hasLikelyNextPage(response.data, page, pageRows.length)) break;
+    if (!hasLikelyNextPage(response.data, page, pageRows.length, offset, pageSize)) break;
   }
 
   const csvText = rakutenRowsToCsv(rows);
@@ -156,19 +161,26 @@ function extractProductItems(data: unknown): unknown[] {
   return [];
 }
 
-function hasLikelyNextPage(data: unknown, currentPage: number, rowCount: number): boolean {
+function hasLikelyNextPage(
+  data: unknown,
+  currentPage: number,
+  rowCount: number,
+  offset = 0,
+  pageSize = DEFAULT_PAGE_SIZE
+): boolean {
   if (rowCount === 0 || !isRecord(data)) return false;
 
   const hasNext = firstBooleanFromRecord(data, ['hasNext', 'has_next', 'hasNextPage', 'nextPage']);
   if (hasNext !== undefined) return hasNext;
 
+  const responseOffset = firstNumberFromRecord(data, ['offset']) ?? offset;
+  const hits = firstNumberFromRecord(data, ['hits', 'pageSize', 'perPage', 'limit']) ?? pageSize;
+  const numFound = firstNumberFromRecord(data, ['numFound', 'total', 'totalCount', 'count']);
+  if (numFound !== undefined) return responseOffset + hits < numFound;
+
   const current = firstNumberFromRecord(data, ['page', 'currentPage', 'current_page']) ?? currentPage;
   const totalPages = firstNumberFromRecord(data, ['totalPages', 'total_pages', 'pageCount', 'lastPage']);
   if (totalPages !== undefined) return current < totalPages;
-
-  const total = firstNumberFromRecord(data, ['total', 'totalCount', 'count']);
-  const perPage = firstNumberFromRecord(data, ['pageSize', 'perPage', 'hits', 'limit']);
-  if (total !== undefined && perPage !== undefined) return current * perPage < total;
 
   return false;
 }
@@ -281,6 +293,25 @@ function parseNumber(value: unknown): number | undefined {
 function csvEscape(value: string): string {
   if (!/[",\n\r]/.test(value)) return value;
   return `"${value.replace(/"/g, '""')}"`;
+}
+
+function buildRakutenRmsRequestError(status: number, data: unknown): string {
+  const prefix = `Rakuten RMS products request failed with status ${status}`;
+  if (!isRecord(data)) return prefix;
+
+  const error = firstStringFromRecord(data, ['error', 'message', 'errorMessage', 'code']) ?? 'unknown error';
+  const contentType = firstStringFromRecord(data, ['contentType']);
+  const bodySnippet = firstStringFromRecord(data, ['bodySnippet']);
+  const parts = [prefix, error];
+  if (contentType) parts.push(`contentType=${contentType}`);
+  if (bodySnippet) parts.push(`bodySnippet=${bodySnippet.slice(0, 200)}`);
+  return parts.join('; ');
+}
+
+function normalizePageSize(value: string | number | undefined): number {
+  const parsed = typeof value === 'number' ? value : Number.parseInt(value ?? '', 10);
+  if (!Number.isFinite(parsed) || parsed <= 0) return DEFAULT_PAGE_SIZE;
+  return Math.min(Math.floor(parsed), 100);
 }
 
 function normalizeMaxPages(value: string | number | undefined): number {

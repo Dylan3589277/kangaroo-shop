@@ -121,12 +121,12 @@ describe('Rakuten RMS products sync', () => {
 
     const result = await syncRakutenProductsFromRms({
       client: client as never,
-      path: '/product/2/search',
+      path: '/items/search',
       maxPages: 2,
       now: new Date('2026-05-08T20:00:00.000Z'),
     });
 
-    expect(client.get).toHaveBeenCalledWith('/product/2/search', { params: { page: '1' } });
+    expect(client.get).toHaveBeenCalledWith('/items/search', { params: { offset: '0', hits: '100' } });
     expect(executeImport).toHaveBeenCalledTimes(1);
     expect(vi.mocked(executeImport).mock.calls[0][0]).toBe('rakuten');
     expect(vi.mocked(executeImport).mock.calls[0][2]).toContain('商品管理番号');

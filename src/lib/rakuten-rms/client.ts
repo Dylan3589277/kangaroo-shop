@@ -5,6 +5,8 @@
  *  - Only GET requests are permitted; any other method throws immediately.
  *  - The Authorization header is built in memory per request and is never
  *    stored, logged, or returned to callers.
+ *  - Non-JSON responses are converted to a safe structured error so callers
+ *    never leak secrets and never crash on HTML error pages.
  *  - No real API calls are made in this skeleton; fetch is injected so tests
  *    can swap it out without touching global state.
  */
@@ -36,7 +38,7 @@ export class RakutenRmsClient {
   /**
    * Execute a read-only GET request against the Rakuten RMS API.
    *
-   * @param path   - API path relative to baseUrl (e.g. "/product/2/search").
+   * @param path   - API path relative to baseUrl (e.g. "/items/search").
    * @param options - Optional query params, extra headers, and abort signal.
    */
   async get<T = unknown>(
@@ -72,8 +74,8 @@ export class RakutenRmsClient {
     }
 
     const headers: Record<string, string> = {
+      Accept: 'application/json',
       ...options.headers,
-      'Content-Type': 'application/json; charset=utf-8',
       // Authorization is injected last so callers cannot override it.
       Authorization: authorization,
     };
@@ -84,8 +86,41 @@ export class RakutenRmsClient {
       signal: options.signal,
     });
 
-    const data = (await response.json()) as T;
-    return { ok: response.ok, status: response.status, data };
+    const parsed = await this.parseResponse<T>(response);
+    return { ok: response.ok && parsed.isJson, status: response.status, data: parsed.data };
+  }
+
+  /**
+   * Parse Rakuten responses defensively. Wrong API paths or auth failures can
+   * return HTML, which must become a safe error object instead of SyntaxError.
+   */
+  private async parseResponse<T>(response: Response): Promise<{ isJson: boolean; data: T }> {
+    const contentType = response.headers?.get('content-type') ?? '';
+
+    if (!contentType || /(^|[\s;])application\/json($|[\s;])/i.test(contentType) || /\+json($|[\s;])/i.test(contentType)) {
+      try {
+        return { isJson: true, data: (await response.json()) as T };
+      } catch {
+        // Fall through to text parsing below. Some mocks and error pages lie about content-type.
+      }
+    }
+
+    let bodySnippet = '';
+    try {
+      bodySnippet = (await response.text()).slice(0, 500);
+    } catch {
+      bodySnippet = '';
+    }
+
+    return {
+      isJson: false,
+      data: {
+        error: 'Rakuten RMS returned a non-JSON response.',
+        status: response.status,
+        contentType: contentType || 'unknown',
+        bodySnippet,
+      } as T,
+    };
   }
 
   /**

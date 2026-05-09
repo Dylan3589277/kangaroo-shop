@@ -5,6 +5,7 @@
  *  - Only reads from server-side env vars (never NEXT_PUBLIC_*).
  *  - Never returns raw secrets; all callers receive the masked summary.
  *  - Authorization header is built only inside client.ts, in memory, per request.
+ *  - Default endpoint follows ItemAPI 2.0: https://api.rms.rakuten.co.jp/es/2.0/items/search.
  *  - RAKUTEN_RMS_READ_ONLY must be exactly "true" for the client to operate.
  */
 
@@ -15,7 +16,7 @@ import {
   RakutenRmsStatus,
 } from './types';
 
-const DEFAULT_BASE_URL = 'https://api.rms.rakuten.co.jp/es/1.0';
+const DEFAULT_BASE_URL = 'https://api.rms.rakuten.co.jp/es/2.0';
 
 /**
  * Mask a secret string so it is safe to log or display.
