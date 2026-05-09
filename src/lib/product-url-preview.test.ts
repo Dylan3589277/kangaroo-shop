@@ -343,6 +343,46 @@ describe('parseProductPreviewHtml', () => {
     expect(hasUsefulProductPreview(preview)).toBe(true);
   });
 
+  it('extracts Rakuten product data from __NEXT_DATA__ application JSON', () => {
+    const html = `
+      <html>
+        <body>
+          <script id="__NEXT_DATA__" type="application/json">
+            {
+              "props": {
+                "pageProps": {
+                  "item": {
+                    "itemName": "Next Data 楽天商品",
+                    "itemPrice": "6,480",
+                    "itemCaption": "Next Data の説明",
+                    "images": [
+                      { "imageUrl": "https://shop.r10s.jp/nextshop/cabinet/main.jpg" },
+                      "https://image.rakuten.co.jp/nextshop/cabinet/detail.jpg"
+                    ]
+                  }
+                }
+              }
+            }
+          </script>
+        </body>
+      </html>
+    `;
+
+    const preview = parseProductPreviewHtml(html, 'https://item.rakuten.co.jp/nextshop/item/');
+
+    expect(preview).toMatchObject({
+      source: 'rakuten',
+      title: 'Next Data 楽天商品',
+      titleJa: 'Next Data 楽天商品',
+      price: 6480,
+      description: 'Next Data の説明',
+    });
+    expect(preview.images).toEqual([
+      'https://shop.r10s.jp/nextshop/cabinet/main.jpg',
+      'https://image.rakuten.co.jp/nextshop/cabinet/detail.jpg',
+    ]);
+  });
+
   it('extracts Amazon JP images from escaped script URLs when meta images are absent', () => {
     const html = `
       <html>
@@ -363,6 +403,37 @@ describe('parseProductPreviewHtml', () => {
     expect(preview.images).toEqual([
       'https://m.media-amazon.com/images/I/escaped-main.jpg',
       'https://m.media-amazon.com/images/I/escaped-thumb.webp',
+    ]);
+  });
+
+  it('extracts Amazon product status JSON when classic selectors are absent', () => {
+    const html = `
+      <html>
+        <body>
+          <script type="application/json">
+            {
+              "status": {
+                "asin": "B000000000",
+                "title": "Amazon JSON 状態の商品",
+                "price": "￥2,980",
+                "image": "https://m.media-amazon.com/images/I/json-state._AC_SL1500_.jpg"
+              }
+            }
+          </script>
+        </body>
+      </html>
+    `;
+
+    const preview = parseProductPreviewHtml(html, 'https://www.amazon.co.jp/dp/B000000000');
+
+    expect(preview).toMatchObject({
+      source: 'amazon',
+      title: 'Amazon JSON 状態の商品',
+      titleJa: 'Amazon JSON 状態の商品',
+      price: 2980,
+    });
+    expect(preview.images).toEqual([
+      'https://m.media-amazon.com/images/I/json-state.jpg',
     ]);
   });
 

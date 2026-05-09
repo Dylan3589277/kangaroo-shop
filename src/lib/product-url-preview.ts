@@ -105,6 +105,7 @@ export function parseProductPreviewHtml(html: string, rawUrl: string): ProductUr
   const jsonLdPrice = firstNumber(jsonLdProducts.map(product => priceFromJsonLd(product)));
   const jsonLdImages = jsonLdProducts.flatMap(product => imagesFromJsonLd(product));
   const rakutenStateHtml = source === 'rakuten' ? extractLikelyRakutenStateHtml(html) : '';
+  const scriptProductData = extractScriptProductData(html, source);
 
   const title =
     cleanText(jsonLdTitle)
@@ -112,6 +113,7 @@ export function parseProductPreviewHtml(html: string, rawUrl: string): ProductUr
     || meta['twitter:title']
     || extractById(html, 'productTitle')
     || extractByClass(html, 'item_name')
+    || cleanText(scriptProductData.title)
     || (source === 'rakuten' ? extractLooseJsonValueByKeys(rakutenStateHtml, ['itemName', 'item_name', 'productName']) : undefined)
     || extractTitleTag(html);
 
@@ -128,6 +130,7 @@ export function parseProductPreviewHtml(html: string, rawUrl: string): ProductUr
       cleanDescription(jsonLdDescription)
       || productDescription
       || featureBullets
+      || cleanDescription(scriptProductData.description)
       || cleanDescription(meta['og:description'])
       || cleanDescription(meta.description)
     )
@@ -135,6 +138,7 @@ export function parseProductPreviewHtml(html: string, rawUrl: string): ProductUr
       cleanDescription(jsonLdDescription)
       || cleanDescription(meta['og:description'])
       || cleanDescription(meta.description)
+      || cleanDescription(scriptProductData.description)
       || cleanDescription(extractLooseJsonValueByKeys(rakutenStateHtml, ['itemCaption', 'catchcopy', 'caption', 'description']))
       || productDescription
       || featureBullets
@@ -145,6 +149,7 @@ export function parseProductPreviewHtml(html: string, rawUrl: string): ProductUr
     ?? parseYenPrice(meta['product:price:amount'])
     ?? parseYenPrice(meta.price)
     ?? parseYenPrice(extractRatPrice(html))
+    ?? parseYenPrice(scriptProductData.price)
     ?? (source === 'rakuten' ? parseYenPrice(extractLooseJsonValueByKeys(rakutenStateHtml, ['salesPrice', 'itemPrice', 'taxIncludedPrice', 'priceAmount'])) : undefined)
     ?? parseYenPrice(extractById(html, 'priceblock_ourprice'))
     ?? parseYenPrice(extractById(html, 'priceblock_dealprice'))
@@ -160,6 +165,7 @@ export function parseProductPreviewHtml(html: string, rawUrl: string): ProductUr
   const images = uniqueUrls(source === 'amazon' ? [
     ...extractAmazonImageUrls(html),
     ...jsonLdImages,
+    ...scriptProductData.images,
     meta['og:image'],
     meta['twitter:image'],
   ] : [
@@ -167,6 +173,7 @@ export function parseProductPreviewHtml(html: string, rawUrl: string): ProductUr
     meta.image,
     meta['twitter:image'],
     ...jsonLdImages,
+    ...scriptProductData.images,
     ...extractRakutenImageUrls(html),
   ]);
 
@@ -282,6 +289,174 @@ function imagesFromJsonLd(record: Record<string, JsonValue>): string[] {
   return [];
 }
 
+type ScriptProductData = {
+  title?: string;
+  price?: string | number;
+  images: string[];
+  description?: string;
+};
+
+function extractScriptProductData(html: string, source: ProductUrlSource): ScriptProductData {
+  const records: Record<string, JsonValue>[] = [];
+  const looseSources: string[] = [];
+
+  for (const match of Array.from(html.matchAll(/<script\b([^>]*)>([\s\S]*?)<\/script>/gi))) {
+    const attrs = extractAttributes(match[1]);
+    const text = decodeHtmlEntities(match[2]).trim();
+    if (!text) continue;
+
+    if (attrs.id === '__next_data__' || attrs.type === 'application/json') {
+      try {
+        collectLooseProductRecords(JSON.parse(text) as JsonValue, records);
+        continue;
+      } catch {
+        // Some marketplace scripts are JSON-like rather than strict JSON.
+      }
+    }
+
+    if (isLikelyMarketplaceProductJson(text, source)) {
+      looseSources.push(text);
+      for (const jsonText of extractJsonObjectSnippets(text)) {
+        try {
+          collectLooseProductRecords(JSON.parse(jsonText) as JsonValue, records);
+        } catch {
+          // Keep regex fallback below for escaped or partial JSON blobs.
+        }
+      }
+    }
+  }
+
+  const title = firstString([
+    ...records.map(record => firstJsonString(record, source === 'rakuten'
+      ? ['itemName', 'item_name', 'productName', 'name', 'title']
+      : ['title', 'name', 'productTitle', 'itemName'])),
+    ...looseSources.map(sourceText => extractLooseJsonValueByKeys(sourceText, source === 'rakuten'
+      ? ['itemName', 'item_name', 'productName', 'name', 'title']
+      : ['title', 'name', 'productTitle', 'itemName'])),
+  ]);
+
+  const price = firstString([
+    ...records.map(record => firstJsonScalar(record, ['itemPrice', 'salesPrice', 'taxIncludedPrice', 'priceAmount', 'price', 'displayPrice'])),
+    ...looseSources.map(sourceText => extractLooseJsonValueByKeys(sourceText, ['itemPrice', 'salesPrice', 'taxIncludedPrice', 'priceAmount', 'price', 'displayPrice'])),
+  ]);
+
+  const description = firstString([
+    ...records.map(record => firstJsonString(record, ['itemCaption', 'catchcopy', 'caption', 'description', 'feature'])),
+    ...looseSources.map(sourceText => extractLooseJsonValueByKeys(sourceText, ['itemCaption', 'catchcopy', 'caption', 'description', 'feature'])),
+  ]);
+
+  const images = uniqueUrls([
+    ...records.flatMap(record => collectJsonImageUrls(record)),
+    ...looseSources.flatMap(extractImageUrlsFromJsonLikeText),
+  ]);
+
+  return { title, price, images, description };
+}
+
+function collectLooseProductRecords(value: JsonValue, records: Record<string, JsonValue>[]): void {
+  if (Array.isArray(value)) {
+    value.forEach(item => collectLooseProductRecords(item, records));
+    return;
+  }
+  if (!isRecord(value)) return;
+
+  if (hasAnyJsonKey(value, [
+    'itemName',
+    'item_name',
+    'productName',
+    'productTitle',
+    'title',
+    'name',
+    'itemPrice',
+    'salesPrice',
+    'price',
+    'image',
+    'images',
+    'imageUrl',
+  ])) {
+    records.push(value);
+  }
+
+  for (const child of Object.values(value)) {
+    collectLooseProductRecords(child, records);
+  }
+}
+
+function hasAnyJsonKey(record: Record<string, JsonValue>, keys: string[]): boolean {
+  return keys.some(key => record[key] !== undefined);
+}
+
+function firstJsonString(record: Record<string, JsonValue>, keys: string[]): string | undefined {
+  const value = firstJsonValue(record, keys);
+  return typeof value === 'string' ? cleanText(value) : undefined;
+}
+
+function firstJsonScalar(record: Record<string, JsonValue>, keys: string[]): string | undefined {
+  const value = firstJsonValue(record, keys);
+  if (typeof value === 'string') return cleanText(value);
+  if (typeof value === 'number') return String(value);
+  return undefined;
+}
+
+function firstJsonValue(record: Record<string, JsonValue>, keys: string[]): JsonValue | undefined {
+  for (const key of keys) {
+    const value = findJsonValueByKey(record, key);
+    if (value !== undefined && value !== null) return value;
+  }
+  return undefined;
+}
+
+function findJsonValueByKey(value: JsonValue, key: string): JsonValue | undefined {
+  if (Array.isArray(value)) {
+    for (const item of value) {
+      const found = findJsonValueByKey(item, key);
+      if (found !== undefined) return found;
+    }
+    return undefined;
+  }
+  if (!isRecord(value)) return undefined;
+  if (value[key] !== undefined) return value[key];
+  for (const child of Object.values(value)) {
+    const found = findJsonValueByKey(child, key);
+    if (found !== undefined) return found;
+  }
+  return undefined;
+}
+
+function collectJsonImageUrls(value: JsonValue): string[] {
+  if (typeof value === 'string') return /^https?:\/\//i.test(value) ? [value] : [];
+  if (Array.isArray(value)) return value.flatMap(collectJsonImageUrls);
+  if (!isRecord(value)) return [];
+
+  return Object.entries(value).flatMap(([key, child]) => {
+    if (/image|img|url/i.test(key)) return collectJsonImageUrls(child);
+    return isRecord(child) || Array.isArray(child) ? collectJsonImageUrls(child) : [];
+  });
+}
+
+function isLikelyMarketplaceProductJson(script: string, source: ProductUrlSource): boolean {
+  const common = /(?:title|productTitle|name|price|image|images|imageUrl)/i;
+  if (source === 'amazon') return /amazon|asin|m\.media-amazon\.com|price/i.test(script) && common.test(script);
+  return /(?:rakuten|r10s|itemName|item_name|productName|itemCaption|salesPrice|itemPrice|taxIncludedPrice|priceAmount|imageUrl)/i.test(script);
+}
+
+function extractJsonObjectSnippets(source: string): string[] {
+  const snippets: string[] = [];
+  for (const match of Array.from(source.matchAll(/({[\s\S]{0,8000}?})/g))) {
+    const text = match[1].trim();
+    if (text.includes(':')) snippets.push(text);
+  }
+  return snippets.slice(0, 20);
+}
+
+function extractImageUrlsFromJsonLikeText(source: string): string[] {
+  const urls: string[] = [];
+  for (const match of Array.from(source.matchAll(/https?:\\?\/\\?\/[^"'<>\s]+/gi))) {
+    urls.push(decodeEscapedJsonString(match[0]));
+  }
+  return urls;
+}
+
 function isRecord(value: JsonValue | undefined): value is Record<string, JsonValue> {
   return typeof value === 'object' && value !== null && !Array.isArray(value);
 }
@@ -341,7 +516,7 @@ function extractLooseJsonValueByKeys(source: string, keys: string[]): string | u
     const escaped = escapeRegExp(key);
     const quotedMatch = source.match(new RegExp(`["']${escaped}["']\\s*:\\s*(["'])([\\s\\S]*?)\\1`, 'i'));
     if (quotedMatch) {
-      const cleaned = cleanText(decodeEscapedUrl(quotedMatch[2]));
+      const cleaned = cleanText(decodeEscapedJsonString(quotedMatch[2]));
       if (cleaned) return cleaned;
     }
 
@@ -570,6 +745,17 @@ function decodeEscapedUrl(value: string): string {
     .replace(/\\\//g, '/')
     .replace(/\\u002F/gi, '/')
     .replace(/&amp;/g, '&');
+}
+
+function decodeEscapedJsonString(value: string): string {
+  const slashDecoded = decodeEscapedUrl(value);
+  try {
+    return JSON.parse(`"${slashDecoded.replace(/"/g, '\\"')}"`) as string;
+  } catch {
+    return slashDecoded.replace(/\\u([0-9a-f]{4})/gi, (_, hex: string) =>
+      String.fromCharCode(parseInt(hex, 16))
+    );
+  }
 }
 
 function escapeRegExp(value: string): string {
