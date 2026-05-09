@@ -13,7 +13,7 @@ interface Props {
 }
 
 export const MetricCard: React.FC<Props> = ({ metric, onClick }) => {
-  const { name, value, unit, status, trend, trendDirection } = metric;
+  const { name, value, unit, status, trend, trendDirection, trendLabel } = metric;
 
   const trendDisplay = getTrendDisplay(trend);
 
@@ -58,7 +58,7 @@ export const MetricCard: React.FC<Props> = ({ metric, onClick }) => {
           )}
           {trendDisplay.text}
         </span>
-        <span style={{ color: '#999', fontSize: '12px' }}>较上月</span>
+        <span style={{ color: '#999', fontSize: '12px' }}>{trendLabel ?? '较上月'}</span>
       </div>
     </Card>
   );

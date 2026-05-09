@@ -90,12 +90,12 @@ export const OverviewPage: React.FC<OverviewPageProps> = ({ initialData }) => {
           <DashboardOutlined /> 全局健康总览
         </Title>
         <Text type="secondary">
-          实时监控classe跨境电商核心经营指标，及时发现并处理异常情况
+          实时监控classe跨境电商核心经营与同步指标，及时发现并处理异常情况
         </Text>
       </div>
 
       {/* 核心指标卡片 */}
-      <Card title="核心指标" style={{ marginBottom: '24px' }}>
+      <Card title="核心经营/同步指标" style={{ marginBottom: '24px' }}>
         <Row gutter={[16, 16]}>
           {overview.metrics.map((metric) => (
             <Col xs={24} sm={12} lg={8} xl={4} key={metric.id}>

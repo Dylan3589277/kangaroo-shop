@@ -111,8 +111,15 @@ export function parseProductPreviewHtml(html: string, rawUrl: string): ProductUr
     cleanText(jsonLdTitle)
     || meta['og:title']
     || meta['twitter:title']
+    || (source === 'rakuten' ? extractRakutenTextByItemprop(html, ['name']) : undefined)
     || extractById(html, 'productTitle')
     || extractByClass(html, 'item_name')
+    || (source === 'rakuten' ? firstString([
+      extractByClass(html, 'itemName'),
+      extractByClass(html, 'item-name'),
+      extractByClass(html, 'productName'),
+      extractByClass(html, 'product-name'),
+    ]) : undefined)
     || cleanText(scriptProductData.title)
     || (source === 'rakuten' ? extractLooseJsonValueByKeys(rakutenStateHtml, ['itemName', 'item_name', 'productName']) : undefined)
     || extractTitleTag(html);
@@ -139,7 +146,15 @@ export function parseProductPreviewHtml(html: string, rawUrl: string): ProductUr
       || cleanDescription(meta['og:description'])
       || cleanDescription(meta.description)
       || cleanDescription(scriptProductData.description)
+      || cleanDescription(extractRakutenTextByItemprop(html, ['description']))
       || cleanDescription(extractLooseJsonValueByKeys(rakutenStateHtml, ['itemCaption', 'catchcopy', 'caption', 'description']))
+      || cleanDescription(firstString([
+        extractByClass(html, 'item_desc'),
+        extractByClass(html, 'item-description'),
+        extractByClass(html, 'itemDescription'),
+        extractByClass(html, 'catch_copy'),
+        extractByClass(html, 'catchcopy'),
+      ]))
       || productDescription
       || featureBullets
     );
@@ -148,6 +163,7 @@ export function parseProductPreviewHtml(html: string, rawUrl: string): ProductUr
     jsonLdPrice
     ?? parseYenPrice(meta['product:price:amount'])
     ?? parseYenPrice(meta.price)
+    ?? (source === 'rakuten' ? parseYenPrice(extractRakutenTextByItemprop(html, ['price'])) : undefined)
     ?? parseYenPrice(extractRatPrice(html))
     ?? parseYenPrice(scriptProductData.price)
     ?? (source === 'rakuten' ? parseYenPrice(extractLooseJsonValueByKeys(rakutenStateHtml, ['salesPrice', 'itemPrice', 'taxIncludedPrice', 'priceAmount'])) : undefined)
@@ -473,6 +489,31 @@ function extractByClass(html: string, className: string): string | undefined {
   return match ? cleanText(stripTags(match[1])) : undefined;
 }
 
+function extractRakutenTextByItemprop(html: string, itemprops: string[]): string | undefined {
+  for (const itemprop of itemprops) {
+    const escaped = escapeRegExp(itemprop);
+    const tagPattern = new RegExp(`<[^>]+itemprop=["'][^"']*\\b${escaped}\\b[^"']*["'][^>]*>`, 'gi');
+    for (const tagMatch of Array.from(html.matchAll(tagPattern))) {
+      const attrs = extractAttributes(tagMatch[0]);
+      const content = cleanText(attrs.content);
+      if (content) return content;
+
+      const start = tagMatch.index ?? 0;
+      const openTagEnd = start + tagMatch[0].length;
+      const tagNameMatch = tagMatch[0].match(/^<([a-z0-9:-]+)/i);
+      if (!tagNameMatch) continue;
+
+      const closePattern = new RegExp(`<\\/${escapeRegExp(tagNameMatch[1])}\\s*>`, 'i');
+      const closeMatch = html.slice(openTagEnd).match(closePattern);
+      if (!closeMatch || closeMatch.index === undefined) continue;
+
+      const text = cleanText(stripTags(html.slice(openTagEnd, openTagEnd + closeMatch.index)));
+      if (text) return text;
+    }
+  }
+  return undefined;
+}
+
 function extractTitleTag(html: string): string | undefined {
   const match = html.match(/<title[^>]*>([\s\S]*?)<\/title>/i);
   return match ? cleanText(stripTags(match[1])) : undefined;
@@ -558,16 +599,33 @@ function extractAmazonDynamicImageUrls(value: string): string[] {
 
 function extractRakutenImageUrls(html: string): string[] {
   const urls: string[] = [];
-  for (const match of Array.from(html.matchAll(/https?:\\?\/\\?\/(?:shop|tshop)\.r10s\.jp\\?\/[^"'<>\s]+/gi))) {
+
+  for (const match of Array.from(html.matchAll(/<(?:img|source)\b[^>]*>/gi))) {
+    const attrs = extractAttributes(match[0]);
+    for (const value of [attrs.src, attrs['data-src'], attrs['data-original'], attrs['data-lazy-src'], attrs['data-main-image']]) {
+      urls.push(...splitImageCandidateUrls(value));
+    }
+    urls.push(...splitImageCandidateUrls(attrs.srcset));
+  }
+
+  for (const match of Array.from(html.matchAll(/(?:https?:)?\\?\/\\?\/(?:shop|tshop)\.r10s\.jp\\?\/[^"'<>\s]+/gi))) {
     urls.push(decodeEscapedUrl(match[0]));
   }
-  for (const match of Array.from(html.matchAll(/https?:\\?\/\\?\/image\.rakuten\.co\.jp\\?\/[^"'<>\s]+/gi))) {
+  for (const match of Array.from(html.matchAll(/(?:https?:)?\\?\/\\?\/image\.rakuten\.co\.jp\\?\/[^"'<>\s]+/gi))) {
     urls.push(decodeEscapedUrl(match[0]));
   }
-  for (const match of Array.from(html.matchAll(/https?:\\?\/\\?\/thumbnail\.image\.rakuten\.co\.jp\\?\/[^"'<>\s]+/gi))) {
+  for (const match of Array.from(html.matchAll(/(?:https?:)?\\?\/\\?\/thumbnail\.image\.rakuten\.co\.jp\\?\/[^"'<>\s]+/gi))) {
     urls.push(decodeEscapedUrl(match[0]));
   }
   return urls;
+}
+
+function splitImageCandidateUrls(value: string | undefined): string[] {
+  if (!value) return [];
+  return value
+    .split(',')
+    .map(item => item.trim().split(/\s+/)[0])
+    .filter(Boolean);
 }
 
 function normalizeAmazonImageUrl(url: string): string {
@@ -601,7 +659,7 @@ function uniqueUrls(values: Array<string | undefined>): string[] {
 
 function cleanUrl(value: string | undefined): string | undefined {
   if (!value) return undefined;
-  const decoded = trimUrlJunk(decodeEscapedUrl(decodeHtmlEntities(value.trim())));
+  const decoded = normalizeProtocolRelativeUrl(trimUrlJunk(decodeEscapedUrl(decodeHtmlEntities(value.trim()))));
   try {
     const url = new URL(decoded);
     if (!['http:', 'https:'].includes(url.protocol)) return undefined;
@@ -615,7 +673,11 @@ function cleanUrl(value: string | undefined): string | undefined {
 }
 
 function trimUrlJunk(value: string): string {
-  return value.replace(/[),;]+$/g, '');
+  return value.replace(/[)"',;]+$/g, '');
+}
+
+function normalizeProtocolRelativeUrl(value: string): string {
+  return value.startsWith('//') ? `https:${value}` : value;
 }
 
 function isLikelyProductImageUrl(value: string): boolean {

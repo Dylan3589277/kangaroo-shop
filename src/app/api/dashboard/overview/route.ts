@@ -3,6 +3,7 @@ import { prisma } from '@/lib/prisma';
 import { serverError } from '@/lib/api-error';
 import { refreshDashboardAlerts } from '@/lib/dashboard-alerts';
 import { requireAdminSession } from '@/lib/admin-auth';
+import { getRakutenSyncDashboardData } from '@/lib/dashboard-rakuten-sync';
 
 export const dynamic = 'force-dynamic';
 
@@ -27,6 +28,7 @@ export async function GET() {
       refundedCount,
       ratingAgg,
       alerts,
+      rakutenSync,
     ] = await Promise.all([
       // Recent 30-day orders — select only the columns we actually use
       prisma.order.findMany({
@@ -53,6 +55,7 @@ export async function GET() {
         where: { resolvedAt: null },
         orderBy: { createdAt: 'desc' },
       }),
+      getRakutenSyncDashboardData(now),
     ]);
 
     // 月营收：最近 30 天 paid 订单之和
@@ -142,6 +145,7 @@ export async function GET() {
         trendDirection: 'down' as const,
         threshold: { yellow: 5, red: 10 },
       },
+      ...rakutenSync.metrics.slice(0, 4),
     ];
 
     // 生成趋势数据（最近30天每日营收[paid only]和订单数）
@@ -164,6 +168,7 @@ export async function GET() {
     const trendData: Record<string, { date: string; value: number }[]> = {
       revenue: dailyRevenue,
       'order-count': dailyOrderCount,
+      ...rakutenSync.trendData,
     };
 
     return NextResponse.json({

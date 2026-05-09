@@ -383,6 +383,35 @@ describe('parseProductPreviewHtml', () => {
     ]);
   });
 
+  it('extracts Rakuten microdata, item description classes and protocol-relative image URLs', () => {
+    const html = `
+      <html>
+        <body>
+          <h1 itemprop="name">microdata 楽天商品</h1>
+          <meta itemprop="price" content="7,980">
+          <div class="item_desc">microdata 商品説明</div>
+          <img data-src="//shop.r10s.jp/microshop/cabinet/main.jpg">
+          <source srcset="//image.rakuten.co.jp/microshop/cabinet/detail.webp 1x, //image.rakuten.co.jp/microshop/cabinet/detail-large.webp 2x">
+        </body>
+      </html>
+    `;
+
+    const preview = parseProductPreviewHtml(html, 'https://item.rakuten.co.jp/microshop/item/');
+
+    expect(preview).toMatchObject({
+      source: 'rakuten',
+      title: 'microdata 楽天商品',
+      titleJa: 'microdata 楽天商品',
+      price: 7980,
+      description: 'microdata 商品説明',
+    });
+    expect(preview.images).toEqual([
+      'https://shop.r10s.jp/microshop/cabinet/main.jpg',
+      'https://image.rakuten.co.jp/microshop/cabinet/detail.webp',
+      'https://image.rakuten.co.jp/microshop/cabinet/detail-large.webp',
+    ]);
+  });
+
   it('extracts Amazon JP images from escaped script URLs when meta images are absent', () => {
     const html = `
       <html>

@@ -52,6 +52,37 @@ describe('Rakuten RMS products sync', () => {
     });
   });
 
+  it('normalizes official-style RMS image locations and nested product fields', () => {
+    const rows = normalizeRakutenRmsProducts({
+      items: [
+        {
+          item: {
+            manageNumber: 'MNG-2',
+            title: 'RMS location 画像商品',
+            salesPrice: '9,800',
+            inventories: [{ inventoryCount: '4' }],
+            images: [
+              { location: 'https://shop.r10s.jp/shop/cabinet/location-main.jpg' },
+              { imageUrl: 'https://image.rakuten.co.jp/shop/cabinet/location-detail.jpg' },
+            ],
+          },
+        },
+      ],
+    });
+
+    expect(rows[0]).toMatchObject({
+      platformSku: 'MNG-2',
+      platformItemId: 'MNG-2',
+      titleJa: 'RMS location 画像商品',
+      platformPrice: 9800,
+      stock: 4,
+      images: [
+        'https://shop.r10s.jp/shop/cabinet/location-main.jpg',
+        'https://image.rakuten.co.jp/shop/cabinet/location-detail.jpg',
+      ],
+    });
+  });
+
   it('converts normalized rows to safely escaped Rakuten CSV', () => {
     const csv = rakutenRowsToCsv([
       {

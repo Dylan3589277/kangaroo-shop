@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { refreshDashboardAlerts } from '@/lib/dashboard-alerts';
 import { requireAdminSession } from '@/lib/admin-auth';
+import { getRakutenSyncDashboardData } from '@/lib/dashboard-rakuten-sync';
 
 // 模块类型
 type ModuleType = 'hr' | 'finance' | 'supply_chain' | 'operation' | 'influencer';
@@ -15,6 +16,8 @@ const moduleConfigs: Record<ModuleType, { name: string; metrics: { id: string; n
       { id: 'avg-order-value', name: '客单价', unit: 'JPY' },
       { id: 'rating', name: '店铺评分', unit: '分' },
       { id: 'return-rate', name: '退货率', unit: '%' },
+      { id: 'rakuten-sync-listings', name: 'Rakuten同步商品数', unit: '件' },
+      { id: 'rakuten-rms-imported-rows', name: '近30天RMS导入行', unit: '行' },
     ],
   },
   hr: {
@@ -85,7 +88,7 @@ export async function GET(
       // Refresh auto-generated alerts
       await refreshDashboardAlerts();
 
-      const [recentOrders, products, allPaidOrders, allOrders] = await Promise.all([
+      const [recentOrders, products, allPaidOrders, allOrders, refundedOrderCount, rakutenSync] = await Promise.all([
         prisma.order.findMany({
           where: { createdAt: { gte: thirtyDaysAgo } },
           include: { items: true },
@@ -93,6 +96,8 @@ export async function GET(
         prisma.product.findMany({ where: { isActive: true } }),
         prisma.order.findMany({ where: { paymentStatus: 'paid' } }),
         prisma.order.findMany(),
+        prisma.order.count({ where: { paymentStatus: 'refunded' } }),
+        getRakutenSyncDashboardData(now),
       ]);
 
       const avgOrderValue = recentOrders.length > 0
@@ -103,9 +108,9 @@ export async function GET(
         ? products.reduce((sum, p) => sum + p.rating, 0) / products.length
         : 0;
 
-      const refundedCount = allPaidOrders.filter(o => o.paymentStatus === 'refunded').length;
-      const returnRate = allPaidOrders.length > 0
-        ? (refundedCount / allPaidOrders.length) * 100
+      const completedOrderCount = allPaidOrders.length + refundedOrderCount;
+      const returnRate = completedOrderCount > 0
+        ? (refundedOrderCount / completedOrderCount) * 100
         : 0;
 
       // 计算转化率
@@ -156,10 +161,11 @@ export async function GET(
           trendDirection: 'down',
           threshold: { yellow: 5, red: 10 },
         },
+        ...rakutenSync.metrics,
       ];
 
       return NextResponse.json({
-        data: { id: moduleId, name: config.name, metrics, alerts, trendData: {} },
+        data: { id: moduleId, name: config.name, metrics, alerts, trendData: rakutenSync.trendData },
         error: null,
       });
     }

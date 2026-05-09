@@ -14,6 +14,7 @@ export interface MetricCard {
   };
   trend: number; // 百分比变化
   trendDirection: 'up' | 'down';
+  trendLabel?: string;
 }
 
 // 告警记录

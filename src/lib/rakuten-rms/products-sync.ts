@@ -204,10 +204,17 @@ function firstBooleanFromRecord(record: JsonRecord, keys: string[]): boolean | u
 }
 
 function getDeepValue(value: unknown, key: string): unknown {
+  if (Array.isArray(value)) {
+    for (const child of value) {
+      const nested = getDeepValue(child, key);
+      if (nested !== undefined) return nested;
+    }
+    return undefined;
+  }
   if (!isRecord(value)) return undefined;
   if (value[key] !== undefined) return value[key];
   for (const child of Object.values(value)) {
-    if (isRecord(child)) {
+    if (isRecord(child) || Array.isArray(child)) {
       const nested = getDeepValue(child, key);
       if (nested !== undefined) return nested;
     }
@@ -233,7 +240,7 @@ function collectImageUrls(value: unknown): string[] {
   if (Array.isArray(value)) return value.flatMap(item => collectImageUrls(item));
   if (!isRecord(value)) return [];
   return Object.entries(value).flatMap(([key, child]) => {
-    if (/url/i.test(key)) return collectImageUrls(child);
+    if (/url|location|src/i.test(key)) return collectImageUrls(child);
     return isRecord(child) || Array.isArray(child) ? collectImageUrls(child) : [];
   });
 }
