@@ -109,8 +109,9 @@ export const ModuleDetailPage: React.FC<Props> = ({ moduleId }) => {
       title: '趋势',
       dataIndex: 'trend',
       key: 'trend',
-      render: (trend: number) => {
+      render: (trend: number, record: MetricCardType) => {
         if (hasPendingRealData) return '待接入真实数据';
+        if (record.trendLabel === '待接入') return '待接入';
         const display = getTrendDisplay(trend);
         return (
           <span style={{ color: display.color }}>

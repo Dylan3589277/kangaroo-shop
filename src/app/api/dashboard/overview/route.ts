@@ -23,8 +23,7 @@ export async function GET() {
     const [
       recentOrders,
       revenueAgg,
-      paidCount,
-      totalCount,
+      recentPaidCount,
       refundedCount,
       ratingAgg,
       alerts,
@@ -40,12 +39,10 @@ export async function GET() {
         _sum: { total: true },
         where: { paymentStatus: 'paid', createdAt: { gte: thirtyDaysAgo } },
       }),
-      // Total paid order count (for conversion rate denominator)
-      prisma.order.count({ where: { paymentStatus: 'paid' } }),
-      // Total order count (for conversion rate)
-      prisma.order.count(),
-      // Refunded count (for return-rate numerator — kept separate so denominator is correct)
-      prisma.order.count({ where: { paymentStatus: 'refunded' } }),
+      // Paid order count in the same 30-day window as the dashboard card.
+      prisma.order.count({ where: { paymentStatus: 'paid', createdAt: { gte: thirtyDaysAgo } } }),
+      // Refunded count in the same 30-day window as the dashboard card.
+      prisma.order.count({ where: { paymentStatus: 'refunded', createdAt: { gte: thirtyDaysAgo } } }),
       // Average rating across active products
       prisma.product.aggregate({
         _avg: { rating: true },
@@ -64,21 +61,21 @@ export async function GET() {
     // 月订单数（含所有支付状态，口径与原来保持一致）
     const monthOrderCount = recentOrders.length;
 
-    // 客单价：最近 30 天所有订单的平均金额
-    const avgOrderValue = monthOrderCount > 0
-      ? recentOrders.reduce((sum, o) => sum + o.total, 0) / monthOrderCount
+    // 客单价：最近 30 天 paid 订单总额 / paid 订单数
+    const avgOrderValue = recentPaidCount > 0
+      ? (revenueAgg._sum.total ?? 0) / recentPaidCount
       : 0;
 
-    // 转化率 = paid / total（不含 refunded 以避免双计）
-    const conversionRate = totalCount > 0
-      ? Math.round((paidCount / totalCount) * 100 * 10) / 10
+    // 转化率 = 最近 30 天 paid 订单 / 最近 30 天全部订单，窗口与卡片一致
+    const conversionRate = monthOrderCount > 0
+      ? Math.round((recentPaidCount / monthOrderCount) * 100 * 10) / 10
       : 0;
 
     // 平均评分
     const avgRating = ratingAgg._avg.rating ?? 0;
 
-    // 退货率 = refunded / (paid + refunded)，分母>0 保证除 0 安全
-    const completedCount = paidCount + refundedCount;
+    // 退货率 = 最近 30 天 refunded / (paid + refunded)，分母>0 保证除 0 安全
+    const completedCount = recentPaidCount + refundedCount;
     const returnRate = completedCount > 0
       ? (refundedCount / completedCount) * 100
       : 0;
@@ -91,8 +88,9 @@ export async function GET() {
         value: monthRevenue,
         unit: 'JPY',
         status: 'green' as const,
-        trend: 12.5,
+        trend: 0,
         trendDirection: 'up' as const,
+        trendLabel: '待接入',
         threshold: { yellow: 500000, red: 300000 },
       },
       {
@@ -101,8 +99,9 @@ export async function GET() {
         value: monthOrderCount,
         unit: '笔',
         status: monthOrderCount > 10 ? 'green' as const : 'yellow' as const,
-        trend: 8.3,
+        trend: 0,
         trendDirection: 'up' as const,
+        trendLabel: '待接入',
         threshold: { yellow: 10, red: 5 },
       },
       {
@@ -111,8 +110,9 @@ export async function GET() {
         value: Math.round(avgOrderValue),
         unit: 'JPY',
         status: avgOrderValue > 3000 ? 'green' as const : 'yellow' as const,
-        trend: -2.1,
-        trendDirection: 'down' as const,
+        trend: 0,
+        trendDirection: 'up' as const,
+        trendLabel: '待接入',
         threshold: { yellow: 3000, red: 2000 },
       },
       {
@@ -121,8 +121,9 @@ export async function GET() {
         value: conversionRate,
         unit: '%',
         status: conversionRate > 30 ? 'green' as const : conversionRate > 15 ? 'yellow' as const : 'red' as const,
-        trend: 0.5,
+        trend: 0,
         trendDirection: 'up' as const,
+        trendLabel: '待接入',
         threshold: { yellow: 30, red: 15 },
       },
       {
@@ -131,8 +132,9 @@ export async function GET() {
         value: Math.round(avgRating * 10) / 10,
         unit: '分',
         status: avgRating >= 4.2 ? 'green' as const : avgRating >= 3.8 ? 'yellow' as const : 'red' as const,
-        trend: 0.1,
+        trend: 0,
         trendDirection: 'up' as const,
+        trendLabel: '待接入',
         threshold: { yellow: 4.2, red: 3.8 },
       },
       {
@@ -141,8 +143,9 @@ export async function GET() {
         value: Math.round(returnRate * 10) / 10,
         unit: '%',
         status: returnRate < 5 ? 'green' as const : returnRate < 10 ? 'yellow' as const : 'red' as const,
-        trend: -0.3,
-        trendDirection: 'down' as const,
+        trend: 0,
+        trendDirection: 'up' as const,
+        trendLabel: '待接入',
         threshold: { yellow: 5, red: 10 },
       },
       ...rakutenSync.metrics.slice(0, 4),
@@ -151,6 +154,8 @@ export async function GET() {
     // 生成趋势数据（最近30天每日营收[paid only]和订单数）
     const dailyRevenue: { date: string; value: number }[] = [];
     const dailyOrderCount: { date: string; value: number }[] = [];
+    const dailyAvgOrderValue: { date: string; value: number }[] = [];
+    const dailyConversionRate: { date: string; value: number }[] = [];
     for (let i = 29; i >= 0; i--) {
       const date = new Date(now.getTime() - i * 24 * 60 * 60 * 1000);
       const dateStr = date.toISOString().split('T')[0];
@@ -162,12 +167,23 @@ export async function GET() {
       const dayRevenue = dayOrders
         .filter(o => o.paymentStatus === 'paid')
         .reduce((sum, o) => sum + o.total, 0);
+      const dayPaidOrders = dayOrders.filter(o => o.paymentStatus === 'paid');
+      const dayAvgOrderValue = dayPaidOrders.length > 0
+        ? Math.round(dayRevenue / dayPaidOrders.length)
+        : 0;
+      const dayConversionRate = dayOrders.length > 0
+        ? Math.round((dayPaidOrders.length / dayOrders.length) * 100 * 10) / 10
+        : 0;
       dailyRevenue.push({ date: dateStr, value: dayRevenue });
       dailyOrderCount.push({ date: dateStr, value: dayOrders.length });
+      dailyAvgOrderValue.push({ date: dateStr, value: dayAvgOrderValue });
+      dailyConversionRate.push({ date: dateStr, value: dayConversionRate });
     }
     const trendData: Record<string, { date: string; value: number }[]> = {
       revenue: dailyRevenue,
       'order-count': dailyOrderCount,
+      'avg-order-value': dailyAvgOrderValue,
+      'conversion-rate': dailyConversionRate,
       ...rakutenSync.trendData,
     };
 

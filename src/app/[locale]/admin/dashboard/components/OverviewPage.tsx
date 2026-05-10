@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useEffect, useState } from 'react';
-import { Row, Col, Card, Typography, Segmented, Spin, Empty } from 'antd';
+import { Alert, Button, Row, Col, Card, Typography, Segmented, Spin, Empty } from 'antd';
 import {
   UserOutlined,
   AccountBookOutlined,
@@ -38,6 +38,7 @@ export const OverviewPage: React.FC<OverviewPageProps> = ({ initialData }) => {
   const locale = params?.locale || 'zh';
   const [overview, setOverview] = useState<OverviewData | null>(initialData || null);
   const [loading, setLoading] = useState(!initialData);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [trendRange, setTrendRange] = useState<string>('30天');
 
   useEffect(() => {
@@ -49,10 +50,13 @@ export const OverviewPage: React.FC<OverviewPageProps> = ({ initialData }) => {
   const fetchData = async () => {
     try {
       setLoading(true);
+      setErrorMessage(null);
       const data = await getOverview();
       setOverview(data);
     } catch (error) {
       console.error('Failed to fetch overview:', error);
+      setOverview(null);
+      setErrorMessage(error instanceof Error ? error.message : 'Dashboard 数据加载失败');
     } finally {
       setLoading(false);
     }
@@ -73,6 +77,22 @@ export const OverviewPage: React.FC<OverviewPageProps> = ({ initialData }) => {
       <div style={{ textAlign: 'center', padding: '100px 0' }}>
         <Spin size="large" />
       </div>
+    );
+  }
+
+  if (errorMessage) {
+    return (
+      <Alert
+        type="error"
+        showIcon
+        message="Dashboard 加载失败"
+        description={errorMessage}
+        action={
+          <Button size="small" danger onClick={() => void fetchData()}>
+            重试
+          </Button>
+        }
+      />
     );
   }
 

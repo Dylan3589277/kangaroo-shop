@@ -162,7 +162,8 @@ export default async function AdminDashboard({ params }: { params: { locale: str
             </a>
           </div>
         ) : (
-          <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+          <div style={{ overflowX: 'auto' }}>
+          <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: '720px' }}>
             <thead>
               <tr style={{ background: 'var(--color-bg-alt)' }}>
                 <th style={{ padding: 'var(--space-3) var(--space-4)', textAlign: 'left', fontSize: 'var(--text-xs)', fontWeight: 600, color: 'var(--color-text-muted)', textTransform: 'uppercase' }}>
@@ -208,6 +209,7 @@ export default async function AdminDashboard({ params }: { params: { locale: str
               ))}
             </tbody>
           </table>
+          </div>
         )}
       </div>
     </div>

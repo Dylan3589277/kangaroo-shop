@@ -204,7 +204,8 @@ export default async function AdminProductsPage({ params, searchParams }: Props)
           </div>
         ) : (
           <>
-            <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+            <div style={{ overflowX: 'auto' }}>
+            <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: '860px' }}>
               <thead>
                 <tr style={{ background: 'var(--color-bg-alt)' }}>
                   <th style={thStyle}>{labels.image}</th>
@@ -295,6 +296,7 @@ export default async function AdminProductsPage({ params, searchParams }: Props)
                 })}
               </tbody>
             </table>
+            </div>
 
             {/* 分页 */}
             {totalPages > 1 && (

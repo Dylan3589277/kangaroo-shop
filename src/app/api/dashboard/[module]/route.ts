@@ -88,36 +88,38 @@ export async function GET(
       // Refresh auto-generated alerts
       await refreshDashboardAlerts();
 
-      const [recentOrders, products, allPaidOrders, allOrders, refundedOrderCount, rakutenSync] = await Promise.all([
+      const [recentOrders, products, recentPaidRevenue, recentPaidOrderCount, allPaidOrderCount, refundedOrderCount, rakutenSync] = await Promise.all([
         prisma.order.findMany({
           where: { createdAt: { gte: thirtyDaysAgo } },
           include: { items: true },
         }),
         prisma.product.findMany({ where: { isActive: true } }),
-        prisma.order.findMany({ where: { paymentStatus: 'paid' } }),
-        prisma.order.findMany(),
+        prisma.order.aggregate({
+          _sum: { total: true },
+          where: { paymentStatus: 'paid', createdAt: { gte: thirtyDaysAgo } },
+        }),
+        prisma.order.count({ where: { paymentStatus: 'paid', createdAt: { gte: thirtyDaysAgo } } }),
+        prisma.order.count({ where: { paymentStatus: 'paid' } }),
         prisma.order.count({ where: { paymentStatus: 'refunded' } }),
         getRakutenSyncDashboardData(now),
       ]);
 
-      const avgOrderValue = recentOrders.length > 0
-        ? recentOrders.reduce((sum, o) => sum + o.total, 0) / recentOrders.length
+      const avgOrderValue = recentPaidOrderCount > 0
+        ? (recentPaidRevenue._sum.total ?? 0) / recentPaidOrderCount
         : 0;
 
       const avgRating = products.length > 0
         ? products.reduce((sum, p) => sum + p.rating, 0) / products.length
         : 0;
 
-      const completedOrderCount = allPaidOrders.length + refundedOrderCount;
+      const completedOrderCount = allPaidOrderCount + refundedOrderCount;
       const returnRate = completedOrderCount > 0
         ? (refundedOrderCount / completedOrderCount) * 100
         : 0;
 
-      // 计算转化率
-      const totalOrderCount = allOrders.length;
-      const paidOrderCount = allPaidOrders.length;
-      const conversionRate = totalOrderCount > 0
-        ? Math.round((paidOrderCount / totalOrderCount) * 100 * 10) / 10
+      // 转化率口径与运营卡片一致：最近 30 天 paid 订单 / 最近 30 天全部订单
+      const conversionRate = recentOrders.length > 0
+        ? Math.round((recentPaidOrderCount / recentOrders.length) * 100 * 10) / 10
         : 0;
 
       const metrics = [
@@ -127,8 +129,9 @@ export async function GET(
           value: conversionRate,
           unit: '%',
           status: conversionRate > 30 ? 'green' : conversionRate > 15 ? 'yellow' : 'red',
-          trend: 0.5,
+          trend: 0,
           trendDirection: 'up',
+          trendLabel: '待接入',
           threshold: { yellow: 30, red: 15 },
         },
         {
@@ -137,8 +140,9 @@ export async function GET(
           value: Math.round(avgOrderValue),
           unit: 'JPY',
           status: avgOrderValue > 3000 ? 'green' : 'yellow',
-          trend: -2.1,
-          trendDirection: 'down',
+          trend: 0,
+          trendDirection: 'up',
+          trendLabel: '待接入',
           threshold: { yellow: 3000, red: 2000 },
         },
         {
@@ -147,8 +151,9 @@ export async function GET(
           value: Math.round(avgRating * 10) / 10,
           unit: '分',
           status: avgRating >= 4.2 ? 'green' : avgRating >= 3.8 ? 'yellow' : 'red',
-          trend: 0.1,
+          trend: 0,
           trendDirection: 'up',
+          trendLabel: '待接入',
           threshold: { yellow: 4.2, red: 3.8 },
         },
         {
@@ -157,15 +162,47 @@ export async function GET(
           value: Math.round(returnRate * 10) / 10,
           unit: '%',
           status: returnRate < 5 ? 'green' : returnRate < 10 ? 'yellow' : 'red',
-          trend: -0.3,
-          trendDirection: 'down',
+          trend: 0,
+          trendDirection: 'up',
+          trendLabel: '待接入',
           threshold: { yellow: 5, red: 10 },
         },
         ...rakutenSync.metrics,
       ];
 
+      const dailyAvgOrderValue: { date: string; value: number }[] = [];
+      const dailyConversionRate: { date: string; value: number }[] = [];
+      for (let i = 29; i >= 0; i--) {
+        const date = new Date(now.getTime() - i * 24 * 60 * 60 * 1000);
+        const dateStr = date.toISOString().split('T')[0];
+        const dayOrders = recentOrders.filter(o => {
+          const orderDate = new Date(o.createdAt).toISOString().split('T')[0];
+          return orderDate === dateStr;
+        });
+        const dayPaidOrders = dayOrders.filter(o => o.paymentStatus === 'paid');
+        const dayPaidRevenue = dayPaidOrders.reduce((sum, o) => sum + o.total, 0);
+        dailyAvgOrderValue.push({
+          date: dateStr,
+          value: dayPaidOrders.length > 0 ? Math.round(dayPaidRevenue / dayPaidOrders.length) : 0,
+        });
+        dailyConversionRate.push({
+          date: dateStr,
+          value: dayOrders.length > 0 ? Math.round((dayPaidOrders.length / dayOrders.length) * 100 * 10) / 10 : 0,
+        });
+      }
+
       return NextResponse.json({
-        data: { id: moduleId, name: config.name, metrics, alerts, trendData: rakutenSync.trendData },
+        data: {
+          id: moduleId,
+          name: config.name,
+          metrics,
+          alerts,
+          trendData: {
+            'avg-order-value': dailyAvgOrderValue,
+            'conversion-rate': dailyConversionRate,
+            ...rakutenSync.trendData,
+          },
+        },
         error: null,
       });
     }

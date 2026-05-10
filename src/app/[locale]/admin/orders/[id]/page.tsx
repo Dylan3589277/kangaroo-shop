@@ -238,7 +238,8 @@ export default async function AdminOrderDetailPage({ params }: Props) {
           {/* 商品明细 */}
           <div style={cardStyle}>
             <h2 style={{ ...sectionTitle, marginBottom: 'var(--space-4)' }}>{labels.items}</h2>
-            <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+            <div style={{ overflowX: 'auto' }}>
+            <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: '640px' }}>
               <thead>
                 <tr style={{ borderBottom: '1px solid var(--color-border)' }}>
                   <th style={thStyle}>{labels.product}</th>
@@ -262,6 +263,7 @@ export default async function AdminOrderDetailPage({ params }: Props) {
                 ))}
               </tbody>
             </table>
+            </div>
 
             {/* 金额汇总 */}
             <div style={{ borderTop: '1px solid var(--color-border)', marginTop: 'var(--space-4)', paddingTop: 'var(--space-4)', display: 'flex', flexDirection: 'column', gap: 'var(--space-2)' }}>

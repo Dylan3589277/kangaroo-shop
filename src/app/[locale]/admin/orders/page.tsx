@@ -1,6 +1,7 @@
 import { prisma } from '@/lib/prisma';
 import Link from 'next/link';
 import type { Prisma } from '@prisma/client';
+import { maskEmail } from '@/lib/support-orders';
 
 type Props = {
   params: { locale: string };
@@ -293,7 +294,8 @@ export default async function AdminOrdersPage({ params, searchParams }: Props) {
           </div>
         ) : (
           <>
-            <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+            <div style={{ overflowX: 'auto' }}>
+            <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: '900px' }}>
               <thead>
                 <tr style={{ background: 'var(--color-bg-alt)' }}>
                   <th style={thStyle}>{labels.orderNumber}</th>
@@ -319,7 +321,7 @@ export default async function AdminOrdersPage({ params, searchParams }: Props) {
                       <td style={{ ...tdStyle, color: 'var(--color-text-secondary)' }}>
                         {order.shippingName || '—'}
                         <br />
-                        <span style={{ fontSize: 'var(--text-xs)' }}>{order.shippingEmail || ''}</span>
+                        <span style={{ fontSize: 'var(--text-xs)' }}>{maskEmail(order.shippingEmail) || ''}</span>
                       </td>
                       <td style={tdStyle}>{order.items.length}</td>
                       <td style={{ ...tdStyle, fontWeight: 500 }}>{formatPrice(order.total)}</td>
@@ -354,6 +356,7 @@ export default async function AdminOrdersPage({ params, searchParams }: Props) {
                 })}
               </tbody>
             </table>
+            </div>
 
             {/* 分页 */}
             {totalPages > 1 && (
