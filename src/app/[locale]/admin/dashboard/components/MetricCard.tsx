@@ -10,9 +10,11 @@ import { getStatusColor, formatNumber, formatPercent, formatCurrency, getTrendDi
 interface Props {
   metric: MetricCardType;
   onClick?: () => void;
+  /** 趋势数据是否已接入真实数据。false 时不展示假趋势百分比 */
+  trendAvailable?: boolean;
 }
 
-export const MetricCard: React.FC<Props> = ({ metric, onClick }) => {
+export const MetricCard: React.FC<Props> = ({ metric, onClick, trendAvailable = false }) => {
   const { name, value, unit, status, trend, trendDirection, trendLabel } = metric;
 
   const trendDisplay = getTrendDisplay(trend);
@@ -50,15 +52,23 @@ export const MetricCard: React.FC<Props> = ({ metric, onClick }) => {
       </div>
 
       <div style={{ marginTop: '12px', display: 'flex', alignItems: 'center', gap: '8px' }}>
-        <span style={{ color: trendDisplay.color, fontSize: '14px' }}>
-          {trendDirection === 'up' ? (
-            <ArrowUpOutlined style={{ marginRight: '4px' }} />
-          ) : (
-            <ArrowDownOutlined style={{ marginRight: '4px' }} />
-          )}
-          {trendDisplay.text}
-        </span>
-        <span style={{ color: '#999', fontSize: '12px' }}>{trendLabel ?? '较上月'}</span>
+        {trendAvailable ? (
+          <>
+            <span style={{ color: trendDisplay.color, fontSize: '14px' }}>
+              {trendDirection === 'up' ? (
+                <ArrowUpOutlined style={{ marginRight: '4px' }} />
+              ) : (
+                <ArrowDownOutlined style={{ marginRight: '4px' }} />
+              )}
+              {trendDisplay.text}
+            </span>
+            <span style={{ color: '#999', fontSize: '12px' }}>{trendLabel ?? '较上月'}</span>
+          </>
+        ) : (
+          <span style={{ color: '#bbb', fontSize: '12px', fontStyle: 'italic' }}>
+            趋势数据待接入
+          </span>
+        )}
       </div>
     </Card>
   );

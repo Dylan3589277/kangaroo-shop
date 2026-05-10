@@ -1,18 +1,33 @@
 import { prisma } from '@/lib/prisma';
 import Link from 'next/link';
+import type { Prisma } from '@prisma/client';
 
 type Props = {
   params: { locale: string };
-  searchParams: { status?: string; page?: string };
+  searchParams: { status?: string; page?: string; search?: string };
 };
 
 const STATUS_OPTIONS = ['pending', 'paid', 'failed', 'cancelled', 'refunded'] as const;
 
 const PAGE_SIZE = 20;
 
-async function getOrders(status: string | undefined, page: number) {
+async function getOrders(status: string | undefined, page: number, search: string | undefined) {
   try {
-    const where = status ? { paymentStatus: status } : {};
+    const where: Prisma.OrderWhereInput = {};
+
+    if (status) {
+      where.paymentStatus = status;
+    }
+
+    // 搜索：支持订单号或邮箱模糊匹配
+    if (search?.trim()) {
+      const term = search.trim();
+      where.OR = [
+        { orderNumber: { contains: term, mode: 'insensitive' } },
+        { shippingEmail: { contains: term, mode: 'insensitive' } },
+      ];
+    }
+
     const [orders, total] = await Promise.all([
       prisma.order.findMany({
         where,
@@ -33,8 +48,9 @@ export default async function AdminOrdersPage({ params, searchParams }: Props) {
   const locale = params.locale;
   const currentStatus = searchParams.status;
   const currentPage = Math.max(1, parseInt(searchParams.page || '1', 10));
+  const search = searchParams.search;
 
-  const { orders, total, totalPages } = await getOrders(currentStatus, currentPage);
+  const { orders, total, totalPages } = await getOrders(currentStatus, currentPage, search);
 
   const t = {
     ja: {
@@ -51,6 +67,8 @@ export default async function AdminOrdersPage({ params, searchParams }: Props) {
       page: 'ページ',
       prev: '前へ',
       next: '次へ',
+      searchPlaceholder: '注文番号またはメールで検索...',
+      searchResult: (term: string, count: number) => `「${term}」の検索結果：${count}件`,
     },
     zh: {
       title: '订单管理',
@@ -66,6 +84,8 @@ export default async function AdminOrdersPage({ params, searchParams }: Props) {
       page: '页',
       prev: '上一页',
       next: '下一页',
+      searchPlaceholder: '搜索订单号或邮箱...',
+      searchResult: (term: string, count: number) => `「${term}」搜索结果：${count} 条`,
     },
     en: {
       title: 'Orders',
@@ -81,6 +101,8 @@ export default async function AdminOrdersPage({ params, searchParams }: Props) {
       page: 'Page',
       prev: 'Prev',
       next: 'Next',
+      searchPlaceholder: 'Search by order number or email...',
+      searchResult: (term: string, count: number) => `"${term}" results: ${count}`,
     },
   };
 
@@ -130,10 +152,12 @@ export default async function AdminOrdersPage({ params, searchParams }: Props) {
       { year: 'numeric', month: 'short', day: 'numeric' }
     );
 
-  function buildUrl(status: string | undefined, page: number) {
+  function buildUrl(status: string | undefined, page: number, keepSearch?: string) {
     const sp = new URLSearchParams();
     if (status) sp.set('status', status);
     if (page > 1) sp.set('page', String(page));
+    const s = keepSearch ?? search;
+    if (s) sp.set('search', s);
     const qs = sp.toString();
     return `/${locale}/admin/orders${qs ? '?' + qs : ''}`;
   }
@@ -143,6 +167,64 @@ export default async function AdminOrdersPage({ params, searchParams }: Props) {
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 'var(--space-6)' }}>
         <h1 style={{ fontSize: 'var(--text-2xl)', fontWeight: 700 }}>{labels.title}</h1>
       </div>
+
+      {/* 搜索框 */}
+      <form method="GET" action={`/${locale}/admin/orders`} style={{ marginBottom: 'var(--space-4)' }}>
+        {currentStatus && <input type="hidden" name="status" value={currentStatus} />}
+        <div style={{ display: 'flex', gap: 'var(--space-2)', maxWidth: '400px' }}>
+          <input
+            type="text"
+            name="search"
+            defaultValue={search || ''}
+            placeholder={labels.searchPlaceholder}
+            style={{
+              flex: 1,
+              padding: 'var(--space-2) var(--space-3)',
+              borderRadius: 'var(--radius-md)',
+              border: '1px solid var(--color-border)',
+              fontSize: 'var(--text-sm)',
+              background: 'var(--color-surface)',
+              color: 'var(--color-text)',
+            }}
+          />
+          <button
+            type="submit"
+            style={{
+              padding: 'var(--space-2) var(--space-4)',
+              borderRadius: 'var(--radius-md)',
+              border: '1px solid var(--color-primary)',
+              background: 'var(--color-primary)',
+              color: '#fff',
+              fontSize: 'var(--text-sm)',
+              fontWeight: 500,
+              cursor: 'pointer',
+            }}
+          >
+            {locale === 'ja' ? '検索' : locale === 'zh' ? '搜索' : 'Search'}
+          </button>
+          {search && (
+            <a
+              href={buildUrl(currentStatus, 1, undefined)}
+              style={{
+                padding: 'var(--space-2) var(--space-3)',
+                borderRadius: 'var(--radius-md)',
+                border: '1px solid var(--color-border)',
+                background: 'var(--color-surface)',
+                color: 'var(--color-text-muted)',
+                fontSize: 'var(--text-sm)',
+                textDecoration: 'none',
+              }}
+            >
+              ✕
+            </a>
+          )}
+        </div>
+        {search && (
+          <p style={{ marginTop: 'var(--space-2)', fontSize: 'var(--text-sm)', color: 'var(--color-text-secondary)' }}>
+            {labels.searchResult(search, total)}
+          </p>
+        )}
+      </form>
 
       {/* 状态筛选 */}
       <div style={{ display: 'flex', gap: 'var(--space-2)', marginBottom: 'var(--space-6)', flexWrap: 'wrap' }}>
@@ -189,8 +271,25 @@ export default async function AdminOrdersPage({ params, searchParams }: Props) {
         overflow: 'hidden',
       }}>
         {orders.length === 0 ? (
-          <div style={{ padding: 'var(--space-12)', textAlign: 'center', color: 'var(--color-text-muted)' }}>
-            {labels.noOrders}
+          <div style={{ padding: 'var(--space-12)', textAlign: 'center' }}>
+            <p style={{ color: 'var(--color-text-muted)', marginBottom: 'var(--space-4)' }}>
+              {labels.noOrders}
+            </p>
+            <a
+              href={`/${locale}/admin/products`}
+              style={{
+                display: 'inline-block',
+                padding: 'var(--space-2) var(--space-4)',
+                background: 'var(--color-primary)',
+                color: '#fff',
+                borderRadius: 'var(--radius-md)',
+                textDecoration: 'none',
+                fontSize: 'var(--text-sm)',
+                fontWeight: 500,
+              }}
+            >
+              {locale === 'ja' ? '商品管理へ' : locale === 'zh' ? '管理商品' : 'Manage Products'}
+            </a>
           </div>
         ) : (
           <>

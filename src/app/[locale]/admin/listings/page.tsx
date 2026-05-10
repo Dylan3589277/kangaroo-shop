@@ -221,7 +221,21 @@ export default async function AdminListingsPage({ params, searchParams }: Props)
 
       <section style={{ ...cardStyle, overflow: 'hidden', marginBottom: 'var(--space-8)' }}>
         {products.length === 0 ? (
-          <div style={{ padding: 'var(--space-12)', textAlign: 'center', color: 'var(--color-text-muted)' }}>{t.noProducts}</div>
+          <div style={{ padding: 'var(--space-12)', textAlign: 'center' }}>
+            <p style={{ color: 'var(--color-text-muted)', marginBottom: 'var(--space-4)' }}>{t.noProducts}</p>
+            <a href={`/${locale}/admin/products/new`} style={{
+              display: 'inline-block',
+              padding: 'var(--space-2) var(--space-4)',
+              background: 'var(--color-primary)',
+              color: '#fff',
+              borderRadius: 'var(--radius-md)',
+              textDecoration: 'none',
+              fontSize: 'var(--text-sm)',
+              fontWeight: 500,
+            }}>
+              {locale === 'ja' ? '＋ 商品を追加' : locale === 'zh' ? '＋ 添加商品' : '+ Add Product'}
+            </a>
+          </div>
         ) : (
           <>
             <div style={{ overflowX: 'auto' }}>

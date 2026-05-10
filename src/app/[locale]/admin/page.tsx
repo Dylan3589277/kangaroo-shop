@@ -48,9 +48,20 @@ export default async function AdminDashboard({ params }: { params: { locale: str
 
   return (
     <div>
-      <h1 style={{ fontSize: 'var(--text-2xl)', fontWeight: 700, marginBottom: 'var(--space-6)' }}>
-        {locale === 'ja' ? 'ダッシュボード' : locale === 'zh' ? '管理后台' : 'Dashboard'}
+      <h1 style={{ fontSize: 'var(--text-2xl)', fontWeight: 700, marginBottom: 'var(--space-2)' }}>
+        {locale === 'ja' ? 'ダッシュボード' : locale === 'zh' ? '概览' : 'Overview'}
       </h1>
+      <p style={{
+        color: 'var(--color-text-muted)',
+        fontSize: 'var(--text-sm)',
+        marginBottom: 'var(--space-6)',
+      }}>
+        {locale === 'ja'
+          ? 'クイックビュー · 主要指標一覧（詳細な分析は 📈 Dashboard へ）'
+          : locale === 'zh'
+          ? '快捷看板 · 核心指标一览（详细趋势分析请前往 📈 Dashboard）'
+          : 'Quick View · Key Metrics at a Glance (for detailed analysis see 📈 Dashboard)'}
+      </p>
 
       {/* 统计卡片 */}
       <div style={{
@@ -133,8 +144,22 @@ export default async function AdminDashboard({ params }: { params: { locale: str
             {locale === 'ja' ? 'データベースに接続できません' : locale === 'zh' ? '无法连接数据库' : 'Cannot connect to database'}
           </div>
         ) : stats.recentOrders.length === 0 ? (
-          <div style={{ padding: 'var(--space-8)', textAlign: 'center', color: 'var(--color-text-muted)' }}>
-            {locale === 'ja' ? '注文がありません' : locale === 'zh' ? '暂无订单' : 'No orders yet'}
+          <div style={{ padding: 'var(--space-8)', textAlign: 'center' }}>
+            <p style={{ color: 'var(--color-text-muted)', marginBottom: 'var(--space-4)' }}>
+              {locale === 'ja' ? '注文がありません' : locale === 'zh' ? '暂无订单' : 'No orders yet'}
+            </p>
+            <a href={`/${locale}/admin/products/new`} style={{
+              display: 'inline-block',
+              padding: 'var(--space-2) var(--space-4)',
+              background: 'var(--color-primary)',
+              color: '#fff',
+              borderRadius: 'var(--radius-md)',
+              textDecoration: 'none',
+              fontSize: 'var(--text-sm)',
+              fontWeight: 500,
+            }}>
+              {locale === 'ja' ? '＋ 商品を追加' : locale === 'zh' ? '＋ 添加商品' : '+ Add Product'}
+            </a>
           </div>
         ) : (
           <table style={{ width: '100%', borderCollapse: 'collapse' }}>

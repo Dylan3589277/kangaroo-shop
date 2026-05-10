@@ -92,6 +92,10 @@ export const OverviewPage: React.FC<OverviewPageProps> = ({ initialData }) => {
         <Text type="secondary">
           实时监控classe跨境电商核心经营与同步指标，及时发现并处理异常情况
         </Text>
+        <br />
+        <Text type="secondary" style={{ color: '#faad14', fontSize: '13px' }}>
+          ⚠️ 趋势环比数据暂未接入真实上游，卡片中趋势百分比显示为「趋势数据待接入」
+        </Text>
       </div>
 
       {/* 核心指标卡片 */}

@@ -182,8 +182,25 @@ export default async function AdminProductsPage({ params, searchParams }: Props)
         overflow: 'hidden',
       }}>
         {products.length === 0 ? (
-          <div style={{ padding: 'var(--space-12)', textAlign: 'center', color: 'var(--color-text-muted)' }}>
-            {labels.noProducts}
+          <div style={{ padding: 'var(--space-12)', textAlign: 'center' }}>
+            <p style={{ color: 'var(--color-text-muted)', marginBottom: 'var(--space-4)' }}>
+              {labels.noProducts}
+            </p>
+            <a
+              href={`/${locale}/admin/products/new`}
+              style={{
+                display: 'inline-block',
+                padding: 'var(--space-2) var(--space-4)',
+                background: 'var(--color-primary)',
+                color: '#fff',
+                borderRadius: 'var(--radius-md)',
+                textDecoration: 'none',
+                fontSize: 'var(--text-sm)',
+                fontWeight: 500,
+              }}
+            >
+              {locale === 'ja' ? '＋ 最初の商品を追加' : locale === 'zh' ? '＋ 添加第一个商品' : '+ Add First Product'}
+            </a>
           </div>
         ) : (
           <>
