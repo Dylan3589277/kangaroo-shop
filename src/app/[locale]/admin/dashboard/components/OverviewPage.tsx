@@ -14,9 +14,11 @@ import { useParams, useRouter } from 'next/navigation';
 import { MetricCard } from './MetricCard';
 import { TrendChart } from './TrendChart';
 import { AlertList } from './AlertList';
+import { DashboardDateRangeFilter } from './DashboardDateRangeFilter';
 import { COLORS } from '../lib/chart';
-import { getOverview, resolveAlert } from '../lib/dashboardApi';
+import { getDefaultDashboardDateRange, getOverview, resolveAlert } from '../lib/dashboardApi';
 import type { ModuleType, OverviewData } from '../lib/types';
+import type { DashboardDateRange } from '../lib/dashboardApi';
 
 const { Title, Text } = Typography;
 
@@ -40,18 +42,18 @@ export const OverviewPage: React.FC<OverviewPageProps> = ({ initialData }) => {
   const [loading, setLoading] = useState(!initialData);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [trendRange, setTrendRange] = useState<string>('30天');
+  const [dateRange, setDateRange] = useState<DashboardDateRange>(() => getDefaultDashboardDateRange());
 
   useEffect(() => {
-    if (!initialData) {
-      fetchData();
-    }
-  }, [initialData]);
+    fetchData(dateRange);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [dateRange]);
 
-  const fetchData = async () => {
+  const fetchData = async (range = dateRange) => {
     try {
       setLoading(true);
       setErrorMessage(null);
-      const data = await getOverview();
+      const data = await getOverview(range);
       setOverview(data);
     } catch (error) {
       console.error('Failed to fetch overview:', error);
@@ -66,7 +68,7 @@ export const OverviewPage: React.FC<OverviewPageProps> = ({ initialData }) => {
     try {
       await resolveAlert(alertId, handler, result);
       // Refresh data
-      await fetchData();
+      await fetchData(dateRange);
     } catch (error) {
       console.error('Failed to resolve alert:', error);
     }
@@ -82,17 +84,30 @@ export const OverviewPage: React.FC<OverviewPageProps> = ({ initialData }) => {
 
   if (errorMessage) {
     return (
-      <Alert
-        type="error"
-        showIcon
-        message="Dashboard 加载失败"
-        description={errorMessage}
-        action={
-          <Button size="small" danger onClick={() => void fetchData()}>
-            重试
-          </Button>
-        }
-      />
+      <div>
+        <div style={{ marginBottom: '24px' }}>
+          <Title level={3} style={{ marginBottom: '8px' }}>
+            <DashboardOutlined /> 全局健康总览
+          </Title>
+          <Text type="secondary">
+            实时监控classe跨境电商核心经营与同步指标，及时发现并处理异常情况
+          </Text>
+          <div style={{ marginTop: '16px' }}>
+            <DashboardDateRangeFilter value={dateRange} loading={loading} onChange={setDateRange} />
+          </div>
+        </div>
+        <Alert
+          type="error"
+          showIcon
+          message="Dashboard 加载失败"
+          description={errorMessage}
+          action={
+            <Button size="small" danger onClick={() => void fetchData(dateRange)}>
+              重试
+            </Button>
+          }
+        />
+      </div>
     );
   }
 
@@ -116,6 +131,9 @@ export const OverviewPage: React.FC<OverviewPageProps> = ({ initialData }) => {
         <Text type="secondary" style={{ color: '#faad14', fontSize: '13px' }}>
           ⚠️ 趋势环比数据暂未接入真实上游，卡片中趋势百分比显示为「趋势数据待接入」
         </Text>
+        <div style={{ marginTop: '16px' }}>
+          <DashboardDateRangeFilter value={dateRange} loading={loading} onChange={setDateRange} />
+        </div>
       </div>
 
       {/* 核心指标卡片 */}
@@ -189,7 +207,7 @@ export const OverviewPage: React.FC<OverviewPageProps> = ({ initialData }) => {
               <Col xs={12} sm={8} lg={4} key={module}>
                 <Card
                   hoverable
-                  onClick={() => router.push(`/${locale}/admin/dashboard/${module}`)}
+                  onClick={() => router.push(`/${locale}/admin/dashboard/${module}?start=${dateRange.start}&end=${dateRange.end}`)}
                   style={{ textAlign: 'center' }}
                 >
                   <div style={{ fontSize: '32px', color: config.color, marginBottom: '8px' }}>

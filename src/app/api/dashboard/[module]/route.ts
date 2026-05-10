@@ -3,6 +3,7 @@ import { prisma } from '@/lib/prisma';
 import { refreshDashboardAlerts } from '@/lib/dashboard-alerts';
 import { requireAdminSession } from '@/lib/admin-auth';
 import { getRakutenSyncDashboardData } from '@/lib/dashboard-rakuten-sync';
+import { parseDashboardDateRange } from '@/lib/dashboard-date-range';
 
 // 模块类型
 type ModuleType = 'hr' | 'finance' | 'supply_chain' | 'operation' | 'influencer';
@@ -62,6 +63,10 @@ export async function GET(
     const { response } = await requireAdminSession();
     if (response) return response;
 
+    const parsedRange = parseDashboardDateRange(new URL(req.url).searchParams);
+    if (parsedRange.response) return parsedRange.response;
+    const { range } = parsedRange;
+
     const moduleId = params.module as ModuleType;
 
     // 验证模块类型
@@ -83,24 +88,23 @@ export async function GET(
     // 运营模块可以从现有数据计算
     if (moduleId === 'operation') {
       const now = new Date();
-      const thirtyDaysAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
+      const createdAtRange = { gte: range.startDate, lt: range.endExclusiveDate };
 
       // Refresh auto-generated alerts
       await refreshDashboardAlerts();
 
-      const [recentOrders, products, recentPaidRevenue, recentPaidOrderCount, allPaidOrderCount, refundedOrderCount, rakutenSync] = await Promise.all([
+      const [recentOrders, products, recentPaidRevenue, recentPaidOrderCount, refundedOrderCount, rakutenSync] = await Promise.all([
         prisma.order.findMany({
-          where: { createdAt: { gte: thirtyDaysAgo } },
+          where: { createdAt: createdAtRange },
           include: { items: true },
         }),
         prisma.product.findMany({ where: { isActive: true } }),
         prisma.order.aggregate({
           _sum: { total: true },
-          where: { paymentStatus: 'paid', createdAt: { gte: thirtyDaysAgo } },
+          where: { paymentStatus: 'paid', createdAt: createdAtRange },
         }),
-        prisma.order.count({ where: { paymentStatus: 'paid', createdAt: { gte: thirtyDaysAgo } } }),
-        prisma.order.count({ where: { paymentStatus: 'paid' } }),
-        prisma.order.count({ where: { paymentStatus: 'refunded' } }),
+        prisma.order.count({ where: { paymentStatus: 'paid', createdAt: createdAtRange } }),
+        prisma.order.count({ where: { paymentStatus: 'refunded', createdAt: createdAtRange } }),
         getRakutenSyncDashboardData(now),
       ]);
 
@@ -112,12 +116,12 @@ export async function GET(
         ? products.reduce((sum, p) => sum + p.rating, 0) / products.length
         : 0;
 
-      const completedOrderCount = allPaidOrderCount + refundedOrderCount;
+      const completedOrderCount = recentPaidOrderCount + refundedOrderCount;
       const returnRate = completedOrderCount > 0
         ? (refundedOrderCount / completedOrderCount) * 100
         : 0;
 
-      // 转化率口径与运营卡片一致：最近 30 天 paid 订单 / 最近 30 天全部订单
+      // 转化率口径与运营卡片一致：所选范围 paid 订单 / 所选范围全部订单
       const conversionRate = recentOrders.length > 0
         ? Math.round((recentPaidOrderCount / recentOrders.length) * 100 * 10) / 10
         : 0;
@@ -172,9 +176,7 @@ export async function GET(
 
       const dailyAvgOrderValue: { date: string; value: number }[] = [];
       const dailyConversionRate: { date: string; value: number }[] = [];
-      for (let i = 29; i >= 0; i--) {
-        const date = new Date(now.getTime() - i * 24 * 60 * 60 * 1000);
-        const dateStr = date.toISOString().split('T')[0];
+      for (const dateStr of range.days) {
         const dayOrders = recentOrders.filter(o => {
           const orderDate = new Date(o.createdAt).toISOString().split('T')[0];
           return orderDate === dateStr;

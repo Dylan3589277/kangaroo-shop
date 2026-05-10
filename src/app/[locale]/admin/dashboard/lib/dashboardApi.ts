@@ -2,6 +2,42 @@ import type { OverviewData, Alert, ModuleData, ModuleType } from './types';
 
 const API_BASE = '/api/dashboard';
 
+export type DashboardDateRange = {
+  start: string;
+  end: string;
+};
+
+export function getDefaultDashboardDateRange(): DashboardDateRange {
+  const today = new Date();
+  const end = today.toISOString().slice(0, 10);
+  const startDate = new Date(today);
+  startDate.setDate(today.getDate() - 29);
+  const start = startDate.toISOString().slice(0, 10);
+
+  return { start, end };
+}
+
+export function getPresetDashboardDateRange(days: number): DashboardDateRange {
+  const today = new Date();
+  const end = today.toISOString().slice(0, 10);
+  const startDate = new Date(today);
+  startDate.setDate(today.getDate() - (days - 1));
+  const start = startDate.toISOString().slice(0, 10);
+
+  return { start, end };
+}
+
+function withDateRange(url: string, dateRange?: DashboardDateRange) {
+  if (!dateRange) return url;
+
+  const params = new URLSearchParams({
+    start: dateRange.start,
+    end: dateRange.end,
+  });
+
+  return `${url}?${params.toString()}`;
+}
+
 async function fetchJson<T>(url: string, options?: RequestInit): Promise<T> {
   const res = await fetch(url, {
     ...options,
@@ -17,12 +53,12 @@ async function fetchJson<T>(url: string, options?: RequestInit): Promise<T> {
   return json.data;
 }
 
-export async function getOverview(): Promise<OverviewData> {
-  return fetchJson<OverviewData>(`${API_BASE}/overview`);
+export async function getOverview(dateRange?: DashboardDateRange): Promise<OverviewData> {
+  return fetchJson<OverviewData>(withDateRange(`${API_BASE}/overview`, dateRange));
 }
 
-export async function getModuleData(module: ModuleType): Promise<ModuleData> {
-  return fetchJson<ModuleData>(`${API_BASE}/${module}`);
+export async function getModuleData(module: ModuleType, dateRange?: DashboardDateRange): Promise<ModuleData> {
+  return fetchJson<ModuleData>(withDateRange(`${API_BASE}/${module}`, dateRange));
 }
 
 export async function getAlerts(params?: {

@@ -9,13 +9,19 @@ function normalizeModuleId(slug: string): string {
 
 export default function DashboardModulePage({
   params,
+  searchParams,
 }: {
   params: { module: string };
+  searchParams?: { start?: string; end?: string };
 }) {
   const moduleId = normalizeModuleId(params.module);
+  const initialDateRange = searchParams?.start && searchParams?.end
+    ? { start: searchParams.start, end: searchParams.end }
+    : undefined;
+
   return (
     <DashboardClientWrapper>
-      <ModuleDetailPage moduleId={moduleId} />
+      <ModuleDetailPage moduleId={moduleId} initialDateRange={initialDateRange} />
     </DashboardClientWrapper>
   );
 }

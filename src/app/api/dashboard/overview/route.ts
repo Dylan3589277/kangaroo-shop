@@ -4,19 +4,24 @@ import { serverError } from '@/lib/api-error';
 import { refreshDashboardAlerts } from '@/lib/dashboard-alerts';
 import { requireAdminSession } from '@/lib/admin-auth';
 import { getRakutenSyncDashboardData } from '@/lib/dashboard-rakuten-sync';
+import { parseDashboardDateRange } from '@/lib/dashboard-date-range';
 
 export const dynamic = 'force-dynamic';
 
-export async function GET() {
+export async function GET(req: Request) {
   try {
     const { response } = await requireAdminSession();
     if (response) return response;
+
+    const parsedRange = parseDashboardDateRange(new URL(req.url).searchParams);
+    if (parsedRange.response) return parsedRange.response;
+    const { range } = parsedRange;
 
     // Refresh auto-generated alerts before fetching overview
     await refreshDashboardAlerts();
 
     const now = new Date();
-    const thirtyDaysAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
+    const createdAtRange = { gte: range.startDate, lt: range.endExclusiveDate };
 
     // Use aggregate/count instead of full findMany to avoid loading all rows into memory.
     // recentOrders only needs minimal fields for trend computation.
@@ -29,20 +34,20 @@ export async function GET() {
       alerts,
       rakutenSync,
     ] = await Promise.all([
-      // Recent 30-day orders — select only the columns we actually use
+      // Orders in the selected date range — select only the columns we actually use
       prisma.order.findMany({
-        where: { createdAt: { gte: thirtyDaysAgo } },
+        where: { createdAt: createdAtRange },
         select: { total: true, paymentStatus: true, createdAt: true },
       }),
-      // Monthly revenue = paid orders within the last 30 days only
+      // Revenue = paid orders within the selected date range only
       prisma.order.aggregate({
         _sum: { total: true },
-        where: { paymentStatus: 'paid', createdAt: { gte: thirtyDaysAgo } },
+        where: { paymentStatus: 'paid', createdAt: createdAtRange },
       }),
-      // Paid order count in the same 30-day window as the dashboard card.
-      prisma.order.count({ where: { paymentStatus: 'paid', createdAt: { gte: thirtyDaysAgo } } }),
-      // Refunded count in the same 30-day window as the dashboard card.
-      prisma.order.count({ where: { paymentStatus: 'refunded', createdAt: { gte: thirtyDaysAgo } } }),
+      // Paid order count in the same selected window as the dashboard card.
+      prisma.order.count({ where: { paymentStatus: 'paid', createdAt: createdAtRange } }),
+      // Refunded count in the same selected window as the dashboard card.
+      prisma.order.count({ where: { paymentStatus: 'refunded', createdAt: createdAtRange } }),
       // Average rating across active products
       prisma.product.aggregate({
         _avg: { rating: true },
@@ -55,18 +60,18 @@ export async function GET() {
       getRakutenSyncDashboardData(now),
     ]);
 
-    // 月营收：最近 30 天 paid 订单之和
+    // 营收：所选范围 paid 订单之和
     const monthRevenue = revenueAgg._sum.total ?? 0;
 
-    // 月订单数（含所有支付状态，口径与原来保持一致）
+    // 订单数（含所有支付状态，口径与原来保持一致）
     const monthOrderCount = recentOrders.length;
 
-    // 客单价：最近 30 天 paid 订单总额 / paid 订单数
+    // 客单价：所选范围 paid 订单总额 / paid 订单数
     const avgOrderValue = recentPaidCount > 0
       ? (revenueAgg._sum.total ?? 0) / recentPaidCount
       : 0;
 
-    // 转化率 = 最近 30 天 paid 订单 / 最近 30 天全部订单，窗口与卡片一致
+    // 转化率 = 所选范围 paid 订单 / 所选范围全部订单，窗口与卡片一致
     const conversionRate = monthOrderCount > 0
       ? Math.round((recentPaidCount / monthOrderCount) * 100 * 10) / 10
       : 0;
@@ -74,7 +79,7 @@ export async function GET() {
     // 平均评分
     const avgRating = ratingAgg._avg.rating ?? 0;
 
-    // 退货率 = 最近 30 天 refunded / (paid + refunded)，分母>0 保证除 0 安全
+    // 退货率 = 所选范围 refunded / (paid + refunded)，分母>0 保证除 0 安全
     const completedCount = recentPaidCount + refundedCount;
     const returnRate = completedCount > 0
       ? (refundedCount / completedCount) * 100
@@ -84,7 +89,7 @@ export async function GET() {
     const metrics = [
       {
         id: 'revenue',
-        name: '月营收',
+        name: '营收',
         value: monthRevenue,
         unit: 'JPY',
         status: 'green' as const,
@@ -95,7 +100,7 @@ export async function GET() {
       },
       {
         id: 'order-count',
-        name: '月订单数',
+        name: '订单数',
         value: monthOrderCount,
         unit: '笔',
         status: monthOrderCount > 10 ? 'green' as const : 'yellow' as const,
@@ -151,14 +156,12 @@ export async function GET() {
       ...rakutenSync.metrics.slice(0, 4),
     ];
 
-    // 生成趋势数据（最近30天每日营收[paid only]和订单数）
+    // 生成趋势数据（所选范围每日营收[paid only]和订单数）
     const dailyRevenue: { date: string; value: number }[] = [];
     const dailyOrderCount: { date: string; value: number }[] = [];
     const dailyAvgOrderValue: { date: string; value: number }[] = [];
     const dailyConversionRate: { date: string; value: number }[] = [];
-    for (let i = 29; i >= 0; i--) {
-      const date = new Date(now.getTime() - i * 24 * 60 * 60 * 1000);
-      const dateStr = date.toISOString().split('T')[0];
+    for (const dateStr of range.days) {
       const dayOrders = recentOrders.filter(o => {
         const orderDate = new Date(o.createdAt).toISOString().split('T')[0];
         return orderDate === dateStr;

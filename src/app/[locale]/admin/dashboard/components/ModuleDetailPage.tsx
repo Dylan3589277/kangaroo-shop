@@ -12,12 +12,14 @@ import {
   UserOutlined,
 } from '@ant-design/icons';
 import { AlertList } from './AlertList';
+import { DashboardDateRangeFilter } from './DashboardDateRangeFilter';
 import { MetricCard } from './MetricCard';
 import { TrendChart } from './TrendChart';
 import { COLORS } from '../lib/chart';
-import { getModuleData, resolveAlert } from '../lib/dashboardApi';
+import { getDefaultDashboardDateRange, getModuleData, resolveAlert } from '../lib/dashboardApi';
 import { getTrendDisplay, MODULE_NAMES } from '../lib/format';
 import type { MetricCard as MetricCardType, ModuleData, ModuleType } from '../lib/types';
+import type { DashboardDateRange } from '../lib/dashboardApi';
 
 const { Title, Text } = Typography;
 
@@ -33,35 +35,42 @@ const PENDING_REAL_DATA_MODULES: ModuleType[] = ['hr', 'finance', 'supply_chain'
 
 interface Props {
   moduleId: string;
+  initialDateRange?: DashboardDateRange;
 }
 
-export const ModuleDetailPage: React.FC<Props> = ({ moduleId }) => {
+export const ModuleDetailPage: React.FC<Props> = ({ moduleId, initialDateRange }) => {
   const [data, setData] = useState<ModuleData | null>(null);
   const [loading, setLoading] = useState(true);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [trendRange, setTrendRange] = useState<string>('30天');
+  const [dateRange, setDateRange] = useState<DashboardDateRange>(
+    () => initialDateRange ?? getDefaultDashboardDateRange()
+  );
 
   const moduleType = moduleId as ModuleType;
   const isValidModule = moduleId in MODULE_CONFIG;
   const hasPendingRealData = isValidModule && PENDING_REAL_DATA_MODULES.includes(moduleType);
 
-  const fetchData = async () => {
+  const fetchData = async (range = dateRange) => {
     if (!isValidModule) return;
     try {
       setLoading(true);
-      const moduleData = await getModuleData(moduleType);
+      setErrorMessage(null);
+      const moduleData = await getModuleData(moduleType, range);
       setData(moduleData);
     } catch (error) {
       console.error('Failed to fetch module data:', error);
       setData(null);
+      setErrorMessage(error instanceof Error ? error.message : 'Dashboard 模块数据加载失败');
     } finally {
       setLoading(false);
     }
   };
 
   useEffect(() => {
-    fetchData();
+    fetchData(dateRange);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [moduleId, isValidModule]);
+  }, [moduleId, isValidModule, dateRange]);
 
   const metricColumns = useMemo(() => [
     {
@@ -138,6 +147,28 @@ export const ModuleDetailPage: React.FC<Props> = ({ moduleId }) => {
   }
 
   if (!data) {
+    if (errorMessage) {
+      return (
+        <div>
+          <div style={{ marginBottom: '24px' }}>
+            <Title level={3} style={{ marginBottom: '8px' }}>
+              <span style={{ color: config.color }}>{config.icon}</span> {config.name}模块
+            </Title>
+            <Text type="secondary">{MODULE_NAMES[moduleId]}核心指标监控与分析</Text>
+            <div style={{ marginTop: '16px' }}>
+              <DashboardDateRangeFilter value={dateRange} loading={loading} onChange={setDateRange} />
+            </div>
+          </div>
+          <Alert
+            type="error"
+            showIcon
+            message="Dashboard 模块加载失败"
+            description={errorMessage}
+          />
+        </div>
+      );
+    }
+
     return <Empty description="暂无数据" />;
   }
 
@@ -147,7 +178,7 @@ export const ModuleDetailPage: React.FC<Props> = ({ moduleId }) => {
   const handleResolveAlert = async (alertId: string, result: string, handler: string) => {
     try {
       await resolveAlert(alertId, handler, result);
-      await fetchData();
+      await fetchData(dateRange);
     } catch (error) {
       console.error('Failed to resolve alert:', error);
     }
@@ -160,7 +191,20 @@ export const ModuleDetailPage: React.FC<Props> = ({ moduleId }) => {
           <span style={{ color: config.color }}>{config.icon}</span> {config.name}模块
         </Title>
         <Text type="secondary">{MODULE_NAMES[moduleId]}核心指标监控与分析</Text>
+        <div style={{ marginTop: '16px' }}>
+          <DashboardDateRangeFilter value={dateRange} loading={loading} onChange={setDateRange} />
+        </div>
       </div>
+
+      {errorMessage && (
+        <Alert
+          type="error"
+          showIcon
+          message="Dashboard 模块加载失败"
+          description={errorMessage}
+          style={{ marginBottom: '24px' }}
+        />
+      )}
 
       {hasPendingRealData && (
         <Alert
