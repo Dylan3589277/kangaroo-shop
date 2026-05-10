@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useEffect, useState } from 'react';
-import { Alert, Button, Row, Col, Card, Typography, Segmented, Spin, Empty } from 'antd';
+import { Alert, Button, Row, Col, Card, Typography, Segmented, Spin, Empty, Tag } from 'antd';
 import {
   UserOutlined,
   AccountBookOutlined,
@@ -17,7 +17,7 @@ import { AlertList } from './AlertList';
 import { DashboardDateRangeFilter } from './DashboardDateRangeFilter';
 import { COLORS } from '../lib/chart';
 import { getDefaultDashboardDateRange, getOverview, resolveAlert } from '../lib/dashboardApi';
-import type { ModuleType, OverviewData } from '../lib/types';
+import type { MetricStatus, ModuleType, OverviewData, RakutenSyncHealthSummary } from '../lib/types';
 import type { DashboardDateRange } from '../lib/dashboardApi';
 
 const { Title, Text } = Typography;
@@ -29,6 +29,99 @@ const MODULE_CONFIG: Record<ModuleType, { icon: React.ReactNode; name: string; c
   operation: { icon: <SettingOutlined />, name: '运营', color: COLORS.yellow },
   influencer: { icon: <StarOutlined />, name: '红人', color: COLORS.green },
 };
+
+const STATUS_TAG: Record<MetricStatus, { color: string; label: string }> = {
+  green: { color: 'success', label: '正常' },
+  yellow: { color: 'warning', label: '预警' },
+  red: { color: 'error', label: '告警' },
+};
+
+const JOB_STATUS_LABEL: Record<string, string> = {
+  pending: '等待中',
+  running: '同步中',
+  done: '已完成',
+  failed: '失败',
+};
+
+function formatHealthNumber(value: number, unit = '') {
+  return `${value.toLocaleString('ja-JP')}${unit}`;
+}
+
+function formatHealthPercent(value: number) {
+  return `${value.toFixed(1)}%`;
+}
+
+function formatLatestJobAge(value: number | null) {
+  return value === null ? '暂无' : `${value.toFixed(1)}小时`;
+}
+
+function formatLatestJobAt(value: string | null) {
+  if (!value) return '暂无同步作业';
+  return new Date(value).toLocaleString('zh-CN', {
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+    hour: '2-digit',
+    minute: '2-digit',
+    hour12: false,
+  });
+}
+
+function RakutenHealthCard({ health }: { health: RakutenSyncHealthSummary }) {
+  const status = STATUS_TAG[health.status];
+  const summaryItems = [
+    { label: '距上次同步', value: formatLatestJobAge(health.latestJobAgeHours) },
+    { label: '近30天作业数', value: formatHealthNumber(health.recentJobCount, '次') },
+    { label: '导入成功率', value: formatHealthPercent(health.successRate) },
+    { label: '错误行数', value: formatHealthNumber(health.recentErrorRows, '行') },
+  ];
+  const listingItems = [
+    { label: '上架记录', value: health.listingCounts.total },
+    { label: '库存可售', value: health.listingCounts.sellable },
+    { label: '缺货', value: health.listingCounts.outOfStock },
+    { label: '低库存', value: health.listingCounts.lowStock },
+  ];
+
+  return (
+    <Card
+      title="Rakuten 同步健康"
+      extra={<Tag color={status.color}>{status.label}</Tag>}
+      style={{ marginBottom: '24px' }}
+    >
+      <Row gutter={[16, 16]}>
+        <Col xs={24} lg={8}>
+          <div style={{ color: '#999', fontSize: '13px', marginBottom: '8px' }}>最新同步状态</div>
+          <div style={{ fontSize: '24px', fontWeight: 600, color: '#333' }}>
+            {health.latestJobStatus ? JOB_STATUS_LABEL[health.latestJobStatus] ?? health.latestJobStatus : '暂无'}
+          </div>
+          <Text type="secondary" style={{ fontSize: '12px' }}>
+            {formatLatestJobAt(health.latestJobAt)}
+          </Text>
+        </Col>
+        {summaryItems.map(item => (
+          <Col xs={12} sm={6} lg={4} key={item.label}>
+            <div style={{ color: '#999', fontSize: '13px', marginBottom: '8px' }}>{item.label}</div>
+            <div style={{ fontSize: '22px', fontWeight: 600, color: '#333' }}>{item.value}</div>
+          </Col>
+        ))}
+        <Col xs={24}>
+          <Row gutter={[12, 12]}>
+            {listingItems.map(item => (
+              <Col xs={12} sm={6} key={item.label}>
+                <div style={{ border: '1px solid #f0f0f0', borderRadius: '6px', padding: '12px' }}>
+                  <div style={{ color: '#999', fontSize: '13px', marginBottom: '6px' }}>{item.label}</div>
+                  <div style={{ fontSize: '20px', fontWeight: 600, color: '#333' }}>
+                    {formatHealthNumber(item.value, '件')}
+                  </div>
+                </div>
+              </Col>
+            ))}
+          </Row>
+        </Col>
+      </Row>
+    </Card>
+  );
+}
 
 interface OverviewPageProps {
   initialData?: OverviewData;
@@ -146,6 +239,10 @@ export const OverviewPage: React.FC<OverviewPageProps> = ({ initialData }) => {
           ))}
         </Row>
       </Card>
+
+      {overview.rakutenSyncHealth && (
+        <RakutenHealthCard health={overview.rakutenSyncHealth} />
+      )}
 
       {/* 异常告警栏 */}
       {activeAlerts.length > 0 && (

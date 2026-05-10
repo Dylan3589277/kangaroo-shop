@@ -191,7 +191,7 @@ export async function GET(req: Request) {
     };
 
     return NextResponse.json({
-      data: { metrics, alerts, trendData },
+      data: { metrics, alerts, trendData, rakutenSyncHealth: rakutenSync.healthSummary },
       error: null,
     });
   } catch (error) {

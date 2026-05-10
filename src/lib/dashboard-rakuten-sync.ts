@@ -22,9 +22,29 @@ export type TrendDataPoint = {
   value: number;
 };
 
+export type RakutenSyncHealthSummary = {
+  status: MetricStatus;
+  latestJobStatus: string | null;
+  latestJobAt: Date | null;
+  latestJobAgeHours: number | null;
+  recentJobCount: number;
+  failedRecentJobs: number;
+  recentImportedRows: number;
+  recentErrorRows: number;
+  successRate: number;
+  listingCounts: {
+    total: number;
+    active: number;
+    sellable: number;
+    outOfStock: number;
+    lowStock: number;
+  };
+};
+
 export type RakutenSyncDashboardData = {
   metrics: DashboardMetric[];
   trendData: Record<string, TrendDataPoint[]>;
+  healthSummary: RakutenSyncHealthSummary;
 };
 
 export async function getRakutenSyncDashboardData(now = new Date()): Promise<RakutenSyncDashboardData> {
@@ -87,6 +107,17 @@ export async function getRakutenSyncDashboardData(now = new Date()): Promise<Rak
   const recentImportSuccessRate = recentProcessedRows > 0
     ? Math.round((recentImportedRows / recentProcessedRows) * 1000) / 10
     : 0;
+  const latestJobAgeHours = latestJob
+    ? Math.round(((now.getTime() - latestJob.createdAt.getTime()) / (60 * 60 * 1000)) * 10) / 10
+    : null;
+  const healthStatus = getHealthStatus({
+    latestJobStatus: latestJob?.status,
+    latestJobAgeHours,
+    failedRecentJobs,
+    recentErrorRows,
+    successRate: recentImportSuccessRate,
+    recentProcessedRows,
+  });
 
   return {
     metrics: [
@@ -194,7 +225,43 @@ export async function getRakutenSyncDashboardData(now = new Date()): Promise<Rak
       'rakuten-rms-imported-rows': buildDailyTrend(now, syncJobs, job => job.doneRows),
       'rakuten-rms-error-rows': buildDailyTrend(now, syncJobs, job => job.errorRows),
     },
+    healthSummary: {
+      status: healthStatus,
+      latestJobStatus: latestJob?.status ?? null,
+      latestJobAt: latestJob?.createdAt ?? null,
+      latestJobAgeHours,
+      recentJobCount: recentJobs.length,
+      failedRecentJobs,
+      recentImportedRows,
+      recentErrorRows,
+      successRate: recentImportSuccessRate,
+      listingCounts: {
+        total: totalListings,
+        active: activeListings,
+        sellable: sellableProducts,
+        outOfStock: outOfStockProducts,
+        lowStock: lowStockProducts,
+      },
+    },
   };
+}
+
+function getHealthStatus(input: {
+  latestJobStatus?: string;
+  latestJobAgeHours: number | null;
+  failedRecentJobs: number;
+  recentErrorRows: number;
+  successRate: number;
+  recentProcessedRows: number;
+}): MetricStatus {
+  if (!input.latestJobStatus) return 'yellow';
+  if (input.latestJobStatus === 'failed') return 'red';
+  if (input.failedRecentJobs > 0 || input.recentErrorRows > 5 || input.latestJobAgeHours === null || input.latestJobAgeHours > 72) {
+    return 'red';
+  }
+  if (input.recentErrorRows > 0 || input.latestJobAgeHours > 24) return 'yellow';
+  if (input.recentProcessedRows > 0 && input.successRate < 98) return 'yellow';
+  return 'green';
 }
 
 function buildDailyTrend<T extends { createdAt: Date }>(

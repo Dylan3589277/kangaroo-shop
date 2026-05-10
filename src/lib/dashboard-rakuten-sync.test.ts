@@ -77,9 +77,55 @@ describe('getRakutenSyncDashboardData', () => {
     expect(metricsById.get('rakuten-rms-import-success-rate')?.value).toBe(60);
     expect(metricsById.get('rakuten-rms-import-success-rate')?.trendLabel).toBe('最新同步: done');
     expect(Array.from(metricsById.keys()).some(id => id.includes('revenue'))).toBe(false);
+    expect(result.healthSummary).toEqual({
+      status: 'red',
+      latestJobStatus: 'done',
+      latestJobAt: new Date('2026-05-08T00:00:00.000Z'),
+      latestJobAgeHours: 24,
+      recentJobCount: 2,
+      failedRecentJobs: 1,
+      recentImportedRows: 3,
+      recentErrorRows: 2,
+      successRate: 60,
+      listingCounts: {
+        total: 3,
+        active: 1,
+        sellable: 1,
+        outOfStock: 1,
+        lowStock: 1,
+      },
+    });
     expect(result.trendData['rakuten-rms-imported-rows']).toContainEqual({
       date: '2026-05-08',
       value: 2,
     });
+  });
+
+  it('returns an empty Rakuten health summary when there are no sync jobs', async () => {
+    vi.mocked(prisma.productPlatformListing.findMany).mockResolvedValueOnce([] as never);
+    vi.mocked(prisma.syncJob.findMany).mockResolvedValueOnce([] as never);
+
+    const result = await getRakutenSyncDashboardData(new Date('2026-05-09T00:00:00.000Z'));
+
+    expect(result.healthSummary).toEqual({
+      status: 'yellow',
+      latestJobStatus: null,
+      latestJobAt: null,
+      latestJobAgeHours: null,
+      recentJobCount: 0,
+      failedRecentJobs: 0,
+      recentImportedRows: 0,
+      recentErrorRows: 0,
+      successRate: 0,
+      listingCounts: {
+        total: 0,
+        active: 0,
+        sellable: 0,
+        outOfStock: 0,
+        lowStock: 0,
+      },
+    });
+    expect(result.trendData['rakuten-rms-imported-rows']).toHaveLength(30);
+    expect(result.trendData['rakuten-rms-error-rows']).toHaveLength(30);
   });
 });

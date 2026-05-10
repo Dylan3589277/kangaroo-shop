@@ -51,6 +51,25 @@ export interface TrendDataPoint {
   value: number;
 }
 
+export interface RakutenSyncHealthSummary {
+  status: MetricStatus;
+  latestJobStatus: string | null;
+  latestJobAt: string | null;
+  latestJobAgeHours: number | null;
+  recentJobCount: number;
+  failedRecentJobs: number;
+  recentImportedRows: number;
+  recentErrorRows: number;
+  successRate: number;
+  listingCounts: {
+    total: number;
+    active: number;
+    sellable: number;
+    outOfStock: number;
+    lowStock: number;
+  };
+}
+
 // 模块数据
 export interface ModuleData {
   id: ModuleType;
@@ -65,6 +84,7 @@ export interface OverviewData {
   metrics: MetricCard[];
   alerts: Alert[];
   trendData: Record<string, TrendDataPoint[]>;
+  rakutenSyncHealth?: RakutenSyncHealthSummary;
 }
 
 // 筛选条件
