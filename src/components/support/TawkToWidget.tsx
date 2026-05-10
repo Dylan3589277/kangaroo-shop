@@ -9,6 +9,16 @@ declare global {
       showWidget?: () => void;
       hideWidget?: () => void;
       maximize?: () => void;
+      setAttributes?: (
+        attributes: {
+          site: 'kangaroo-shop';
+          locale: string;
+          page_path: string;
+          currency: 'jpy';
+        },
+        callback?: (error?: unknown) => void
+      ) => void;
+      onLoad?: () => void;
     };
     Tawk_LoadStart?: Date;
   }
@@ -16,6 +26,30 @@ declare global {
 
 const TAWK_SCRIPT_ID = 'tawkto-widget-loader';
 const TAWK_SCRIPT_SRC = 'https://embed.tawk.to/69f2b3635ac9531c37ee0244/1jne0pfbd';
+const SUPPORTED_LOCALES = new Set(['en', 'zh', 'ja', 'ko', 'de', 'fr', 'it', 'es', 'th', 'id', 'vi']);
+
+function getLocaleFromPathname(pathname: string | null): string {
+  const firstSegment = pathname?.split('/').filter(Boolean)[0];
+  return firstSegment && SUPPORTED_LOCALES.has(firstSegment) ? firstSegment : 'zh';
+}
+
+function getCurrentPagePath(pathname: string | null): string {
+  if (typeof window === 'undefined') return pathname || '/';
+
+  return `${window.location.pathname}${window.location.search}` || pathname || '/';
+}
+
+function buildTawkAttributes(pathname: string | null) {
+  const pagePath = getCurrentPagePath(pathname);
+
+  return {
+    // 只传低敏上下文：站点、语言、当前页面路径、币种；不自动传订单/邮箱/手机/地址/支付/登录信息。
+    site: 'kangaroo-shop' as const,
+    locale: getLocaleFromPathname(pagePath),
+    page_path: pagePath,
+    currency: 'jpy' as const,
+  };
+}
 
 function ensureTawkScript() {
   if (document.getElementById(TAWK_SCRIPT_ID)) return;
@@ -30,6 +64,17 @@ function ensureTawkScript() {
   script.charset = 'UTF-8';
   script.setAttribute('crossorigin', '*');
   document.body.appendChild(script);
+}
+
+function setTawkAttributes(pathname: string | null) {
+  const attributes = buildTawkAttributes(pathname);
+
+  window.Tawk_API = window.Tawk_API || {};
+  window.Tawk_API.onLoad = () => {
+    window.Tawk_API?.setAttributes?.(buildTawkAttributes(window.location.pathname));
+  };
+
+  window.Tawk_API.setAttributes?.(attributes);
 }
 
 /**
@@ -47,6 +92,7 @@ export function TawkToWidget() {
     }
 
     ensureTawkScript();
+    setTawkAttributes(pathname);
     window.Tawk_API?.showWidget?.();
   }, [pathname]);
 
