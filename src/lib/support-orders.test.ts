@@ -95,6 +95,15 @@ describe('support order helpers', () => {
     });
   });
 
+  it('ignores unsupported payment status filters', () => {
+    const query = parseSupportOrderQuery(new URLSearchParams({
+      status: 'paid OR 1=1',
+    }));
+
+    expect(query.status).toBeUndefined();
+    expect(supportOrderAuditSummary(query).status).toBeNull();
+  });
+
   it('writes structured audit logs without raw search PII', () => {
     const infoSpy = vi.spyOn(console, 'info').mockImplementation(() => undefined);
     const query = parseSupportOrderQuery(new URLSearchParams({

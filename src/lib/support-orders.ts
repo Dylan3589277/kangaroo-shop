@@ -2,16 +2,23 @@ import type { Prisma } from '@prisma/client';
 import { PRODUCT_IMAGE_PLACEHOLDER } from './products';
 
 export const SUPPORT_ORDERS_MAX_PAGE_SIZE = 50;
+export const SUPPORT_ORDER_PAYMENT_STATUSES = ['pending', 'paid', 'failed', 'cancelled', 'refunded'] as const;
 const SUPPORT_ORDER_ITEM_TITLE_FALLBACK = 'Product';
+
+export type SupportOrderPaymentStatus = (typeof SUPPORT_ORDER_PAYMENT_STATUSES)[number];
 
 export type SupportOrderQuery = {
   id?: string;
   orderNumber?: string;
   q?: string;
-  status?: string;
+  status?: SupportOrderPaymentStatus;
   page: number;
   pageSize: number;
 };
+
+export function isSupportOrderPaymentStatus(value: string | undefined): value is SupportOrderPaymentStatus {
+  return Boolean(value && SUPPORT_ORDER_PAYMENT_STATUSES.includes(value as SupportOrderPaymentStatus));
+}
 
 export type SupportOrderRecord = {
   id: string;
@@ -85,11 +92,13 @@ export function parseSupportOrderQuery(searchParams: URLSearchParams): SupportOr
   const requestedPageSize = parseInt(searchParams.get('pageSize') ?? '20', 10) || 20;
   const pageSize = Math.min(Math.max(requestedPageSize, 1), SUPPORT_ORDERS_MAX_PAGE_SIZE);
 
+  const status = statusParam && statusParam !== 'all' && isSupportOrderPaymentStatus(statusParam) ? statusParam : undefined;
+
   return {
     id,
     orderNumber,
     q,
-    status: statusParam && statusParam !== 'all' ? statusParam : undefined,
+    status,
     page,
     pageSize,
   };

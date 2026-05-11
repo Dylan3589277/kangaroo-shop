@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useEffect, useState } from 'react';
-import { Alert, Button, Row, Col, Card, Typography, Segmented, Spin, Empty, Tag } from 'antd';
+import { Alert, Button, Row, Col, Card, Typography, Segmented, Spin, Empty, Tag, Progress } from 'antd';
 import {
   UserOutlined,
   AccountBookOutlined,
@@ -69,17 +69,21 @@ function formatLatestJobAt(value: string | null) {
 
 function RakutenHealthCard({ health }: { health: RakutenSyncHealthSummary }) {
   const status = STATUS_TAG[health.status];
+  const latestJobStatusLabel = health.latestJobStatus
+    ? JOB_STATUS_LABEL[health.latestJobStatus] ?? health.latestJobStatus
+    : '暂无';
+  const successStrokeColor = health.status === 'green' ? COLORS.green : health.status === 'yellow' ? COLORS.yellow : COLORS.red;
   const summaryItems = [
-    { label: '距上次同步', value: formatLatestJobAge(health.latestJobAgeHours) },
-    { label: '近30天作业数', value: formatHealthNumber(health.recentJobCount, '次') },
-    { label: '导入成功率', value: formatHealthPercent(health.successRate) },
-    { label: '错误行数', value: formatHealthNumber(health.recentErrorRows, '行') },
+    { label: '距上次同步', value: formatLatestJobAge(health.latestJobAgeHours), hint: '越短越新鲜' },
+    { label: '近30天作业数', value: formatHealthNumber(health.recentJobCount, '次'), hint: `失败 ${formatHealthNumber(health.failedRecentJobs, '次')}` },
+    { label: '成功导入行', value: formatHealthNumber(health.recentImportedRows, '行'), hint: `错误 ${formatHealthNumber(health.recentErrorRows, '行')}` },
   ];
   const listingItems = [
-    { label: '上架记录', value: health.listingCounts.total },
-    { label: '库存可售', value: health.listingCounts.sellable },
-    { label: '缺货', value: health.listingCounts.outOfStock },
-    { label: '低库存', value: health.listingCounts.lowStock },
+    { label: '全部记录', value: health.listingCounts.total, color: COLORS.blue },
+    { label: '有效上架', value: health.listingCounts.active, color: COLORS.green },
+    { label: '库存可售', value: health.listingCounts.sellable, color: COLORS.cyan },
+    { label: '缺货', value: health.listingCounts.outOfStock, color: COLORS.red },
+    { label: '低库存', value: health.listingCounts.lowStock, color: COLORS.yellow },
   ];
 
   return (
@@ -88,29 +92,56 @@ function RakutenHealthCard({ health }: { health: RakutenSyncHealthSummary }) {
       extra={<Tag color={status.color}>{status.label}</Tag>}
       style={{ marginBottom: '24px' }}
     >
-      <Row gutter={[16, 16]}>
-        <Col xs={24} lg={8}>
-          <div style={{ color: '#999', fontSize: '13px', marginBottom: '8px' }}>最新同步状态</div>
-          <div style={{ fontSize: '24px', fontWeight: 600, color: '#333' }}>
-            {health.latestJobStatus ? JOB_STATUS_LABEL[health.latestJobStatus] ?? health.latestJobStatus : '暂无'}
+      <Row gutter={[16, 16]} align="stretch">
+        <Col xs={24} lg={7}>
+          <div style={{ border: '1px solid #f0f0f0', borderRadius: '8px', padding: '16px', height: '100%' }}>
+            <div style={{ color: '#999', fontSize: '13px', marginBottom: '8px' }}>最新同步状态</div>
+            <div style={{ fontSize: '26px', fontWeight: 700, color: '#333', marginBottom: '6px' }}>
+              {latestJobStatusLabel}
+            </div>
+            <Text type="secondary" style={{ fontSize: '12px' }}>
+              最近执行：{formatLatestJobAt(health.latestJobAt)}
+            </Text>
           </div>
-          <Text type="secondary" style={{ fontSize: '12px' }}>
-            {formatLatestJobAt(health.latestJobAt)}
-          </Text>
         </Col>
-        {summaryItems.map(item => (
-          <Col xs={12} sm={6} lg={4} key={item.label}>
-            <div style={{ color: '#999', fontSize: '13px', marginBottom: '8px' }}>{item.label}</div>
-            <div style={{ fontSize: '22px', fontWeight: 600, color: '#333' }}>{item.value}</div>
-          </Col>
-        ))}
+
+        <Col xs={24} lg={5}>
+          <div style={{ border: '1px solid #f0f0f0', borderRadius: '8px', padding: '16px', height: '100%' }}>
+            <div style={{ color: '#999', fontSize: '13px', marginBottom: '8px' }}>近30天导入成功率</div>
+            <Progress
+              percent={Number(health.successRate.toFixed(1))}
+              strokeColor={successStrokeColor}
+              trailColor="#f5f5f5"
+              size="small"
+            />
+            <div style={{ fontSize: '22px', fontWeight: 700, color: '#333', marginTop: '6px' }}>
+              {formatHealthPercent(health.successRate)}
+            </div>
+          </div>
+        </Col>
+
+        <Col xs={24} lg={12}>
+          <Row gutter={[12, 12]}>
+            {summaryItems.map(item => (
+              <Col xs={24} sm={8} key={item.label}>
+                <div style={{ border: '1px solid #f0f0f0', borderRadius: '8px', padding: '14px', height: '100%' }}>
+                  <div style={{ color: '#999', fontSize: '13px', marginBottom: '6px' }}>{item.label}</div>
+                  <div style={{ fontSize: '22px', fontWeight: 700, color: '#333' }}>{item.value}</div>
+                  <Text type="secondary" style={{ fontSize: '12px' }}>{item.hint}</Text>
+                </div>
+              </Col>
+            ))}
+          </Row>
+        </Col>
+
         <Col xs={24}>
+          <div style={{ color: '#999', fontSize: '13px', marginBottom: '8px' }}>商品库存概览</div>
           <Row gutter={[12, 12]}>
             {listingItems.map(item => (
-              <Col xs={12} sm={6} key={item.label}>
-                <div style={{ border: '1px solid #f0f0f0', borderRadius: '6px', padding: '12px' }}>
+              <Col xs={12} sm={8} md={4} key={item.label}>
+                <div style={{ border: '1px solid #f0f0f0', borderRadius: '8px', padding: '12px' }}>
                   <div style={{ color: '#999', fontSize: '13px', marginBottom: '6px' }}>{item.label}</div>
-                  <div style={{ fontSize: '20px', fontWeight: 600, color: '#333' }}>
+                  <div style={{ fontSize: '20px', fontWeight: 700, color: item.color }}>
                     {formatHealthNumber(item.value, '件')}
                   </div>
                 </div>

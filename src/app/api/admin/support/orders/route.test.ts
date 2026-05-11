@@ -130,6 +130,24 @@ describe('GET /api/admin/support/orders', () => {
     infoSpy.mockRestore();
   });
 
+  it('ignores unsupported payment status filters before building database query', async () => {
+    vi.mocked(prisma.order.findMany).mockResolvedValueOnce([] as never);
+    vi.mocked(prisma.order.count).mockResolvedValueOnce(0 as never);
+    const infoSpy = vi.spyOn(console, 'info').mockImplementation(() => undefined);
+
+    const response = await GET(request('http://localhost/api/admin/support/orders?status=paid%20OR%201%3D1'));
+
+    expect(response.status).toBe(200);
+    expect(prisma.order.findMany).toHaveBeenCalledWith(expect.objectContaining({
+      where: {},
+    }));
+    expect(infoSpy).toHaveBeenCalledWith('admin_support_order_query', expect.objectContaining({
+      query: expect.objectContaining({ status: null }),
+    }));
+
+    infoSpy.mockRestore();
+  });
+
   it('supports single orderNumber lookup with masked response and structured audit fields', async () => {
     vi.mocked(prisma.order.findFirst).mockResolvedValueOnce(orderRecord as never);
     const infoSpy = vi.spyOn(console, 'info').mockImplementation(() => undefined);
