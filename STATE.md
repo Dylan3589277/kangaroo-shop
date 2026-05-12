@@ -9,9 +9,10 @@ Progress：
 - ✅ tawk.to 客服入口与三语言 FAQ 帮助页已在 kangaroo-shop 上线
 - ✅ 管理端 API 认证、订单隐私脱敏、支付金额服务端重算、PayPal capture 归属/金额/币种校验已完成并上线
 - ✅ 全站 API 路由直接 `req.json()` / `request.json()` 已清零，统一接入 `parseRequestJsonObject`，空 body/非法 JSON/null/数组/非对象请求体返回 400，避免生产 500
+- ✅ 文档口径已统一：当前线上地址为 `https://kangaroo-shop-orpin.vercel.app`；商品、订单、优惠券金额字段均为 JPY 整数金额，数据库值即日元金额，不做 `/100`
 - ✅ 最新功能提交 `5f05fa7 Harden payment creation request parsing` 已 push 到 `origin/main`，Vercel 生产部署 Ready，主域可访问
 - ✅ 项目进度文档已保存并推送到 `origin/main`
-Updated：2026-05-01 09:44 JST
+Updated：2026-05-12 14:05 CST
 线上地址：https://kangaroo-shop-orpin.vercel.app
 Ports：本地开发通常为 localhost:3000；端口占用时 Next.js 会自动切到 3001
 Created：2026-03

@@ -7,7 +7,7 @@
 
 ### 现状（第一阶段结束时）
 - 商品展示、购物车、PayPal/Stripe 支付全链路已通
-- 部署地址：https://kangaroo-shop-tan.vercel.app
+- 部署地址：https://kangaroo-shop-orpin.vercel.app
 - **数据存储：内存（Map），服务器重启丢失，无持久化**
 - **无管理后台，无法查看/管理订单**
 - **无邮件通知，客户支付后不知道订单状态**
@@ -96,7 +96,7 @@ CREATE TABLE products (
   id            VARCHAR(36) PRIMARY KEY,  -- cuid
   title         VARCHAR(255) NOT NULL,
   title_en      VARCHAR(255),
-  price         INT NOT NULL,              -- JPY，单位分（int避免浮点）
+  price         INT NOT NULL,              -- JPY 整数金额，数据库值即日元金额（不除以 100）
   original_price INT,
   currency      ENUM('JPY') DEFAULT 'JPY',
   images        JSON,                      -- ['/img/1.jpg', ...]
@@ -126,7 +126,7 @@ CREATE TABLE orders (
   stripe_payment_intent_id VARCHAR(50),
 
   -- 金额
-  subtotal      INT NOT NULL,              -- JPY，单位分
+  subtotal      INT NOT NULL,              -- JPY 整数金额，数据库值即日元金额（不除以 100）
   shipping_fee  INT DEFAULT 0,
   total         INT NOT NULL,
 
@@ -350,7 +350,7 @@ CREATE TABLE products (
   id            UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
   title         VARCHAR(255) NOT NULL,
   title_en      VARCHAR(255),
-  price         INTEGER NOT NULL,              -- JPY，单位分
+  price         INTEGER NOT NULL,              -- JPY 整数金额，数据库值即日元金额（不除以 100）
   original_price INTEGER,
   currency      VARCHAR(10) DEFAULT 'JPY',
   images        JSONB DEFAULT '[]',            -- ['/img/1.jpg', ...]
@@ -379,7 +379,7 @@ CREATE TABLE orders (
   paypal_order_id VARCHAR(50),
   stripe_payment_intent_id VARCHAR(50),
 
-  -- 金额（JPY，分）
+  -- 金额（JPY 整数金额，数据库值即日元金额，不除以 100）
   subtotal      INTEGER NOT NULL,
   shipping_fee  INTEGER DEFAULT 0,
   total         INTEGER NOT NULL,

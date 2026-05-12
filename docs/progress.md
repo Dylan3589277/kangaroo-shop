@@ -6,6 +6,35 @@
 
 ---
 
+## 2026-05-12 — 文档口径统一：线上主域与 JPY 金额单位 ✅
+
+### 本次目标
+
+统一 kangaroo-shop 文档与代码注释中的两个易误导口径：
+
+- 当前线上主域统一为 `https://kangaroo-shop-orpin.vercel.app`。
+- 商品、订单、优惠券金额字段统一为 JPY 整数金额，数据库值即日元金额，不做 `/100`。
+
+### 已处理
+
+- README、SEO Phase2、Phase2 plan、progress 历史引用里的旧 Vercel 地址已统一为当前主域。
+- Prisma schema 与订单状态文档中的金额字段注释已改为 JPY 整数金额口径。
+- 优惠券最低订单金额错误提示去掉 `/100`，避免 `3000` 被展示成 `¥30`。
+- 补充 `POST /api/promotions` 测试，锁定最低订单金额提示使用 JPY 整数金额。
+
+### 验证记录
+
+```bash
+pnpm test
+pnpm lint
+pnpm exec tsc --noEmit --skipLibCheck
+pnpm build
+```
+
+结果：全部通过。lint/build 仅保留既有 `src/app/og/[id]/route.tsx` 的 `<img>` 提示，不阻断。
+
+---
+
 ## 2026-05-01 — API 请求体加固闭环完成并生产上线 ✅
 
 ### 本阶段目标
@@ -120,7 +149,7 @@ rg "await\s+req\.json\(\)|await\s+request\.json\(" src/app/api
 
 ### 部署
 
-- Vercel v5 部署成功：`https://kangaroo-shop-tan.vercel.app`
+- Vercel v5 部署成功：`https://kangaroo-shop-orpin.vercel.app`
 - nodemailer@8.0.5 + @types/nodemailer@8.0.0 已安装
 - SMTP 环境变量模板已写入 `.env` 和 `.env.local`
 

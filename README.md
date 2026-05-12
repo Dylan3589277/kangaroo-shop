@@ -8,7 +8,7 @@ Next.js 14 · TypeScript · Tailwind CSS · Stripe · PayPal · Vercel
 
 ## 快速链接
 
-- 线上地址：https://kangaroo-shop-tan.vercel.app
+- 线上地址：https://kangaroo-shop-orpin.vercel.app
 - 项目状态：→ [STATE.md](STATE.md)
 - 详细进展：→ [docs/progress.md](docs/progress.md)
 - 部署指南：→ [DEPLOY.md](DEPLOY.md)

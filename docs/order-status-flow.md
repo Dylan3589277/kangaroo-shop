@@ -206,7 +206,7 @@ Body: { paymentMethod, items, subtotal, shippingFee, courier, shippingAddress, .
 | `paymentStatus` | String | `pending`/`paid`/`failed`/`cancelled`/`refunded` |
 | `paypalOrderId` | String? | PayPal 订单 ID |
 | `stripePaymentIntentId` | String? | Stripe PaymentIntent ID |
-| `total` | Int | 订单总额（JPY，分） |
+| `total` | Int | 订单总额（JPY 整数金额，数据库值即日元金额，不除以 100） |
 | `createdAt` | DateTime | 创建时间 |
 | `updatedAt` | DateTime | 更新时间 |
 

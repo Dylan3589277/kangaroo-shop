@@ -77,7 +77,7 @@ export async function POST(req: NextRequest) {
       return NextResponse.json(
         { 
           valid: false, 
-          error: `订单金额需满 ¥${Math.floor(promotion.minOrderAmount / 100)} 才能使用此优惠券` 
+          error: `订单金额需满 ¥${promotion.minOrderAmount} 才能使用此优惠券` 
         },
         { status: 200 }
       );

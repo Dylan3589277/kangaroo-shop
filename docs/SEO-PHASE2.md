@@ -107,9 +107,9 @@ pnpm add @vercel/og
 
 ### 接入步骤
 
-1. **添加站点**：打开 https://search.google.com/search-console → 添加属性 → 输入域名 `https://kangaroo-shop-tan.vercel.app`
+1. **添加站点**：打开 https://search.google.com/search-console → 添加属性 → 输入域名 `https://kangaroo-shop-orpin.vercel.app`
 2. **验证所有权**：推荐 DNS 验证（TXT 记录在 vercel 域名面板添加）或 HTML 文件验证
-3. **提交 Sitemap**：在 GSC 中提交 `https://kangaroo-shop-tan.vercel.app/sitemap.xml`
+3. **提交 Sitemap**：在 GSC 中提交 `https://kangaroo-shop-orpin.vercel.app/sitemap.xml`
 4. **添加 robots.txt**：当前已生成，确认包含 sitemap URL
 5. **设置目标国家**：在 GSC → 设置 → 国际定位 → 选择目标市场（日本、美国等）
 
@@ -195,7 +195,7 @@ pnpm add @vercel/og
 
 ```bash
 # 1. Lighthouse 评分（本地运行）
-npx lighthouse https://kangaroo-shop-tan.vercel.app --view
+npx lighthouse https://kangaroo-shop-orpin.vercel.app --view
 
 # 2. 检查 Core Web Vitals
 # 使用 Chrome DevTools → Performance → Core Web Vitals
@@ -204,7 +204,7 @@ npx lighthouse https://kangaroo-shop-tan.vercel.app --view
 # 使用 Chrome DevTools → Coverage (Ctrl+Shift+P → Coverage)
 
 # 4. 检查图片优化
-curl -I https://kangaroo-shop-tan.vercel.app/_next/image?url=...
+curl -I https://kangaroo-shop-orpin.vercel.app/_next/image?url=...
 ```
 
 ---
